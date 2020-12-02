@@ -49,7 +49,6 @@ class GenerateCantusFirmus:
         self._length = length or 8 + math.floor(random() * 5) #todo: replace with normal distribution
         self._octave = octave
         self._mr = ModeResolver(self._mode)
-        self._cf = CantusFirmus(self._length, self._mr, self._octave)
         
     def generate_cf(self) -> CantusFirmus:
         print("MODE = ", self._mode.value["name"])
@@ -64,8 +63,9 @@ class GenerateCantusFirmus:
         print("number of solutions found:", len(self._solutions))
         print("attempts:", run_count)
         self._solutions = sorted(self._solutions, key = self._steps_are_proportional)
-        for i, note in enumerate(self._solutions[0]):
-            self._cf.insert_note(note, i)
+        if len(self._solutions) > 0:
+            for i, note in enumerate(self._solutions[0]):
+                self._cf.insert_note(note, i)
         return self._cf
         
     def _steps_are_proportional(self, solution: list[Note]) -> int:
@@ -77,6 +77,7 @@ class GenerateCantusFirmus:
         return abs(proportion - AVERAGE_STEPS_PERCENTAGE)
 
     def _initialize_cf(self):
+        self._cf = CantusFirmus(self._length, self._mr, self._octave)
         #"final" is equal to the mode's starting scale degree.  All notes in the cantus firmus will be whole notes
         final = Note(self._mode.value["starting"], self._octave, 8) 
         #add the "final" to the first and last pitches 
@@ -102,10 +103,10 @@ class GenerateCantusFirmus:
         possible_lowest_notes = []
         for interval in GET_POSSIBLE_INTERVALS_TO_LOWEST[final_to_highest_interval]:
             possible_lowest_notes += self._get_notes_from_interval(final, interval)
-        #remove candidates that form tritones with highest note (sevenths are permissible)
+        #remove candidates that form tritones or cross relations with highest note (sevenths are permissible)
         def check_range_interval(tpl: tuple) -> bool:
             note = tpl[1]
-            if highest_note.get_chromatic_with_octave() - note.get_chromatic_with_octave() == 6:
+            if highest_note.get_chromatic_with_octave() - note.get_chromatic_with_octave() in [6, 11, 13]:
                 return False 
             return True
         possible_lowest_notes = list(filter(check_range_interval, possible_lowest_notes))
@@ -407,7 +408,7 @@ class GenerateCantusFirmus:
             new_sdg -= 7
         new_note = Note(new_sdg, new_octv, 8)
         valid_notes = [new_note]
-        if self._mode == ModeOption.DORIAN and new_sdg == 7:
+        if (self._mode == ModeOption.DORIAN or self._mode == ModeOption.LYDIAN) and new_sdg == 7:
             valid_notes.append(Note(new_sdg, new_octv, 8, accidental = ScaleOption.FLAT))
         def valid_interval(next_note: Note) -> bool:
             chro_interval = next_note.get_chromatic_with_octave() - note.get_chromatic_with_octave()
