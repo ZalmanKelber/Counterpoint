@@ -17,7 +17,7 @@ CONSONANT_HARMONIC_INTERVALS_CHROMATIC = { 0, 3, 4, 7, 8, 9, 12 }
 CONSONANT_HARMONIC_INTERVALS_SCALE_DEGREES = { -10, -8, -6, -5, -3, 3, 5, 6, 8, 10 }
 #illegal combinations of sdg intervals and chromatic intervals that result in augmented or diminished intervals 
 #respectively: cross relations, augmented seconds, diminished thirds, diminished fourths, augmented fifths and augmented sixths
-FORBIDDEN_INTERVAL_COMBINATIONS = { (1, 1), (2, 3), (3, 2), (4, 4), (5, 8), (6, 10) }
+FORBIDDEN_INTERVAL_COMBINATIONS = { (1, 1), (1, 11), (2, 3), (3, 2), (4, 4), (5, 8), (6, 10) }
 
 #use indices to generate random mode
 MODES_BY_INDEX = [ModeOption.IONIAN, ModeOption.DORIAN, ModeOption.PHRYGIAN, ModeOption.LYDIAN, ModeOption.MIXOLYDIAN, ModeOption.AEOLIAN ]
@@ -132,7 +132,7 @@ class GenerateTwoPartFirstSpecies:
 
         #adjust penult_note 
         if end_to_penult_interval == -2 and ending_interval != 5: #that is, if we're approaching the mode final from below
-            if self._mode in [ModeOption.DORIAN, ModeOption.MIXOLYDIAN, ModeOption.AEOLIAN]:
+            if self._mode in [ModeOption.DORIAN, ModeOption.MIXOLYDIAN, ModeOption.AEOLIAN] and random() > .5:
                 penult_note.set_accidental(ScaleOption.SHARP)
 
         #find lowest note so far
@@ -149,7 +149,7 @@ class GenerateTwoPartFirstSpecies:
         #find highest note so far
         highest_so_far = first_note if starting_interval > ending_interval else penult_note if end_to_penult_interval > 0 else last_note
         #get possible highest notes
-        highest_note_candidates = [highest_so_far] if (starting_interval > ending_interval or end_to_penult_interval > 0) and range_so_far >= 5 else []
+        highest_note_candidates = [highest_so_far] if (starting_interval > ending_interval or end_to_penult_interval > 0) and range_so_far >= 6 else []
         for i in range(max(6 - range_so_far, 0), 8 - range_so_far):
             candidate = self._get_default_note_from_interval(highest_so_far, i + 1)
             if candidate.get_accidental() != ScaleOption.SHARP and self._valid_range(lowest_note, candidate) and self._valid_outline(first_note, candidate) and self._valid_outline(last_note, candidate):
@@ -452,7 +452,8 @@ class GenerateTwoPartFirstSpecies:
         if chro_interval == 0: return False
         sdg_interval = note1.get_scale_degree_interval(note2)
         if sdg_interval in CONSONANT_HARMONIC_INTERVALS_SCALE_DEGREES and chro_interval % 12 in CONSONANT_MELODIC_INTERVALS_CHROMATIC:
-            if (abs(sdg_interval if sdg_interval <= 8 else sdg_interval - 7), abs(chro_interval % 12)) not in FORBIDDEN_INTERVAL_COMBINATIONS:
+            combo = (abs(sdg_interval if sdg_interval <= 8 else sdg_interval - 7), abs(chro_interval) % 12)
+            if combo not in FORBIDDEN_INTERVAL_COMBINATIONS:
                 return True 
         return False 
 
@@ -498,9 +499,9 @@ class GenerateTwoPartFirstSpecies:
 
     def _no_cross_relations_with_previously_added(self, note: Note) -> bool:
         for n in self._counterpoint:
-            if n.get_scale_degree_interval(note) == 1 and n.get_chromatic_interval(note) != 0: 
+            if n is not None and n.get_scale_degree_interval(note) == 1 and n.get_chromatic_interval(note) != 0: 
                 return False 
-            return True
+        return True
 
     def _segment_has_legal_shape(self, seg: list[Note]) -> bool:
         if len(seg) < 3: return True 
