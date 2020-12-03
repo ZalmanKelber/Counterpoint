@@ -1,7 +1,7 @@
 from random import random, shuffle
+import math
 
 from notation_system import ModeOption, ScaleOption, Note, ModeResolver 
-import math
 
 #intervals it is permissible to move directly to
 VALID_MELODIC_INTERVALS_CHROMATIC = { -12, -7, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 7, 8, 12 }
@@ -37,6 +37,20 @@ class CantusFirmus:
     def get_note(self, index: int) -> Note:
         return self._notes[index]
 
+    def get_highest_note(self) -> Note:
+        highest = self._notes[1]
+        for i in range(2, len(self._notes) - 1): #note that the first and last notes can't be the highest
+            if highest.get_chromatic_interval(self._notes[i]) > 0:
+                highest = self._notes[i]
+        return highest 
+    
+    def get_lowest_note(self) -> Note:
+        lowest = self._notes[0]
+        for i in range(1, len(self._notes)):
+            if lowest.get_chromatic_interval(self._notes[i]) < 0:
+                lowest = self._notes[i]
+        return lowest 
+
     def print_cf(self) -> None:
         for note in self._notes:
             print(note)
@@ -66,7 +80,8 @@ class GenerateCantusFirmus:
         if len(self._solutions) > 0:
             for i, note in enumerate(self._solutions[0]):
                 self._cf.insert_note(note, i)
-        return self._cf
+            return self._cf
+        else: return None
         
     def _steps_are_proportional(self, solution: list[Note]) -> int:
         steps = 0

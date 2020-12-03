@@ -109,6 +109,10 @@ class ModeResolver:
         else:
             return self.resolve_b()
 
+    def make_default_scale_option(self, note: Note) -> None:
+        sdg = note.get_scale_degree()
+        note.set_accidental(self.get_default_scale_option(sdg))
+
 
         
 
