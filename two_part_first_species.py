@@ -57,11 +57,20 @@ class GenerateTwoPartFirstSpecies:
         while self._cf is None or (self._cf.get_note(self._length - 2).get_scale_degree_interval(self._cf.get_note(self._length - 1)) < -2 and orientation == Orientation.BELOW):
             self._cf = gcf.generate_cf()
 
-    def print_counterpoint(self):
+    def print_counterpoint(self) -> None:
         print("  CANTUS FIRMUS:       COUNTERPOINT:")
         for i in range(self._length):
             print("  " + str(self._cf.get_note(i)) + "  " + str(self._counterpoint[i]))
 
+    def get_optimal(self) -> list[list[Note]]:
+        if self._solutions is None or len(self._solutions) == 0:
+            return None
+        return [self._cf.get_notes(), self._solutions[0]]
+
+    def get_worst(self) -> list[list[Note]]:
+        if self._solutions is None or len(self._solutions) == 0:
+            return None
+        return [self._cf.get_notes(), self._solutions[-1]]
 
     def generate_2p1s(self):
         print("MODE = ", self._mode.value["name"])

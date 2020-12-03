@@ -37,6 +37,9 @@ class CantusFirmus:
     def get_note(self, index: int) -> Note:
         return self._notes[index]
 
+    def get_notes(self) -> list[Note]:
+        return self._notes
+
     def get_highest_note(self) -> Note:
         highest = self._notes[1]
         for i in range(2, len(self._notes) - 1): #note that the first and last notes can't be the highest
