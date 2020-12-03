@@ -84,6 +84,32 @@
 
   * Average runtime for this process is about 35 milliseconds 
 
+* Dec 3 2020: added program that creates [two part first species exercises](https://github.com/ZalmanKelber/Counterpoint/blob/main/two_part_first_species.py) but there are still violations (detailed below).  This exercise introduces considerably greater complexity, although there are some loosening on the rules of melody from the plain Cantus Firmus examples.  Namely:
+
+  * Jeppesen: incorrect ordering of larger and smaller intervals is forgiven when "segments" are limited to three or fewer intervals and intervals are no greater than thirds 
+
+  However, melodies are now considerably more complex:
+
+  * Sharps are now permitted (on C, F and G as well as D# in Aeolian)
+
+  * If the Counterpoint is in the upper voice, it may start and/or end a fifth above the mode's "final"
+
+  We now consider the requirements of harmony:
+
+  * Consonant intervals only, exluding augmented and diminished enharmonic equivalents (TO DO: fix remaining violations)
+
+  * Unisons not permitted except on first and last note 
+
+  And the rules of counterpoint:
+
+  * Parallel fifths and octaves as well as hidden fifths and octaves may not occur 
+
+  * The Counterpoint and Cantus Firmus cannot be separated by the same (scale degree-based) harmonic interval for more than four consecutive notes
+
+  * If both voices leap in the same direction, neither leap can be greater than a fourth (TO DO: fix remaining violations)
+
+  TO DO: find a method of scoring the resulting exercises and use those scores to sort them and find the optimal solutions
+
 ### Notes:
 
 1. The *equal temperment* will be used for all pitch representation, and historical tuning will be considered well beyond the scope of this project
