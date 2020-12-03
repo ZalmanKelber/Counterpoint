@@ -92,6 +92,8 @@
 
   * Sharps are now permitted (on C, F and G as well as D# in Aeolian)
 
+  * Simplification: don't allow cross relations to occur within the same melody (TO DO: fix remaining violations)
+
   * If the Counterpoint is in the upper voice, it may start and/or end a fifth above the mode's "final"
 
   We now consider the requirements of harmony:
