@@ -7,20 +7,7 @@ from notation_system import Note
 
 class MidiWriter:
     def write_midi_from_counterpoint(self, lines: list[list[Note]], filename: str) -> None:
-        # degrees  = [60, 62, 64, 65, 67, 69, 71, 72]  # MIDI note number
-        # track    = 0
-        # channel  = 0
-        # time     = 0    # In beats
-        # duration = 1    # In beats
-        # tempo    = 60   # In BPM
-        # volume   = 100  # 0-127, as per the MIDI standard
-
-        # MyMIDI = MIDIFile(1)  # One track, defaults to format 1 (tempo track is created
-        #                     # automatically)
-        # MyMIDI.addTempo(track, time, tempo)
-
-        # for i, pitch in enumerate(degrees):
-        #     MyMIDI.addNote(track, channel, pitch, time + i, duration, volume)
+        if lines is None: return
         tempo = 672
         volume = 100
         channel = 0
@@ -32,7 +19,7 @@ class MidiWriter:
         for line in lines:
             time_index = start_time
             for note in line:
-                duration = note.get_duration()
+                duration = note.get_duration() / 2
                 pitch = note.get_chromatic_with_octave()
                 CounterpointMIDI.addNote(track, channel, pitch, time_index, duration, volume)
                 time_index += duration

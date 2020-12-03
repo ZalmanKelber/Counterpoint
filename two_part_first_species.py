@@ -92,11 +92,8 @@ class GenerateTwoPartFirstSpecies:
             optimal = self._solutions[0]
             worst = self._solutions[-1]
             self._counterpoint = optimal
-            print("optimal solution:")
             self.print_counterpoint()
-            self._counterpoint = worst
-            print("worst solution:")
-            self.print_counterpoint()
+
 
 
     #create the list we will backtrack through, find first, last, highest and lowest notes
@@ -469,7 +466,7 @@ class GenerateTwoPartFirstSpecies:
         chro_interval = note1.get_chromatic_interval(note2)
         if chro_interval == 0: return False
         sdg_interval = note1.get_scale_degree_interval(note2)
-        if sdg_interval in CONSONANT_HARMONIC_INTERVALS_SCALE_DEGREES and chro_interval % 12 in CONSONANT_MELODIC_INTERVALS_CHROMATIC:
+        if sdg_interval in CONSONANT_HARMONIC_INTERVALS_SCALE_DEGREES and abs(chro_interval) % 12 in CONSONANT_HARMONIC_INTERVALS_CHROMATIC:
             combo = (abs(sdg_interval if sdg_interval <= 8 else sdg_interval - 7), abs(chro_interval) % 12)
             if combo not in FORBIDDEN_INTERVAL_COMBINATIONS:
                 return True 
