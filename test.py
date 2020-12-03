@@ -17,7 +17,7 @@ def main():
     #     cf.print_cf()
     # print("program runtime:", (time() - start_time) * 1000)
     start_time = time()
-    g2p1s = GenerateTwoPartFirstSpecies(11, ModeOption.MIXOLYDIAN)
+    g2p1s = GenerateTwoPartFirstSpecies(11, ModeOption.AEOLIAN)
     g2p1s.generate_2p1s()
     print("program runtime:", (time() - start_time) * 1000)
    

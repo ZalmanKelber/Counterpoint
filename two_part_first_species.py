@@ -35,6 +35,9 @@ GET_POSSIBLE_INTERVALS_TO_LOWEST = {
 #this is the average proportion of intervals that are steps in Jeppesen's Cantus Firmus examples
 AVERAGE_STEPS_PERCENTAGE = .712
 
+#acceptable max number of a repeated note, based on the length of the counterpoint
+MAX_ACCEPTABLE_REPITITIONS_BASED_ON_LENGTH = { 8: 3, 9: 3, 10: 3, 11: 4, 12: 4 }
+
 class Orientation (Enum):
     ABOVE = "ABOVE"
     BELOW = "BELOW"
@@ -70,14 +73,20 @@ class GenerateTwoPartFirstSpecies:
             self._backtrack()
         attempt()
         attempts = 1
-        while len(self._solutions) == 0 and attempts < 100:
+        while len(self._solutions) < 30 and attempts < 1000:
             attempts += 1
             attempt()
         print("number of attempts:", attempts)
         print("number of solutions:", len(self._solutions))
         if len(self._solutions) > 0:
+            self._solutions.sort(key = lambda sol: self._score_solution(sol))
             optimal = self._solutions[0]
+            worst = self._solutions[-1]
             self._counterpoint = optimal
+            print("optimal solution:")
+            self.print_counterpoint()
+            self._counterpoint = worst
+            print("worst solution:")
             self.print_counterpoint()
 
 
@@ -375,7 +384,7 @@ class GenerateTwoPartFirstSpecies:
         return True
         
     def _passes_final_checks(self) -> bool:
-        return self._no_intervalic_sequences() and self._ascending_intervals_handled and self._no_extended_parallel_motion()
+        return self._no_intervalic_sequences() and self._ascending_intervals_handled() and self._no_extended_parallel_motion()
 
     def _no_intervalic_sequences(self) -> bool:
         #check if an intervalic sequence of four or more notes repeats
@@ -511,6 +520,7 @@ class GenerateTwoPartFirstSpecies:
             if cur_interval > prev_interval:
                 if len(seg) > 4 or cur_interval not in [3, -2] or prev_interval < -3:
                     return False 
+            prev_interval = cur_interval
         return True 
 
     def _segment_outlines_legal_interval(self, seg: list[Note]) -> bool:
@@ -524,6 +534,53 @@ class GenerateTwoPartFirstSpecies:
                 if not self._valid_outline(chain[i], chain[j]):
                     return False 
         return True 
+
+    def _score_solution(self, solution: list[Note]) -> int:
+        score = 0 #violations will result in increases to score
+        #start by determining ratio of steps
+        num_steps = 0
+        num_leaps = 0
+        for i in range(1, self._length):
+            if abs(solution[i - 1].get_scale_degree_interval(solution[i])) == 2:
+                num_steps += 1
+            elif abs(solution[i - 1].get_scale_degree_interval(solution[i])) > 3:
+                num_leaps += 1
+        ratio = num_steps / (self._length - 1)
+        if ratio > AVERAGE_STEPS_PERCENTAGE: score += math.floor((ratio - AVERAGE_STEPS_PERCENTAGE) * 20)
+        elif ratio < AVERAGE_STEPS_PERCENTAGE: score += math.floor((AVERAGE_STEPS_PERCENTAGE - ratio) * 100)
+        if num_leaps == 0: score += 15
+
+        #next, find the frequency of the most repeated note
+        most_frequent = 1
+        for i, note in enumerate(solution):
+            freq = 1
+            for j in range(i + 1, self._length):
+                if note.get_chromatic_interval(solution[j]) == 0:
+                    freq += 1
+            most_frequent = max(most_frequent, freq)
+        max_acceptable = MAX_ACCEPTABLE_REPITITIONS_BASED_ON_LENGTH[self._length]
+        if most_frequent > max_acceptable:
+            score += (most_frequent - max_acceptable) * 15
+
+        #next, see if sharps are follwed by an ascending step
+        for i, note in enumerate(solution):
+            if note.get_accidental() == ScaleOption.SHARP:
+                next_interval = note.get_scale_degree_interval(solution[i + 1]) #note that a sharp will never be in the last position
+                if next_interval == 3:
+                    score += 5
+                elif next_interval != 2:
+                    score += 15
+
+        #finally, assess the number of favored harmonic intervals 
+        for i in range(1, self._length - 1):
+            harmonic_interval = abs(solution[i].get_scale_degree_interval(self._cf.get_note(i)))
+            if harmonic_interval == 10: score += 2
+            if harmonic_interval in [5, 8]: score += 5
+
+        return score
+        
+
+
 
     def _get_default_note_from_interval(self, note: Note, interval: int) -> Note:
         candidates = self._get_notes_from_interval(note, interval)
