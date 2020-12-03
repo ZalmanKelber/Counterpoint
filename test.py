@@ -16,8 +16,11 @@ def main():
     #     cf = gcf.generate_cf()
     #     cf.print_cf()
     # print("program runtime:", (time() - start_time) * 1000)
-    g2p1s = GenerateTwoPartFirstSpecies(8, ModeOption.IONIAN)
+    start_time = time()
+    g2p1s = GenerateTwoPartFirstSpecies(11, ModeOption.DORIAN)
     g2p1s.generate_2p1s()
+    print("program runtime:", (time() - start_time) * 1000)
+   
 
 if __name__ == "__main__":
     main()

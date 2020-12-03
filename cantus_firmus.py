@@ -65,7 +65,6 @@ class GenerateCantusFirmus:
         self._mr = ModeResolver(self._mode)
         
     def generate_cf(self) -> CantusFirmus:
-        print("MODE = ", self._mode.value["name"])
         run_count = 1
         self._solutions = []
         self._initialize_cf()
@@ -74,8 +73,6 @@ class GenerateCantusFirmus:
             run_count += 1
             self._initialize_cf()
             self._backtrack_cf()
-        print("number of solutions found:", len(self._solutions))
-        print("attempts:", run_count)
         self._solutions = sorted(self._solutions, key = self._steps_are_proportional)
         if len(self._solutions) > 0:
             for i, note in enumerate(self._solutions[0]):
@@ -398,7 +395,7 @@ class GenerateCantusFirmus:
         #check to remove pattern leap down -> step up -> step down -> leap up
         for i in range(len(solution) - 4):
             if intervals[i] < -2 and intervals[i + 1] == 2 and intervals[i + 2] == -2 and intervals[i + 3] > 2:
-                if random() > .8:
+                if random() < .8:
                     return False
         #check if three exact notes repeat
         for i in range(len(solution) - 5):

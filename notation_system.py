@@ -20,9 +20,9 @@ class ModeOption (Enum):
     AEOLIAN = { "name": "AEOLIAN", "starting": 6, "most_common": 4, "next_most_common": 3, "others": [6, 7]}
 
 class ScaleOption (Enum):
-    FLAT = "FLAT"
-    NATURAL = "NATURAL"
-    SHARP = "SHARP"
+    FLAT = "FLT"
+    NATURAL = "NAT"
+    SHARP = "SHP"
 
 #contains scale degree, accidental, octave (standard octave identification)
 #and duration (in eighth notes) and 
@@ -84,7 +84,7 @@ class Note:
     def __str__(self) -> str:
         pitch_value = PITCH_NAMES[self.get_scale_degree()] + " " + self.get_accidental().value
         rhythmic_value = RHYTHM_NAMES[self.get_duration()]
-        return "Note: pitch value = %s, octave = %d, duration = %s" % (pitch_value, self.get_octave(), rhythmic_value)
+        return "%s %d, %s NOTE" % (pitch_value, self.get_octave(), rhythmic_value)
 
 class ModeResolver: 
     def __init__(self, mode: ModeOption):
