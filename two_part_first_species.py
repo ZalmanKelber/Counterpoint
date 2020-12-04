@@ -36,7 +36,9 @@ GET_POSSIBLE_INTERVALS_TO_LOWEST = {
 AVERAGE_STEPS_PERCENTAGE = .712
 
 #acceptable max number of a repeated note, based on the length of the counterpoint
-MAX_ACCEPTABLE_REPITITIONS_BASED_ON_LENGTH = { 8: 3, 9: 3, 10: 3, 11: 4, 12: 4 }
+MAX_ACCEPTABLE_REPITITIONS_BASED_ON_LENGTH = { 
+    8: 3, 9: 3, 10: 3, 11: 4, 12: 4, 13: 4, 14: 4, 15: 4, 16: 5, 17: 5, 18: 5, 19: 5, 20: 6, 21: 6, 22: 6, 23: 6, 24: 7, 25: 7
+}
 
 class Orientation (Enum):
     ABOVE = "ABOVE"
@@ -164,7 +166,7 @@ class GenerateTwoPartFirstSpecies:
         #find highest note so far
         highest_so_far = first_note if starting_interval > ending_interval else penult_note if end_to_penult_interval > 0 else last_note
         #get possible highest notes
-        highest_note_candidates = [highest_so_far] if (starting_interval > ending_interval or end_to_penult_interval > 0) and range_so_far >= 6 else []
+        highest_note_candidates = [highest_so_far] if ((starting_interval > ending_interval or end_to_penult_interval > 0) and range_so_far >= 6) or self._orientation == Orientation.BELOW else []
         for i in range(max(6 - range_so_far, 0), 8 - range_so_far):
             candidate = self._get_default_note_from_interval(highest_so_far, i + 1)
             if candidate.get_accidental() != ScaleOption.SHARP and self._valid_range(lowest_note, candidate) and self._valid_outline(first_note, candidate) and self._valid_outline(last_note, candidate):

@@ -23,6 +23,7 @@ class ScaleOption (Enum):
     FLAT = "FLT"
     NATURAL = "NAT"
     SHARP = "SHP"
+    REST = "REST"
 
 #contains scale degree, accidental, octave (standard octave identification)
 #and duration (in eighth notes) and 
@@ -69,6 +70,7 @@ class Note:
         return chro_val
     
     def get_chromatic_with_octave(self) -> int: #useful for comparing pitch values of two notes
+        if self._accidental == ScaleOption.REST: return 0
         return self.get_chromatic() + self._octave * 12
 
     def get_scale_degree_interval(self, other_note) -> int:

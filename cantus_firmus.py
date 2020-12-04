@@ -54,6 +54,12 @@ class CantusFirmus:
                 lowest = self._notes[i]
         return lowest 
 
+    def get_upward_range(self) -> int:
+        return self._notes[0].get_scale_degree_interval(self.get_highest_note())
+    
+    def get_downward_range(self) -> int:
+        return self.get_lowest_note().get_scale_degree_interval(self._notes[0])
+
     def print_cf(self) -> None:
         for note in self._notes:
             print(note)
