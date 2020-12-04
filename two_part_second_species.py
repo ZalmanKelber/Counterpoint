@@ -25,6 +25,22 @@ class GenerateTwoPartSecondSpecies:
         self._cantus_object = cf
         self._cantus = cf.get_notes()
 
+        #determined through two randomly generated booleans if we will start on the offbeat 
+        #or onbeat and whether the penultimate measure will be divided
+        #IMPORTANT: define these in the constructor rather than at initialization otherwise we'll get length mismatches among solutions
+        self._start_on_beat = True if random() > .5 else False 
+        self._penult_is_whole = True if random() > .5 else False 
+
+        #keep track of which measures are divided 
+        self._divided_measures = set([i for i in range(self._length - 2 if self._penult_is_whole else self._length - 1)])
+
+        #keep track of all indices of notes (they will be in the form (measure, beat))
+        #assume measures are four beats and beats are quarter notes 
+        indices = [(0, 0), (0, 2)] if self._start_on_beat else [(0, 2)]
+        for i in range(1, self._length):
+            indices += [(i, 0), (i, 2)] if i in self._divided_measures else [(i, 0)]
+        self._all_indices = indices
+
     def print_counterpoint(self):
         print("  CANTUS FIRMUS:       COUNTERPOINT:")
         for i in range(self._length):
@@ -65,26 +81,12 @@ class GenerateTwoPartSecondSpecies:
         if len(self._solutions) > 0:
             solutions = self._solutions[:100]
             solutions.sort(key = lambda sol: self._score_solution(sol))
+            self._solutions = solutions 
 
     def _initialize(self) -> bool:
-        #determined through two randomly generated booleans if we will start on the offbeat 
-        #or onbeat and whether the penultimate measure will be divided
-        start_on_beat = True if random() > .5 else False 
-        self._start_on_beat = start_on_beat
-        penult_is_whole = True if random() > .5 else False 
-
-        #keep track of which measures are divided 
-        divided_measures = set([i for i in range(self._length - 2 if penult_is_whole else self._length - 1)])
-
-        #keep track of all indices of notes (they will be in the form (measure, beat))
-        #assume measures are four beats and beats are quarter notes 
-        indices = [(0, 0), (0, 2)] if start_on_beat else [(0, 2)]
-        for i in range(1, self._length):
-            indices += [(i, 0), (i, 2)] if i in divided_measures else [(i, 0)]
-
         #initialize counterpoint data structure, that will map indices to notes
         counterpoint = {}
-        for index in indices: counterpoint[index] = None 
+        for index in self._all_indices: counterpoint[index] = None 
 
         #initialize range to 8.  we'll modify it based on probability
         vocal_range = 8 
@@ -174,12 +176,11 @@ class GenerateTwoPartSecondSpecies:
                     penult_note.set_accidental(lowest.get_accidental())
 
         #add counterpoint dict and remaining indices 
-        self._divided_measures = divided_measures
-        counterpoint[indices[0]] = first_note
-        counterpoint[indices[-2]] = penult_note
-        counterpoint[indices[-1]] = last_note
+        counterpoint[self._all_indices[0]] = first_note
+        counterpoint[self._all_indices[-2]] = penult_note
+        counterpoint[self._all_indices[-1]] = last_note
         self._counterpoint = counterpoint
-        self._remaining_indices = indices[1: -2]
+        self._remaining_indices = self._all_indices[1: -2]
 
         #generate valid pitches 
         valid_pitches = [lowest]
@@ -248,12 +249,11 @@ class GenerateTwoPartSecondSpecies:
         return True 
 
     def _backtrack(self) -> None:
+        if len(self._solutions) >= 50: return
         if len(self._remaining_indices) == 0:
-            index = (0, 0) if self._start_on_beat else (0, 2)
             sol = []
-            while index is not None:
-                sol.append(self._counterpoint[index])
-                index = self._get_next_index(index)
+            for i in range(len(self._all_indices)):
+                sol.append(self._counterpoint[self._all_indices[i]])
             if self._passes_final_checks(sol):
                 self._solutions.append(sol)
             return 
@@ -306,6 +306,8 @@ class GenerateTwoPartSecondSpecies:
 
     def _is_valid_adjacent(self, note1: Note, note2: Note) -> bool:
         sdg_interval = note1.get_scale_degree_interval(note2)
+        if (note1.get_accidental() == ScaleOption.SHARP or note2.get_accidental() == ScaleOption.SHARP) and abs(sdg_interval) > 3:
+            return False 
         #if a sharp is not followed by a step up, we'll give it an arbitrary 50% chance of passing
         is_leading_tone = note1.get_accidental == ScaleOption.SHARP or (note1.get_scale_degree() == 7 and self._mode in [ModeOption.DORIAN, ModeOption.LYDIAN])
         if sdg_interval != 2 and is_leading_tone and random() > .5:
@@ -340,28 +342,22 @@ class GenerateTwoPartSecondSpecies:
         return note1.get_scale_degree_interval(note2) == 1 and note1.get_chromatic_interval(note2) == 0 
 
     def _get_prev_note(self, index: tuple) -> Note:
-        (i, j) = index 
-        if j == 2: return self._counterpoint[(i, 0)]
-        if i - 1 in self._divided_measures: return self._counterpoint[(i - 1, 2)]
-        else: return self._counterpoint[(i - 1, 0)]
+        prev_index = self._get_prev_index(index)
+        return None if prev_index is None else self._counterpoint[prev_index]
 
     def _get_next_note(self, index: tuple) -> Note:
-        (i, j) = index 
-        if j == 2: return self._counterpoint[(i + 1, 0)]
-        if i in self._divided_measures: return self._counterpoint[(i, 2)]
-        else: return self._counterpoint[(i + 1, 0)]
+        next_index = self._get_next_index(index)
+        return None if next_index is None else self._counterpoint[next_index]
 
     def _get_prev_index(self, index: tuple) -> tuple:
-        (i, j) = index 
-        if i == 0 and (j == 0 or not self._start_on_beat): return None 
-        if j == 2: return (i, 0)
-        return (i - 1, 2) if i - 1 in self._divided_measures else (i - 1, 0)
+        i = self._all_indices.index(index)
+        if i == 0: return None
+        return self._all_indices[i - 1]
 
     def _get_next_index(self, index: tuple) -> tuple:
-        (i, j) = index
-        if i == self._length - 1: return None 
-        if j == 2: return (i + 1, 0)
-        return (i, 2) if i in self._divided_measures else (i + 1, 0)
+        i = self._all_indices.index(index)
+        if i == len(self._all_indices) - 1: return None 
+        return self._all_indices[i + 1]
 
     def _passes_insertion_check(self, note: Note, index: tuple) -> bool:
         (i, j) = index
@@ -559,16 +555,11 @@ class GenerateTwoPartSecondSpecies:
         return True
 
     def _map_solution_onto_counterpoint_dict(self, solution: list[Note]) -> None:
-        index = (0, 0) if self._start_on_beat else (0, 2)
-        i = 0
-        while index is not None:
-            note_to_insert = solution[i]
-            (measure, beat) = index
+        for i, note in enumerate(solution):
+            (measure, beat) = self._all_indices[i]
             if measure in self._divided_measures:
-                note_to_insert.set_duration(4)
-            self._counterpoint[index] =  note_to_insert
-            i += 1
-            index = self._get_next_index(index)
+                note.set_duration(4)
+            self._counterpoint[(measure, beat)] = note
 
     def _score_solution(self, solution: list[Note]) -> int:
         score = 0 #violations will result in increases to score
@@ -598,10 +589,15 @@ class GenerateTwoPartSecondSpecies:
             score += (most_frequent - max_acceptable) * 15
 
         #finally, assess the number of favored harmonic intervals 
-        for i in range(1, self._length - 2):
-            sol_index = i * 2 if self._start_on_beat else i * 2 - 1
-            harmonic_interval = abs(solution[sol_index].get_scale_degree_interval(self._cantus[i]))
-            if harmonic_interval in [1, 5, 8, 12]: score += 10
+        # if len(solution) != len(self._all_indices):
+        #     self.print_counterpoint()
+        #     print(self._all_indices)
+        for i, note in enumerate(solution):
+            (measure, beat) = self._all_indices[i]
+            if beat == 0:
+                harmonic_interval = abs(solution[i].get_scale_degree_interval(self._cantus[measure]))
+                if harmonic_interval in [5, 12]: score += 40
+                if harmonic_interval in [1, 8]: score += 10
         return score
 
 
