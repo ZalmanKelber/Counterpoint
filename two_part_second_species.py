@@ -63,10 +63,10 @@ class GenerateTwoPartSecondSpecies:
             sol.append(self._counterpoint[(i, 0)])
             if i in self._divided_measures:
                 sol.append(self._counterpoint[(i, 2)])
-        self.print_counterpoint()
         return [sol, self._cantus]
             
     def generate_2p2s(self):
+        start_time = time()
         print("MODE = ", self._mode.value["name"])
         self._solutions = []
         @timeout_decorator.timeout(5)
@@ -81,7 +81,7 @@ class GenerateTwoPartSecondSpecies:
             attempts += 1
         except: 
             print("timed out")
-        while len(self._solutions) < 30 and attempts < 100:
+        while len(self._solutions) < 30 and attempts < 100 and time() - start_time < 10:
             print("attempt", attempts)
             try:
                 attempt()
@@ -124,7 +124,7 @@ class GenerateTwoPartSecondSpecies:
                 if 1 in last_interval_options: last_interval_options.remove(1)
             if cantus_last_interval == 5:
                 last_interval_options = [5]
-            if cantus_last_interval == 4: 
+            if cantus_last_interval in [2, 4]: 
                 if 5 in last_interval_options: last_interval_options.remove(5)
                 if len(last_interval_options) == 0:
                     last_interval_options = [8]
@@ -497,6 +497,21 @@ class GenerateTwoPartSecondSpecies:
         for i in range(1, len(span_indices_ending_segments)):
             start_note, end_note = span[span_indices_ending_segments[i - 1]], span[span_indices_ending_segments[i]]
             if not self._is_valid_outline(start_note, end_note): return False 
+        #next check leap chains
+        chains = []
+        prev_interval = None
+        for i in range(len(intervals)):
+            if abs(intervals[i]) > 2:
+                if prev_interval is None or abs(prev_interval) <= 2:
+                    chains.append([span[i], span[i + 1]])
+                else:
+                    chains[-1].append(span[i + 1])
+            prev_interval = intervals[i]
+        for chain in chains:
+            for i in range(len(chain) - 2):
+                for j in range(i + 2, len(chain)):
+                    if not self._is_valid_outline(chain[i], chain[j]):
+                        return False 
         return True 
 
     def _no_illegal_repetitions(self, span: list[Note]) -> bool:
@@ -525,9 +540,9 @@ class GenerateTwoPartSecondSpecies:
         return True 
 
     def _passes_final_checks(self, solution: list[Note]) -> bool:
-        return self._handles_ascending_intervals(solution) and self._handles_sequences(solution)
+        return self._leaps_filled_in(solution) and self._handles_sequences(solution)
 
-    def _handles_ascending_intervals(self, solution: list[Note]) -> bool:
+    def _leaps_filled_in(self, solution: list[Note]) -> bool:
         for i in range(1, len(solution) - 1):
             interval = solution[i - 1].get_scale_degree_interval(solution[i])
             if interval > 2:
@@ -537,6 +552,14 @@ class GenerateTwoPartSecondSpecies:
                         filled_in = True
                         break
                 if not filled_in: return False 
+            #for leaps down, we either need the note below the top note or any higher note 
+            if interval < -2:
+                handled = False 
+                for j in range(i + 1, len(solution)):
+                    if solution[i - 1].get_scale_degree_interval(solution[j]) >= -2:
+                        handled = True
+                        break
+                if not handled: return False 
         return True
 
     def _handles_sequences(self, solution: list[Note]) -> bool:

@@ -30,8 +30,10 @@ def main():
         if optimal is not None:
             mw = MidiWriter()
             mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
-            fs = FluidSynth("/Users/alexkelber/Development/FluidR3_GM/FluidR3_GM.sf2")
-            fs.play_midi("counterpoint.mid")
+            for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
+                print(filename)
+                fs = FluidSynth("/Users/alexkelber/Development/" + filename)
+                fs.play_midi("counterpoint.mid")
 
     
 if __name__ == "__main__":
