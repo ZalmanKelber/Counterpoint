@@ -25,3 +25,4 @@ class MidiWriter:
                 time_index += duration
         with open(filename, "wb") as output_file:
             CounterpointMIDI.writeFile(output_file)
+           

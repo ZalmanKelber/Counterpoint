@@ -23,14 +23,15 @@ def main():
     #     mw.write_midi_from_counterpoint(g2p1s.get_optimal(), "two-part-first-species-counterpoint.mid")
     #     fs = FluidSynth("/Users/alexkelber/Development/FluidR3_GM/FluidR3_GM.sf2")
     #     fs.play_midi("two-part-first-species-counterpoint.mid")
-    g2p2s = GenerateTwoPartSecondSpecies(8 + math.floor(random() * 5), ModeOption.PHRYGIAN, 4, orientation=Orientation.ABOVE)
-    g2p2s.generate_2p2s()
-    optimal = g2p2s.get_optimal()
-    if optimal is not None:
-        mw = MidiWriter()
-        mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
-        fs = FluidSynth("/Users/alexkelber/Development/FluidR3_GM/FluidR3_GM.sf2")
-        fs.play_midi("counterpoint.mid")
+    for mode in ModeOption:
+        g2p2s = GenerateTwoPartSecondSpecies(8 + math.floor(random() * 5), mode, 4, orientation=Orientation.ABOVE)
+        g2p2s.generate_2p2s()
+        optimal = g2p2s.get_optimal()
+        if optimal is not None:
+            mw = MidiWriter()
+            mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
+            fs = FluidSynth("/Users/alexkelber/Development/FluidR3_GM/FluidR3_GM.sf2")
+            fs.play_midi("counterpoint.mid")
 
     
 if __name__ == "__main__":

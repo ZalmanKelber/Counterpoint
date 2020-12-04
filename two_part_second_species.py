@@ -1,6 +1,10 @@
+import sys
+sys.path.insert(0, "/Users/alexkelber/Development/timeout-decorator-0.5.0")
+import timeout_decorator
+
 from random import random, shuffle
 import math
-from enum import Enum 
+from time import time
 
 from notation_system import ModeOption, ScaleOption, Note, ModeResolver 
 from cantus_firmus import CantusFirmus, GenerateCantusFirmus
@@ -65,17 +69,25 @@ class GenerateTwoPartSecondSpecies:
     def generate_2p2s(self):
         print("MODE = ", self._mode.value["name"])
         self._solutions = []
+        @timeout_decorator.timeout(5)
         def attempt():
             initialized = self._initialize()
             while not initialized:
                 initialized = self._initialize()
             self._backtrack()
-        attempt()
-        attempts = 1
-        while len(self._solutions) < 30 and attempts < 100:
-            attempts += 1
-            print("attempt", attempts)
+        attempts = 0
+        try:
             attempt()
+            attempts += 1
+        except: 
+            print("timed out")
+        while len(self._solutions) < 30 and attempts < 100:
+            print("attempt", attempts)
+            try:
+                attempt()
+                attempts += 1
+            except: 
+                print("timed out")
         print("number of attempts:", attempts)
         print("number of solutions:", len(self._solutions))
         if len(self._solutions) > 0:
@@ -398,14 +410,12 @@ class GenerateTwoPartSecondSpecies:
             #next measure is a perfect interval.  check for parallels first 
             if note.get_chromatic_interval(cf_note) == next_note.get_chromatic_interval(cf_next):
                 return False 
-            #check for hidden intervals unless top voice moves by step
+            #check for hidden intervals
             if ( j == 2 and ((note.get_scale_degree_interval(next_note) > 0 and cf_note.get_scale_degree_interval(cf_next) > 0) or 
                 (note.get_scale_degree_interval(next_note) < 0 and cf_note.get_scale_degree_interval(cf_next) < 0))):
-                if ( (cf_next.get_scale_degree_interval(next_note) > 0 and abs(note.get_scale_degree_interval(next_note)) != 2) or 
-                    (cf_next.get_scale_degree_interval(next_note) < 0 and abs(cf_note.get_scale_degree_interval(cf_next)) != 2)):
-                    return False 
+                return False 
         #if j is 2 we don't have to check what comes before 
-        if j == 0 and note.get_chromatic_interval(cf_note) in [0, 7, 12, 19]:
+        if j == 0 and abs(note.get_chromatic_interval(cf_note)) in [0, 7, 12, 19]:
             cf_prev = self._cantus[i - 1]
             #check previous downbeat if it exists
             if i - 1 != 0 or self._start_on_beat:
@@ -419,9 +429,7 @@ class GenerateTwoPartSecondSpecies:
             #check for hiddens 
             if (prev_note is not None and ((prev_note.get_scale_degree_interval(note) > 0 and cf_prev.get_scale_degree_interval(cf_note) > 0) or 
                 (prev_note.get_scale_degree_interval(note) < 0 and cf_prev.get_scale_degree_interval(cf_note) < 0))):
-                if ( (cf_note.get_scale_degree_interval(note) > 0 and abs(prev_note.get_scale_degree_interval(note)) != 2) or 
-                    (cf_note.get_scale_degree_interval(note) < 0 and abs(cf_prev.get_scale_degree_interval(cf_note)) != 2)):
-                    return False 
+                return False 
         return True 
 
     def _no_large_parallel_leaps(self, note: Note, index: tuple) -> bool:
@@ -558,7 +566,7 @@ class GenerateTwoPartSecondSpecies:
         for i, note in enumerate(solution):
             (measure, beat) = self._all_indices[i]
             if measure in self._divided_measures:
-                note.set_duration(4)
+                note = Note(note.get_scale_degree(), note.get_octave(), 4, note.get_accidental())
             self._counterpoint[(measure, beat)] = note
 
     def _score_solution(self, solution: list[Note]) -> int:
