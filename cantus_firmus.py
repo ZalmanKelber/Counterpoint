@@ -101,9 +101,10 @@ class GenerateCantusFirmus:
         self._cf = CantusFirmus(self._length, self._mr, self._octave)
         #"final" is equal to the mode's starting scale degree.  All notes in the cantus firmus will be whole notes
         final = Note(self._mode.value["starting"], self._octave, 8) 
+        last_note = Note(self._mode.value["starting"], self._octave, 16) 
         #add the "final" to the first and last pitches 
-        for index in [0, self._length - 1]:
-            self._cf.insert_note(final, index)
+        self._cf.insert_note(final, 0)
+        self._cf.insert_note(last_note, self._length - 1)
         #find all notes eligible to be highest note
         possible_highest_notes = []
         for interval in VALID_MELODIC_INTERVALS_SCALE_DEGREES:

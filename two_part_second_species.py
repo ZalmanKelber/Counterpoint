@@ -76,13 +76,7 @@ class GenerateTwoPartSecondSpecies:
                 initialized = self._initialize()
             self._backtrack()
         attempts = 0
-        try:
-            attempt()
-            attempts += 1
-        except: 
-            print("timed out")
-        while len(self._solutions) < 30 and attempts < 100 and time() - start_time < 10:
-            print("attempt", attempts)
+        while len(self._solutions) < 30 and time() - start_time < 7:
             try:
                 attempt()
                 attempts += 1
@@ -137,8 +131,8 @@ class GenerateTwoPartSecondSpecies:
             if lowest_so_far.get_scale_degree_interval(last_note) < 0: lowest_so_far = last_note
             penult_note = self._get_leading_tone_of_note(last_note) if cantus_last_interval == -2 else self._get_default_note_from_interval(last_note, 2)
             if last_interval == 5: self._mr.make_default_scale_option(penult_note)
-            if highest_so_far.get_scale_degree_interval(penult_note) > 1: highest_so_far = last_note
-            if lowest_so_far.get_scale_degree_interval(penult_note) < 0: lowest_so_far = last_note
+            if highest_so_far.get_scale_degree_interval(penult_note) > 1: highest_so_far = penult_note
+            if lowest_so_far.get_scale_degree_interval(penult_note) < 0: lowest_so_far = penult_note
             #we have to figure out how many lower notes it is possible to assign
             gap_so_far = self._cantus_object.get_highest_note().get_scale_degree_interval(lowest_so_far) 
             leeway = vocal_range - lowest_so_far.get_scale_degree_interval(highest_so_far) + 1
@@ -188,6 +182,10 @@ class GenerateTwoPartSecondSpecies:
                     penult_note.set_accidental(lowest.get_accidental())
 
         #add counterpoint dict and remaining indices 
+        first_note.set_duration(4)
+        last_note.set_duration(16)
+        if self._length - 2 in self._divided_measures:
+            penult_note.set_duration(4)
         counterpoint[self._all_indices[0]] = first_note
         counterpoint[self._all_indices[-2]] = penult_note
         counterpoint[self._all_indices[-1]] = last_note
