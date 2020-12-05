@@ -43,23 +43,19 @@ def main():
         orientation = Orientation.BELOW if random() > .5 else Orientation.ABOVE
         octave = 4 if orientation == Orientation.ABOVE else 5
         g2p3s = GenerateTwoPartThirdSpecies(11, mode, octave, orientation=orientation)
-        try:
-            g2p3s.generate_2p3s()
-        except:
-            g2p3s.generate_2p3s()
+        g2p3s.generate_2p3s()
         optimal = g2p3s.get_optimal()
-        if optimal is not None:
-            for n in optimal[0]:
-                print(n)
-            mw = MidiWriter()
-            mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
-            for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
-                print(filename)
-                fs = FluidSynth("/Users/alexkelber/Development/" + filename)
-                fs.play_midi("counterpoint.mid")
-                fs.midi_to_audio("counterpoint.mid", "third-species-" + mode.value["name"] + ".wav")
-        except:
-            print("threw error")
+        while optimal is None:
+            g2p3s = GenerateTwoPartThirdSpecies(11, mode, octave, orientation=orientation)
+            g2p3s.generate_2p3s()
+            optimal = g2p3s.get_optimal()
+        mw = MidiWriter()
+        mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
+        for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
+            print(filename)
+            fs = FluidSynth("/Users/alexkelber/Development/" + filename)
+            fs.play_midi("counterpoint.mid")
+            fs.midi_to_audio("counterpoint.mid", "third-species-" + mode.value["name"] + ".wav")
 
     
 if __name__ == "__main__":

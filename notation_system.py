@@ -91,6 +91,9 @@ class Note:
 class ModeResolver: 
     def __init__(self, mode: ModeOption):
         self.mode = mode 
+
+    def is_leading_tone(self, note: Note) -> bool:
+        return note.get_accidental() == ScaleOption.SHARP or (note.get_scale_degree() == 7 and self.mode in [ModeOption.DORIAN, ModeOption.LYDIAN])
     
     def resolve_b(self) -> ScaleOption: #determines if default is b or b-flat, depending on mode
         if self.mode == ModeOption.DORIAN or self.mode == ModeOption.LYDIAN:

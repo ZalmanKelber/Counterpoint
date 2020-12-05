@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(0, "/Users/alexkelber/Development/timeout-decorator-0.5.0")
 import timeout_decorator
-]
+
 
 from random import random, shuffle
 import math
@@ -73,22 +73,19 @@ class GenerateTwoPartThirdSpecies:
         start_time = time()
         print("MODE = ", self._mode.value["name"])
         self._solutions = []
-        @timeout_decorator.timeout(20)
         def attempt():
+            self._num_backtracks = 0
+            self._solutions_this_attempt = 0
             initialized = self._initialize()
             while not initialized:
-                print("initialization failed")
                 initialized = self._initialize()
             self._backtrack()
-        attempt()
         attempts = 0
-        while len(self._solutions) < 30 and time() - start_time < 20:
+        attempt()
+        while len(self._solutions) < 30 and attempts < 20:
             print("attempt", attempts)
-            try:
-                attempt()
-                attempts += 1
-            except: 
-                print("attempt did not complete")
+            attempt()
+            attempts += 1
         print("number of attempts:", attempts)
         print("number of solutions:", len(self._solutions))
         if len(self._solutions) > 0:
@@ -112,6 +109,8 @@ class GenerateTwoPartThirdSpecies:
         lowest, highest = None, None
         start_interval = 1 if random() < .5 else 8
         last_interval = start_interval if random() < .5 else 1 if random() < .5 else 8
+        if self._orientation == Orientation.BELOW and start_interval != 1: start_interval *= -1
+        if self._orientation == Orientation.BELOW and last_interval != 1: last_interval *= -1
         first_note = lowest_so_far = highest_so_far = self._get_default_note_from_interval(cantus_final, start_interval)
         last_note = self._get_default_note_from_interval(cantus_final, last_interval)
         if highest_so_far.get_scale_degree_interval(last_note) > 1: highest_so_far = last_note
@@ -209,18 +208,26 @@ class GenerateTwoPartThirdSpecies:
         return True 
 
     def _backtrack(self) -> None:
-        if len(self._solutions) >= 30: return
+        if self._num_backtracks > 200 and self._solutions_this_attempt == 0:
+            return 
+        if self._solutions_this_attempt >= 100:
+            return 
+        self._num_backtracks += 1
         if len(self._remaining_indices) == 0:
-            print("found possible solution!")
+            # print("found possible solution!")
             sol = []
             for i in range(len(self._all_indices)):
                 sol.append(self._counterpoint[self._all_indices[i]])
             if self._passes_final_checks(sol):
-                print("FOUND SOLUTION!")
+                # print("FOUND SOLUTION!")
+                if len(self._solutions) == 0:
+                     print("number of backtracks:", self._num_backtracks)
                 self._solutions.append(sol)
+                self._solutions_this_attempt += 1
             return 
         (bar, beat) = self._remaining_indices.pop() 
         candidates = list(filter(lambda n: self._passes_insertion_check(n, (bar, beat)), self._valid_pitches))
+        candidates.sort(key = lambda n: abs(self._get_prev_note((bar, beat)).get_scale_degree_interval(n)))
         for candidate in candidates:
             candidate_copy = Note(candidate.get_scale_degree(), candidate.get_octave(), 8, candidate.get_accidental())
             if bar in self._divided_measures: candidate_copy.set_duration(2)
@@ -267,20 +274,39 @@ class GenerateTwoPartThirdSpecies:
             valid_notes.append(Note(new_sdg, new_octv, 8, accidental = ScaleOption.SHARP))
         return valid_notes    
 
-    def _is_valid_adjacent(self, note1: Note, note2: Note) -> bool:
+    def _is_valid_adjacent(self, prev_index: tuple, next_index: tuple) -> bool:
+        note0, note1, note2, note3 = self._get_prev_note(prev_index), self._counterpoint[prev_index], self._counterpoint[next_index], self._get_next_note(next_index)
         sdg_interval = note1.get_scale_degree_interval(note2)
         if (note1.get_accidental() == ScaleOption.SHARP or note2.get_accidental() == ScaleOption.SHARP) and abs(sdg_interval) > 3:
             return False 
-        #if a sharp is not followed by a step up, we'll give it an arbitrary 50% chance of passing
-        is_leading_tone = note1.get_accidental == ScaleOption.SHARP or (note1.get_scale_degree() == 7 and self._mode in [ModeOption.DORIAN, ModeOption.LYDIAN])
-        if sdg_interval != 2 and is_leading_tone and random() > .5:
-            return False 
+        #leading tones must be followed by final in next or next after next position
+        if sdg_interval != 2 and self._mr.is_leading_tone(note1):
+            if note3 is not None and note1.get_scale_degree_interval(note3) != 2: 
+                #this is ok only if note1 is on the downbeat and the following downbeat is the tonic
+                (bar, beat) = prev_index
+                if beat != 0 or (self._counterpoint[(bar + 1, 0)] is not None and note1.get_scale_degree_interval(self._counterpoint[(bar + 1, 0)]) != 2):
+                    return False
+        if note0 is not None and self._mr.is_leading_tone(note0):
+            if note0.get_scale_degree_interval(note1) != 2 and note1.get_scale_degree_interval(note2) != 2:
+                #this is ok only if note0 is on the downbeat and the following downbeat is the tonic
+                (bar, beat) = self._get_prev_index(prev_index)
+                if beat != 0 or (self._counterpoint[(bar + 1, 0)] is not None and note0.get_scale_degree_interval(self._counterpoint[(bar + 1, 0)]) != 2):
+                    return False
+        #check for augmented or diminished intervals 
         chro_interval = note1.get_chromatic_interval(note2)
         if ( sdg_interval in LegalIntervalsThirdSpecies["adjacent_melodic_scalar"] 
             and chro_interval in LegalIntervalsThirdSpecies["adjacent_melodic_chromatic"]
             and (sdg_interval, chro_interval) not in LegalIntervalsThirdSpecies["forbidden_combinations"] ):
             return True 
         return False 
+
+    def _is_valid_melodic_insertion(self, note: Note, index: tuple) -> bool:
+        prev_index, next_index = self._get_prev_index(index), self._get_next_index(index)
+        self._counterpoint[index] = note
+        if self._get_prev_note(index) is not None and not self._is_valid_adjacent(prev_index, index): return False 
+        if self._get_next_note(index) is not None and not self._is_valid_adjacent(index, next_index): return False 
+        self._counterpoint[index] = None
+        return True 
 
     def _is_valid_outline(self, note1: Note, note2: Note) -> bool:
         sdg_interval = note1.get_scale_degree_interval(note2)
@@ -312,6 +338,7 @@ class GenerateTwoPartThirdSpecies:
         return None if next_index is None else self._counterpoint[next_index]
 
     def _get_prev_index(self, index: tuple) -> tuple:
+        if index is None: return None
         i = self._all_indices.index(index)
         if i == 0: return None
         return self._all_indices[i - 1]
@@ -322,21 +349,14 @@ class GenerateTwoPartThirdSpecies:
         return self._all_indices[i + 1]
 
     def _passes_insertion_check(self, note: Note, index: tuple) -> bool:
-        (i, j) = index
-        prev_note, next_note = self._get_prev_note(index), self._get_next_note(index)
-        if prev_note is not None and not self._is_valid_adjacent(prev_note, note): return False 
-        if next_note is not None and not self._is_valid_adjacent(note, next_note): return False 
-        # print("passes melodic checks")
+        if not self._is_valid_melodic_insertion(note, index): return False 
         if not self._valid_harmonic_insertion(note, index): return False 
-        # print("passes harmonic checks")
         if not self._doesnt_create_parallels(note, index): return False 
-        # print("passes parallels and hidden checks")
         if not self._no_large_parallel_leaps(note, index): return False 
-        # print("passes parallel motion checks")
         if not self._no_cross_relations_with_cantus_firmus(note, index): return False 
-        # print("passes cross relations checks")
         if not self._no_ascending_leaps_on_accented_beats(note, index): return False 
-        # print("passes ascending leaps checks")
+        if not self._doesnt_improperly_resolve_cambiata(note, index): return False
+        if not self._doesnt_improperly_resolve_previous_downbeat_leading_tone(note, index): return False
         return True 
 
     def _valid_harmonic_insertion(self, note: Note, index: tuple) -> bool:
@@ -444,6 +464,31 @@ class GenerateTwoPartThirdSpecies:
             if note.get_scale_degree_interval(self._get_next_note(index)) > 2: return False 
         return True 
 
+    def _doesnt_improperly_resolve_cambiata(self, note: Note, index: tuple) -> bool:
+        (bar, beat) = index
+        if beat % 2 != 0 or bar == 0: return True 
+        possible_dissonance = self._counterpoint[(bar - 1, beat + 1)]
+        if possible_dissonance is None: return True 
+        sdg_interval = possible_dissonance.get_scale_degree_interval(self._cantus[bar - 1])
+        chro_interval = possible_dissonance.get_chromatic_interval(self._cantus[bar - 1])
+        if ( sdg_interval in LegalIntervalsThirdSpecies["harmonic_scalar"] and chro_interval in LegalIntervalsThirdSpecies["harmonic_chromatic"] and 
+            (sdg_interval, chro_interval) not in LegalIntervalsThirdSpecies["forbidden_combinations"]):
+            return True 
+        prev_note, note_before_prev = self._get_prev_note(index), self._get_prev_note(self._get_prev_index(index))
+        if ( note_before_prev is not None and prev_note is not None and 
+            possible_dissonance.get_scale_degree_interval(note_before_prev) == -3 and prev_note.get_scale_degree_interval(note) != 2):
+            return False 
+        return True 
+
+    def _doesnt_improperly_resolve_previous_downbeat_leading_tone(self, note: Note, index: tuple) -> bool:
+        (bar, beat) = index 
+        if beat != 0 or (bar - 1, 0) not in self._counterpoint: return True 
+        first_note, second_note, third_note = self._counterpoint[(bar - 1, 0)], self._counterpoint[(bar - 1, 1)], self._counterpoint[(bar - 1, 2)]
+        if first_note is None or second_note is None or third_note is None: return True
+        if self._mr.is_leading_tone(first_note) and 2 not in [first_note.get_scale_degree_interval(second_note), first_note.get_scale_degree_interval(third_note), first_note.get_scale_degree_interval(note)]:
+            return False 
+        return True
+
     def _current_chain_is_legal(self) -> bool:
         current_chain = []
         index = (0, 0) if self._start_on_beat else (0, 1)
@@ -459,7 +504,7 @@ class GenerateTwoPartThirdSpecies:
         if not self._segments_and_chains_are_legal(span, check_ending): return False 
         if not self._no_illegal_repetitions(span): return False 
         if not self._ascending_intervals_handled(span): return False 
-        if not self._no_nearby_cross_relations(span): return False 
+        if not self._no_nearby_cross_relations_or_aug_thirds(span): return False 
         return True 
 
     def _segments_and_chains_are_legal(self, span: list[Note], check_ending: bool) -> bool:
@@ -515,9 +560,11 @@ class GenerateTwoPartThirdSpecies:
                     if repetitions == 2: return False 
         return True 
 
-    def _no_nearby_cross_relations(self, span: list[Note]) -> bool:
+    def _no_nearby_cross_relations_or_aug_thirds(self, span: list[Note]) -> bool:
         for i in range(len(span) - 2):
-            if span[i].get_scale_degree_interval(span[i + 2]) == 1 and span[i].get_chromatic_interval(span[i + 2]):
+            if span[i].get_scale_degree_interval(span[i + 2]) == 1 and span[i].get_chromatic_interval(span[i + 2]) != 0:
+                return False 
+            if abs(span[i].get_scale_degree_interval(span[i + 2])) in [2, 9] and abs(span[i].get_chromatic_interval(span[i + 2])) in [3, 15]:
                 return False 
         return True 
 
@@ -584,13 +631,11 @@ class GenerateTwoPartThirdSpecies:
             score += (most_frequent - max_acceptable) * 15
 
         #finally, assess the number of favored harmonic intervals 
-        # if len(solution) != len(self._all_indices):
-        #     self.print_counterpoint()
-        #     print(self._all_indices)
         for i, note in enumerate(solution):
             (measure, beat) = self._all_indices[i]
             if beat == 0:
                 harmonic_interval = abs(solution[i].get_scale_degree_interval(self._cantus[measure]))
-                if harmonic_interval in [5, 12]: score += 40
+                if harmonic_interval in [5, 12]: score += 100
                 if harmonic_interval in [1, 8]: score += 10
+        # print("score:", score)
         return score
