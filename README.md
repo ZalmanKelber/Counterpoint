@@ -112,6 +112,52 @@
 
   TO DO: find a method of scoring the resulting exercises and use those scores to sort them and find the optimal solutions
 
+Dec 5 2020: rough drafts of [second](https://github.com/ZalmanKelber/Counterpoint/blob/main/two_part_second_species.py) and [third species](https://github.com/ZalmanKelber/Counterpoint/blob/main/two_part_third_species.py) counterpoint now complete.  Below diagram shows the work flow of the first species, second species and third species counterpoint generators.  The similarity in these programs will allow them to be refactored using inheritance and polymorphism.  
+
+![application work flow](CounterpointGeneratorFlow.png)
+
+The insertion, span and final checks are outlined as follows:
+
+  * **Insertion Checks**
+
+    * Valid melodic intervals with previous and subsequent note if they've been added
+
+    * Valid harmonic insertion: **First Species:** must be consonant.  **Second and Third Species:** if dissonant, must be properly handled.  Insertion must also make sure that any adjacent dissonants are handled properly.  No unisons on downbeats 
+
+    * No parallel or hidden fifths and octaves
+
+    * No large parallel leaps between Counterpoint and Cantus Firmus
+
+    * No cross relations with Cantus Firmus in adjacent measures 
+
+    * **Second Species only:** no octave leaps against Perfect harmonic intervals 
+
+    * **Third Species only:** no ascending leaps on accented beats 
+
+  * **Span checks** (checks connected portion of counterpoint that has been completed)
+
+    * Segments have proper order of intervals in ascending and descending motion
+
+    * Segments and consecutive leaps don’t outline melodically dissonant intervals 
+
+    * Various repeated sequences and patterns are eliminated 
+
+    * No nearby cross relations
+
+    * Ascending intervals are properly resolved 
+
+  * **Final checks**
+
+    * Various other sequences and patterns eliminated 
+
+    * **Second Species** large intervals are "filled in" subsequently 
+
+The following diagram compares the logical flow of the parallel and hidden fifths and octaves insertion checks for the first, second third species counterpoint generators:
+
+![Parallel and Hidden Perfect interval check logical flow](ParallelsCheckFlow.png)
+
+
+
 ### Notes:
 
 1. The *equal temperment* will be used for all pitch representation, and historical tuning will be considered well beyond the scope of this project

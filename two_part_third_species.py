@@ -1,6 +1,7 @@
 import sys
 sys.path.insert(0, "/Users/alexkelber/Development/timeout-decorator-0.5.0")
 import timeout_decorator
+]
 
 from random import random, shuffle
 import math
