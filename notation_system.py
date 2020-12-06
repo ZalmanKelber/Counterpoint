@@ -90,13 +90,13 @@ class Note:
 
 class ModeResolver: 
     def __init__(self, mode: ModeOption):
-        self.mode = mode 
+        self._mode = mode 
 
     def is_leading_tone(self, note: Note) -> bool:
-        return note.get_accidental() == ScaleOption.SHARP or (note.get_scale_degree() == 7 and self.mode in [ModeOption.DORIAN, ModeOption.LYDIAN])
+        return note.get_accidental() == ScaleOption.SHARP or (note.get_scale_degree() == 7 and self._mode in [ModeOption.DORIAN, ModeOption.LYDIAN])
     
     def resolve_b(self) -> ScaleOption: #determines if default is b or b-flat, depending on mode
-        if self.mode == ModeOption.DORIAN or self.mode == ModeOption.LYDIAN:
+        if self._mode == ModeOption.DORIAN or self._mode == ModeOption.LYDIAN:
             return ScaleOption.FLAT #default is b-flat for dorian and lydian
         else:
             return ScaleOption.NATURAL #default is b natural for ionian, phrygian, mixolydian and aeolian 
@@ -108,6 +108,10 @@ class ModeResolver:
             return False #we don't allow d-sharp (for now), e-sharp, a-sharp or b-sharp
         return True 
 
+    def is_unison(self, note1: Note, note2: Note) -> bool:
+        return note1.get_scale_degree_interval(note2) == 1 and note1.get_chromatic_interval(note2) == 0 
+
+
     def get_default_scale_option(self, scale_degree: int) -> ScaleOption:
         if scale_degree <= 6:
             return ScaleOption.NATURAL
@@ -117,6 +121,43 @@ class ModeResolver:
     def make_default_scale_option(self, note: Note) -> None:
         sdg = note.get_scale_degree()
         note.set_accidental(self.get_default_scale_option(sdg))
+
+    def get_leading_tone_of_note(self, note: Note) -> Note:
+        lt = self.get_default_note_from_interval(note, -2)
+        if lt.get_scale_degree() in [1, 4, 5] or (lt.get_scale_degree() == 2 and self._mode == ModeOption.AEOLIAN):
+            lt.set_accidental(ScaleOption.SHARP)
+        if lt.get_scale_degree() == 7:
+            lt.set_accidental(ScaleOption.NATURAL)
+        return lt
+
+    def get_default_note_from_interval(self, note: Note, interval: int) -> Note:
+        candidates = self.get_notes_from_interval(note, interval)
+        if len(candidates) == 0: return None 
+        note = candidates[0]
+        self.make_default_scale_option(note)
+        return note
+    
+    #returns valid notes, if any, at the specified interval.  "3" returns a third above.  "-5" returns a fifth below
+    def get_notes_from_interval(self, note: Note, interval: int) -> list[Note]: 
+        sdg = note.get_scale_degree()
+        octv = note.get_octave()
+        adjustment_value = -1 if interval > 0 else 1
+        new_sdg, new_octv = sdg + interval + adjustment_value, octv
+        while new_sdg < 1:
+            new_octv -= 1
+            new_sdg += 7
+        while new_sdg > 7:
+                new_octv += 1
+                new_sdg -= 7
+        new_note = Note(new_sdg, new_octv, 8)
+        valid_notes = [new_note]
+        if (self._mode == ModeOption.DORIAN or self._mode == ModeOption.LYDIAN) and new_sdg == 7:
+            valid_notes.append(Note(new_sdg, new_octv, 8, accidental = ScaleOption.FLAT))
+        if self._mode == ModeOption.AEOLIAN and new_sdg == 2:
+            valid_notes.append(Note(new_sdg, new_octv, 8, accidental = ScaleOption.SHARP))
+        if new_sdg in [1, 4, 5]:
+            valid_notes.append(Note(new_sdg, new_octv, 8, accidental = ScaleOption.SHARP))
+        return valid_notes    
 
 
         

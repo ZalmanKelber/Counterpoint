@@ -17,13 +17,13 @@ class MidiWriter:
         CounterpointMIDI.addTempo(track, start_time, tempo)
         # for line in lines:
         time_index = start_time
-        for note in lines[0]:
-            duration = note.get_duration()
-            pitch = note.get_chromatic_with_octave()
-            volume = 0 if note.get_accidental() == ScaleOption.REST else 100
-            CounterpointMIDI.addNote(track, channel, pitch, time_index, duration, volume)
-            time_index += duration
-            next_start_time += duration
+        # for note in lines[0]:
+        #     duration = note.get_duration()
+        #     pitch = note.get_chromatic_with_octave()
+        #     volume = 0 if note.get_accidental() == ScaleOption.REST else 100
+        #     CounterpointMIDI.addNote(track, channel, pitch, time_index, duration, volume)
+        #     time_index += duration
+        #     next_start_time += duration
         for line in lines:
             time_index = next_start_time
             for note in line:
