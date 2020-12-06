@@ -61,7 +61,7 @@ def main():
 
     for mode in ModeOption:
         exercises = []
-        g2p4s = GenerateTwoPartFourthSpecies(11, mode, 5)
+        g2p4s = GenerateTwoPartFourthSpecies(11, mode, 4)
         g2p4s.generate_2p4s()
         optimal = g2p4s.get_optimal()
         while optimal is None:

@@ -330,7 +330,15 @@ class GenerateTwoPartFourthSpecies:
                 bar += 1
 
     def _score_solution(self, solution: list[Note]) -> int:
-        return len(solution)
+        score = 0
+        self._map_solution_onto_counterpoint_dict(solution)
+        #add 5 points for every measure that isn't a suspension and 12 points for every measure that isn't tied
+        for i in range(1, self._length - 1):
+            if (i, 0) in self._counterpoint: score += 12
+            elif self._is_valid_harmonically(self._counterpoint[(i - 1, 2)], self._cantus[i]): score += 5
+        #add an additional 15 points if penultimate measure is not tied
+        if (self._length - 2, 0) in self._counterpoint: score += 15
+        return score 
 
     def _is_valid_adjacent(self, note1: Note, note2: Note) -> bool:
         sdg_interval = note1.get_scale_degree_interval(note2)
