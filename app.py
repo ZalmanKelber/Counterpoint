@@ -58,12 +58,13 @@ def main():
     #         fs.play_midi("counterpoint.mid")
     #         fs.midi_to_audio("counterpoint.mid", "third-species-" + mode.value["name"] + ".wav")
 
-    for mode in [ModeOption.AEOLIAN]:
-        g2p4s = GenerateTwoPartFourthSpecies(11, mode, 4)
+    for mode in ModeOption:
+        exercises = []
+        g2p4s = GenerateTwoPartFourthSpecies(11, mode, 5)
         g2p4s.generate_2p4s()
         optimal = g2p4s.get_optimal()
         while optimal is None:
-            g2p4s = GenerateTwoPartThirdSpecies(11, mode, octave, orientation=orientation)
+            g2p4s = GenerateTwoPartFourthSpecies(11, mode, 5)
             g2p4s.generate_2p4s()
             optimal = g2p4s.get_optimal()
         mw = MidiWriter()

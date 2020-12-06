@@ -80,12 +80,10 @@ class GenerateTwoPartFourthSpecies:
         counterpoint = {}
         for index in self._all_indices: counterpoint[index] = None 
         self._counterpoint = counterpoint
-        last_note, highest, lowest, vocal_range = None, None, None, None
-        while (last_note is None and highest is None and lowest is None) or self._cantus_object.get_lowest_note().get_scale_degree_interval(lowest) > 8 or highest.get_scale_degree_interval(self._cantus_object.get_highest_note()) > 8:
-            last_note = self._mr.get_default_note_from_interval(self._cantus[self._length - 1], [-8, 1, 8][randint(0, 2)])
-            vocal_range = randint(5, 8)
-            highest = self._mr.get_default_note_from_interval(last_note, randint(2, vocal_range))
-            lowest = self._mr.get_default_note_from_interval(highest, vocal_range * -1)
+        last_note = self._mr.get_default_note_from_interval(self._cantus[self._length - 1], [-8, 1, 8][randint(0, 2)])
+        vocal_range = randint(5, 8)
+        highest = self._mr.get_default_note_from_interval(last_note, randint(2, vocal_range))
+        lowest = self._mr.get_default_note_from_interval(highest, vocal_range * -1)
         valid_pitches = [lowest, highest] #order is unimportant
         for i in range(2, vocal_range):
             valid_pitches += self._mr.get_notes_from_interval(lowest, i)
@@ -98,9 +96,9 @@ class GenerateTwoPartFourthSpecies:
         return True 
 
     def _backtrack(self) -> None:
-        if self._num_backtracks > 10000 and self._solutions_this_attempt == 0:
+        if self._num_backtracks > 2000 and self._solutions_this_attempt == 0:
             return 
-        if self._solutions_this_attempt >= 1:
+        if self._solutions_this_attempt >= 100:
             return 
         self._num_backtracks += 1
         if len(self._remaining_indices) == 0:
@@ -111,11 +109,7 @@ class GenerateTwoPartFourthSpecies:
                 note_to_add_copy = Note(note_to_add.get_scale_degree(), note_to_add.get_octave(), note_to_add.get_duration(), note_to_add.get_accidental())
                 sol.append(note_to_add_copy)
             if self._passes_final_checks(sol):
-                print("FOUND SOLUTION!")
-                self.print_counterpoint()
-                for n in sol: print(n)
-                if len(self._solutions) == 0:
-                     print("number of backtracks:", self._num_backtracks)
+                # print("FOUND SOLUTION!")
                 self._solutions.append(sol)
                 self._solutions_this_attempt += 1
             return 
@@ -127,8 +121,8 @@ class GenerateTwoPartFourthSpecies:
             candidates = list(filter(lambda n: n.get_chromatic_interval(self._cantus[0]) in [-12, 0, 7, 12], self._valid_pitches))
         else:
             candidates = list(filter(lambda n: self._passes_insertion_checks(n, (bar, beat)), self._valid_pitches)) 
-        # if bar == 0 and beat == 0:
-        #     candidates.append(Note(1, 0, 4, accidental = ScaleOption.REST))
+        if bar == 0 and beat == 0:
+            candidates.append(Note(1, 0, 4, accidental = ScaleOption.REST))
         for candidate in candidates:
             #start by making a copy of the note
             candidate = Note(candidate.get_scale_degree(), candidate.get_octave(), 8, candidate.get_accidental())
@@ -179,6 +173,7 @@ class GenerateTwoPartFourthSpecies:
         if note_before_prev is not None and note_before_prev.get_scale_degree_interval(note) == 1 and note_before_prev.get_chromatic_interval(note) != 0:
             return False
         if bar == self._length - 1 and abs(prev_note.get_scale_degree_interval(note)) != 2: return False
+        if bar == self._length - 1 and prev_note.get_scale_degree_interval(note) == 2 and not self._mr.is_unison(prev_note, self._mr.get_leading_tone_of_note(self._last_note)): return False
         return True 
 
     def _valid_harmonic_insertion(self, note: Note, index: tuple) -> bool:
@@ -236,7 +231,7 @@ class GenerateTwoPartFourthSpecies:
 
     def _get_tied_options(self, note: Note, index: tuple) -> tuple:
         (bar, beat) = index 
-        if bar >= self._length - 2 or beat == 0: return (False, False)
+        if bar >= self._length - 2 or beat == 0 or not self._is_valid_harmonically(self._cantus[bar], note): return (False, False)
         (may_be_tied, must_be_tied) = (False, False)
         next_harmonic_interval = self._cantus[bar + 1].get_scale_degree_interval(note)
         if next_harmonic_interval in [-9, -2, 4, 7, 11] or (next_harmonic_interval == -5 and self._cantus[bar + 1].get_chromatic_interval(note) == -8):
@@ -278,6 +273,7 @@ class GenerateTwoPartFourthSpecies:
         return True 
 
     def _passes_final_checks(self, solution: list[Note]) -> bool:
+        if len(solution) >= self._length * 1.4: return False
         return self._leaps_filled_in(solution)
 
     def _leaps_filled_in(self, solution: list[Note]) -> bool:
