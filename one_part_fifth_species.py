@@ -48,7 +48,8 @@ class GenerateOnePartFifthSpecies:
             self._check_if_eighths_are_added
         ]
         self._final_checks = [
-            self._parameters_are_correct
+            self._parameters_are_correct,
+            self._has_only_one_octave
         ]
         self._params = [
             "highest_has_been_placed", "lowest_has_been_placed",
@@ -62,7 +63,7 @@ class GenerateOnePartFifthSpecies:
             for j in range(4):
                 cntpt_note = str(self._counterpoint_obj[(i, j)]) if (i, j) in self._counterpoint_obj else ""
                 if cntpt_note is None: cntpt_note = "None"
-                if (i, j + 0.5) in self._counterpoint_obj: cntpt_note += str(self._counterpoint_obj[(i, j + 0.5)])
+                if (i, j + 0.5) in self._counterpoint_obj: cntpt_note += "  " + str(self._counterpoint_obj[(i, j + 0.5)])
                 show_index = "    "
                 if j == 0:
                     show_index = str(i) + ":  " if i < 10 else str(i) + ": "
@@ -270,7 +271,7 @@ class GenerateOnePartFifthSpecies:
             for i in range(len(self._counterpoint_lst) - 2, -1, -1):
                 interval = self._counterpoint_lst[i].get_scale_degree_interval(self._counterpoint_lst[i + 1])
                 if interval > 0: return True 
-                if segment_has_leap: return False 
+                if segment_has_leap or interval == -8: return False 
                 segment_has_leap = interval < -2
         if potential_interval <= -3:
             for i in range(len(self._counterpoint_lst) - 2, -1, -1):
@@ -512,6 +513,15 @@ class GenerateOnePartFifthSpecies:
         # print("num runs placed:", self._attempt_params["num_runs_placed"])
         # print("max run has been placed?", self._attempt_params["max_quarter_run_has_been_placed"])
         return self._attempt_params["num_runs_placed"] >= self._attempt_params["min_runs_of_length_4_or_more"] and self._attempt_params["max_quarter_run_has_been_placed"]
+
+    def _has_only_one_octave(self) -> bool:
+        num_octaves = 0
+        for i in range(0 if self._counterpoint_lst[0].get_accidental() != ScaleOption.REST else 1, len(self._counterpoint_lst) - 1):
+            if abs(self._counterpoint_lst[i].get_scale_degree_interval(self._counterpoint_lst[i + 1])) == 8:
+                num_octaves += 1
+                if num_octaves > 1: 
+                    return False 
+        return True 
 
 
     ##########################################
