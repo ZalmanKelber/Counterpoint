@@ -12,7 +12,7 @@ class GenerateOnePartFifthSpecies:
     def __init__(self, length: int = None, mode: ModeOption = None, range_option: RangeOption = None):
         self._mode = mode or ModeOption.AEOLIAN
         self._length = length or 8 + math.floor(random() * 5) #todo: replace with normal distribution
-        self._range = range_option or RangeOption.ALTO
+        self._range = range_option if range_option is not None else RangeOption.ALTO
         self._mr = ModeResolver(self._mode, range_option=range_option)
         self._insertion_checks = [
             self._handles_adjacents,
@@ -24,13 +24,16 @@ class GenerateOnePartFifthSpecies:
             self._handles_descending_quarter_leaps,
             self._handles_repetition,
             self._handles_eigths,
-            self._handles_highest
+            self._handles_highest,
+            self._handles_resolution_of_anticipation
         ]
-        self._rhythm_filter = [
+        self._rhythm_filters = [
             self._handles_consecutive_quarters,
+            self._handles_penultimate_bar,
             self._handles_first_eighth,
             self._handles_sharp_durations,
-            self._handles_whole_note_quota
+            self._handles_whole_note_quota,
+            self._handles_repeated_note,
         ]
         self._index_checks = [
             self._highest_and_lowest_placed
@@ -38,7 +41,8 @@ class GenerateOnePartFifthSpecies:
         self._change_params = [
             self._check_for_highest_and_lowest,
             self._check_for_on_beat_whole_note,
-            self._check_if_new_run_is_added
+            self._check_if_new_run_is_added,
+            self._check_if_eighths_are_added
         ]
         self._final_checks = [
             self._parameters_are_correct
@@ -46,20 +50,20 @@ class GenerateOnePartFifthSpecies:
         self._params = [
             "highest_has_been_placed", "lowest_has_been_placed",
             "max_quarter_run_has_been_placed", "num_runs_placed",
-            "num_on_beat_whole_notes_placed"
+            "num_on_beat_whole_notes_placed", "eighths_have_been_placed"
         ]
 
-
-         
     def print_counterpoint(self):
         print("  FIFTH SPECIES:")
         for i in range(self._length):
-            for j in range(3):
-                cntpt_note = self._counterpoint_obj[(i, j)] if (i, j) in self._counterpoint_obj else ""
-                if (i, j + 0.5) in self._counterpoint_obj: cntp_note += str(self._counterpoint_obj[(i, j + 0.5)])
+            for j in range(4):
+                cntpt_note = str(self._counterpoint_obj[(i, j)]) if (i, j) in self._counterpoint_obj else ""
+                if cntpt_note is None: cntpt_note = "None"
+                if (i, j + 0.5) in self._counterpoint_obj: cntpt_note += str(self._counterpoint_obj[(i, j + 0.5)])
+                show_index = "    "
                 if j == 0:
-                    print(i + ":")
-                print("       " + str(cntpt_note))
+                    show_index = str(i) + ":  " if i < 10 else str(i) + ": "
+                print(show_index + "   " + str(cntpt_note))
 
     def get_optimal(self):
         if len(self._solutions) == 0:
@@ -79,8 +83,7 @@ class GenerateOnePartFifthSpecies:
             initialized = self._initialize()
             self._backtrack()
         attempts = 0
-        attempt()
-        while len(self._solutions) < 100 and attempts < 20:
+        while len(self._solutions) < 100 and attempts < 1:
             print("attempt", attempts)
             attempt()
             attempts += 1
@@ -90,9 +93,10 @@ class GenerateOnePartFifthSpecies:
             self._solutions.sort(key = lambda sol: self._score_solution(sol)) 
 
     def _initialize(self) -> bool:
+        self._index_problems = 0
         indices = []
         for i in range(self._length - 1):
-            indices += [(i, 0), (i, 1), (i, 1.5) (i, 2), (i, 3)]
+            indices += [(i, 0), (i, 1), (i, 1.5), (i, 2), (i, 3)]
         indices += [(self._length - 1, 0)]
         self._all_indices = indices[:]
         self._remaining_indices = indices[:]
@@ -108,7 +112,8 @@ class GenerateOnePartFifthSpecies:
             "highest_has_been_placed": False, "lowest_has_been_placed": False,
             "min_length_of_max_quarter_run": None, "max_quarter_run_has_been_placed": False,
             "min_runs_of_length_4_or_more": None, "num_runs_placed": 0,
-            "max_on_beat_whole_notes": None, "num_on_beat_whole_notes_placed": 0
+            "max_on_beat_whole_notes": None, "num_on_beat_whole_notes_placed": 0,
+            "eighths_have_been_placed": False
         }
         vocal_range = randint(8, 10)
         self._attempt_params["lowest"] = self._mr.get_default_note_from_interval(self._mr.get_lowest(), randint(1, 13 - vocal_range))
@@ -118,40 +123,79 @@ class GenerateOnePartFifthSpecies:
         self._attempt_params["min_length_of_max_quarter_run"] = randint(5, 10)
         self._attempt_params["min_runs_of_length_4_or_more"] = randint(1, 2)
         self._attempt_params["max_on_beat_whole_notes"] = randint(1, 2)
+        self._store_params = []
+        self._stored_indices = []
 
-        self._valid_pitches = [lowest, highest] #order is unimportant
+        self._valid_pitches = [self._attempt_params["lowest"], self._attempt_params["highest"]] #order is unimportant
         for i in range(2, vocal_range):
-            self._valid_pitches += self._mr.get_notes_from_interval(lowest, i)
+            self._valid_pitches += self._mr.get_notes_from_interval(self._attempt_params["lowest"], i)
         
         return True 
 
     def _backtrack(self) -> None:
-        if (self._num_backtracks > 100000 and self._solutions_this_attempt == 0) or self._num_backtracks > 100000:
+        if self._solutions_this_attempt > 1000 or self._num_backtracks > 200000:
             return 
         self._num_backtracks += 1
+        if self._num_backtracks % 10000 == 0:
+            print("backtrack number:", self._num_backtracks)
         if len(self._remaining_indices) == 0:
-            print("found possible solution!")
             if self._passes_final_checks():
-                print("FOUND SOLUTION!")
+                # print("FOUND SOLUTION!")
                 self._solutions.append(self._counterpoint_lst[:])
                 self._solutions_this_attempt += 1
             return 
         (bar, beat) = self._remaining_indices.pop() 
         if self._passes_index_checks((bar, beat)):
-            candidates = list(filter(lambda n: self._passes_insertion_checks(n, (bar, beat)) self._valid_pitches))
+            candidates = list(filter(lambda n: self._passes_insertion_checks(n, (bar, beat)), self._valid_pitches))
             if bar == 0 and beat == 0: candidates.append(Note(1, 0, 4, accidental=ScaleOption.REST))
+            # print("candidates for index", bar, beat, ": ", len(candidates))
+            notes_to_insert = []
             for candidate in candidates: 
                 durations = self._get_valid_durations(candidate, (bar, beat))
                 for dur in durations:
-                    note_to_insert = Note(candidate.get_scale_degree(), candidate.get_octave(), dur, accidental=candidate.get_accidental())
-                    self._insert_note(note_to_insert, (bar, beat))
-                    self._backtrack()
-                    self._remove_note(note_to_insert, (bar, beat))
+                    if dur in [2, 6, 4, 8, 12, 1, 16]:
+                        notes_to_insert.append(Note(candidate.get_scale_degree(), candidate.get_octave(), dur, accidental=candidate.get_accidental()))
+            shuffle(notes_to_insert)
+            for note_to_insert in notes_to_insert:
+                if self._index_problems > 2: break
+                problem = False 
+                log = []
+                log.append("inserting note: " + str(note_to_insert) + " into index " + str((bar, beat)))
+                log.append("number of backtrack calls before: " + str(self._num_backtracks))
+                log.append("all indices prior to insertion:")
+                log.append(str(self._all_indices))
+                log.append("remaining indices prior to insertion:")
+                log.append(str(self._remaining_indices))
+                self._insert_note(note_to_insert, (bar, beat))
+                all_indices_before = self._all_indices[:]
+                remaining_indices_before = self._remaining_indices[:]
+                log.append("all indices after insertion:")
+                log.append(str(self._all_indices))
+                log.append("remaining indices after insertion:")
+                log.append(str(self._remaining_indices))
+                self._backtrack()
+                if self._all_indices[:] != all_indices_before or self._remaining_indices[:] != remaining_indices_before:
+                    problem = True 
+                log.append("removing note: " + str(note_to_insert))
+                log.append("number of backtrack calls after: " + str(self._num_backtracks))
+                log.append("all indices prior to removal:")
+                log.append(str(self._all_indices))
+                log.append("remaining indices prior to removal:")
+                log.append(str(self._remaining_indices))
+                self._remove_note(note_to_insert, (bar, beat))
+                log.append("all indices after removal:")
+                log.append(str(self._all_indices))
+                log.append("remaining indices after removal:")
+                log.append(str(self._remaining_indices))
+                if problem:
+                    print("INDEX PROBLEM")
+                    self._index_problems += 1
+                    for line in log: print(line)
         self._remaining_indices.append((bar, beat))
 
     def _passes_index_checks(self, index: tuple) -> bool:
         for check in self._index_checks:
-            if not check(): return False 
+            if not check(index): return False 
         return True
 
     def _passes_insertion_checks(self, note: Note, index: tuple) -> bool:
@@ -161,39 +205,47 @@ class GenerateOnePartFifthSpecies:
         if bar == self._length - 1:
             if not self._check_last_pitch(note): return False
         for check in self._insertion_checks:
-            if not check(note, (bar, beat)): return False 
+            if not check(note, (bar, beat)): 
+                # print("failed insertion check:", str(note), index, "on function", check.__name__)
+                return False 
+        # print("passed insertion checks!", str(note), index)
         return True 
 
-    def _get_valid_durations(self, note: Note, index: tuple) -> set(int):
+    def _get_valid_durations(self, note: Note, index: tuple) -> set:
         (bar, beat) = index 
         if bar == self._length - 1: return { 16 }
         if note.get_accidental() == ScaleOption.REST: return { 4 }
         if bar == 0 and beat == 0: return { 12, 8, 6, 4 }
         durs = self._get_durations_from_beat(beat)
+        prev_length = len(durs)
         for check in self._rhythm_filters:
             durs = check(note, index, durs)
             if len(durs) == 0: break
         return durs 
 
-    def _insert_note(self, note: Note, index: tuple) -> set(int):
+    def _insert_note(self, note: Note, index: tuple) -> set:
         self._counterpoint_lst.append(note)
         self._counterpoint_obj[index] = note
+        self._store_params.append({})
         for param in self._params:
-            self._store_params[param] = self._attempt_params[param]
+            self._store_params[-1][param] = self._attempt_params[param]
         self._bury_indices(note, index)
         for check in self._change_params:
             check(note, index)
 
-    def _remove_note(self, note: Note, index: tuple) -> set(int):
+    def _remove_note(self, note: Note, index: tuple) -> set:
         self._counterpoint_lst.pop()
         self._counterpoint_obj[index] = None
         for param in self._params:
-            self._attempt_params[param] = self._store_params[param]
+            self._attempt_params[param] = self._store_params[-1][param]
+        self._store_params.pop()
         self._unbury_indices(note, index)
 
     def _passes_final_checks(self) -> bool:
         for check in self._final_checks:
-            if not check(): return False 
+            if not check(): 
+                print("failed final check:", check.__name__)
+                return False 
         return True 
 
     ######################################
@@ -206,6 +258,7 @@ class GenerateOnePartFifthSpecies:
         return note.get_accidental() == ScaleOption.NATURAL
         
     def _check_last_pitch(self, note: Note) -> bool:
+        if self._mr.get_final() != note.get_scale_degree(): return False
         if self._counterpoint_lst[-1].get_scale_degree_interval(note) == 2: return True 
         if self._counterpoint_lst[-1] != -2: return False 
         return self._mr.is_unison(self._counterpoint_lst[-1], self._mr.get_leading_tone_of_note(note))
@@ -213,9 +266,12 @@ class GenerateOnePartFifthSpecies:
     def _handles_adjacents(self, note: Note, index: tuple) -> bool:
         (bar, beat) = index
         (sdg_interval, chro_interval) = self._mr.get_intervals(self._counterpoint_lst[-1], note)
-        if sdg_interval not in LegalIntervalsFifthSpecies["adjacent_melodic_scalar"]: return False 
-        if chro_interval not in LegalIntervalsFifthSpecies["adjacent_melodic_chromatic"]: return False 
-        if (sdg_interval, chro_interval) in LegalIntervalsFifthSpecies["forbidden_combinations"]: return False 
+        if sdg_interval not in LegalIntervalsFifthSpecies["adjacent_melodic_scalar"]: 
+            return False 
+        if chro_interval not in LegalIntervalsFifthSpecies["adjacent_melodic_chromatic"]: 
+            return False 
+        if (sdg_interval, chro_interval) in LegalIntervalsFifthSpecies["forbidden_combinations"]: 
+            return False 
         return True 
 
     def _handles_interval_order(self, note: Note, index: tuple) -> bool:
@@ -247,7 +303,7 @@ class GenerateOnePartFifthSpecies:
         return True 
 
     def _handles_nearby_augs_and_dims(self, note: Note, index: tuple) -> bool:
-        if len(self._counterpoint_lst) < 2: return False 
+        if len(self._counterpoint_lst) < 2: return True
         if self._mr.is_cross_relation(note, self._counterpoint_lst[-2]) and self._counterpoint_lst[-1].get_duration() <= 2: return False 
         if self._counterpoint_lst[-2].get_duration() != 2 and self._counterpoint_lst[-1].get_duration() != 2: return True 
         (sdg_interval, chro_interval) = self._mr.get_intervals(self._counterpoint_lst[-2], note)
@@ -275,6 +331,7 @@ class GenerateOnePartFifthSpecies:
         if len(self._counterpoint_lst) < 2: return True 
         if self._counterpoint_lst[-2].get_chromatic_interval(self._counterpoint_lst[-1]) == 8:
             return self._counterpoint_lst[-1].get_chromatic_interval(note) == -1
+        return True
 
     def _handles_ascending_quarter_leaps(self, note: Note, index: tuple) -> bool:
         (bar, beat) = index
@@ -311,17 +368,22 @@ class GenerateOnePartFifthSpecies:
             return False 
         return True 
 
+    def _handles_resolution_of_anticipation(self, note: Note, index: tuple) -> bool:
+        if len(self._counterpoint_lst) < 2 or not self._mr.is_unison(self._counterpoint_lst[-2], self._counterpoint_lst[-1]):
+            return True 
+        return self._counterpoint_lst[-1].get_scale_degree_interval(note) == -2
+
     ######################################
     ########## rhythms filters ###########
 
-    def _get_durations_from_beat(self, beat: int) -> set(int):
+    def _get_durations_from_beat(self, beat: int) -> set:
         if beat == 1.5: return { 1 }
         if beat == 3: return { 2 }
         if beat == 1: return { 1, 2 }
         if beat == 2: return { 2, 4, 6, 8 }
         if beat == 0: return { 2, 4, 6, 8, 12 }
 
-    def _handles_consecutive_quarters(self, note: Note, index: tuple, durs: set(int)) -> set(int):
+    def _handles_consecutive_quarters(self, note: Note, index: tuple, durs: set) -> set:
         (bar, beat) = index
         if self._counterpoint_lst[-1].get_duration() != 2: return durs 
         if self._counterpoint_lst[-1].get_scale_degree_interval(note) > 0 and beat == 2: durs.discard(4)
@@ -334,22 +396,39 @@ class GenerateOnePartFifthSpecies:
                 durs.discard(2)
                 return durs 
 
-    def _handles_first_eighth(self, note: Note, index: tuple, durs: set(int)) -> set(int):
+    def _handles_penultimate_bar(self, note: Note, index: tuple, durs: set) -> set:
         (bar, beat) = index 
-        if beat == 1 and abs(self._counterpoint_lst[-1].get_scale_degree_interval(note)) != 2:
+        if bar != self._length - 2: return durs 
+        if beat == 2: 
+            durs.discard(8)
+            durs.discard(6)
+            durs.discard(2)
+        if beat == 0:
+            durs.discard(12)
+        return durs
+
+    def _handles_first_eighth(self, note: Note, index: tuple, durs: set) -> set:
+        (bar, beat) = index 
+        if (beat == 1 and abs(self._counterpoint_lst[-1].get_scale_degree_interval(note)) != 2) or self._attempt_params["eighths_have_been_placed"]:
             durs.discard(1)
         return durs 
 
-    def _handles_sharp_durations(self, note: Note, index: tuple, durs: set(int)) -> set(int):
+    def _handles_sharp_durations(self, note: Note, index: tuple, durs: set) -> set:
         if self._mr.is_sharp(note): durs.discard(12)
         return durs 
 
-    def _handles_whole_note_quota(self, note: Note, index: tuple, durs: set(int)) -> set(int):
+    def _handles_whole_note_quota(self, note: Note, index: tuple, durs: set) -> set:
         (bar, beat) = index 
         if self._attempt_params["num_on_beat_whole_notes_placed"] == self._attempt_params["max_on_beat_whole_notes"]:
             if beat == 0: 
                 durs.discard(8)
                 durs.discard(12)
+        return durs
+
+    def _handles_repeated_note(self, note: Note, index: tuple, durs: set) -> set:
+        if self._mr.is_unison(self._counterpoint_lst[-1], note): 
+            durs.discard(4)
+            durs.discard(2)
         return durs
 
     ##########################################
@@ -368,30 +447,31 @@ class GenerateOnePartFifthSpecies:
 
     def _bury_indices(self, note: Note, index: tuple) -> None:
         (bar, beat) = index
-        self._indices_to_store = []
-        for i in range(1, note.get_duration() + 1):
+        self._stored_indices.append([])
+        for i in range(1, note.get_duration()):
             new_beat, new_bar = beat + (i / 2), bar
             while new_beat >= 4:
                 new_beat -= 4
                 new_bar += 1
             if (new_bar, new_beat) in self._counterpoint_obj:
-                self._indices_to_store.append((new_bar, new_beat))
+                self._stored_indices[-1].append((new_bar, new_beat))
                 del self._counterpoint_obj[(new_bar, new_beat)]
                 self._all_indices.remove((new_bar, new_beat))
                 self._remaining_indices.remove((new_bar, new_beat))
 
     def _unbury_indices(self, note: Note, index: tuple) -> None:
         i = len(self._counterpoint_lst) + 1
-        while len(self._indices_to_store) > 0:
-            next_index = self._indices_to_store.pop()
+        while len(self._stored_indices[-1]) > 0:
+            next_index = self._stored_indices[-1].pop()
             self._all_indices.insert(i, next_index)
             self._remaining_indices.append(next_index)
             self._counterpoint_obj[next_index] = None
+        self._stored_indices.pop()
 
     def _check_for_highest_and_lowest(self, note: Note, index: tuple) -> None:
-        if self._mr.is_unison(note, self._all_indices["highest"]):
+        if self._mr.is_unison(note, self._attempt_params["highest"]):
             self._attempt_params["highest_has_been_placed"] = True 
-        if self._mr.is_unison(note, self._all_indices["lowest"]):
+        if self._mr.is_unison(note, self._attempt_params["lowest"]):
             self._attempt_params["lowest_has_been_placed"] = True 
 
     def _check_for_on_beat_whole_note(self, note: Note, index: tuple) -> None:
@@ -411,10 +491,16 @@ class GenerateOnePartFifthSpecies:
         if run_length == self._attempt_params["min_length_of_max_quarter_run"]:
             self._attempt_params["max_quarter_run_has_been_placed"] = True 
 
+    def _check_if_eighths_are_added(self, note: Note, index: tuple) -> None:
+        (bar, beat) = index 
+        if beat == 1.5: self._attempt_params["eighths_have_been_placed"] = True
+
     ##########################################
     ########### final checks #################
 
     def _parameters_are_correct(self) -> bool:
+        # print("num runs placed:", self._attempt_params["num_runs_placed"])
+        # print("max run has been placed?", self._attempt_params["max_quarter_run_has_been_placed"])
         return self._attempt_params["num_runs_placed"] >= self._attempt_params["min_runs_of_length_4_or_more"] and self._attempt_params["max_quarter_run_has_been_placed"]
 
 
@@ -422,8 +508,7 @@ class GenerateOnePartFifthSpecies:
     ########### scoring ######################
 
     def _score_solution(self, solution: list[Note]) -> int:
-        pass
-
+        return len(solution) * -1
 
     def _map_solution_onto_counterpoint_dict(self, solution: list[Note]) -> None:
         self._counterpoint_obj = {}

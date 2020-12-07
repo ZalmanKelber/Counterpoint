@@ -101,7 +101,7 @@ class ModeResolver:
 
     def get_lowest(self) -> Note:
         sdg = 5 if self._range in [RangeOption.ALTO, RangeOption.BASS] else 2
-        octv = 4 if self._range == RangeOption.SOPRANO else 2 if self._range == RangeOption.BASS else 3
+        octv = 5 if self._range == RangeOption.SOPRANO else 3 if self._range == RangeOption.BASS else 4
         return Note(sdg, octv, 8, ScaleOption.NATURAL)
 
     def get_highest(self) -> Note:

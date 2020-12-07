@@ -204,7 +204,7 @@ class GenerateTwoPartFourthSpecies:
             if not self._is_valid_harmonically(self._cantus[bar], note): return False 
             return True 
 
-    def _doesnt_create_parallels(self, note: Note, (index): tuple) -> bool:
+    def _doesnt_create_parallels(self, note: Note, index: tuple) -> bool:
         (bar, beat) = index 
         if beat != 0 or bar == 0: return True 
         if self._cantus[bar].get_chromatic_interval(note) not in [-19, -12, -7, 0, 7, 12, 19]: return True 
