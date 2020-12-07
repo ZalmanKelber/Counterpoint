@@ -1,5 +1,3 @@
-import sys
-
 from random import random, shuffle, randint
 import math
 from time import time
@@ -124,7 +122,7 @@ class GenerateTwoPartFourthSpecies:
         (bar, beat) = self._remaining_indices.pop() 
         candidates = None
         if bar == 0 and (beat == 0 or self._counterpoint[(0, 0)].get_accidental() == ScaleOption.REST):
-            candidates = list(filter(lambda n: n.get_chromatic_interval(self._cantus[0]) in [-12, 0, 7, 12], self._valid_pitches))
+            candidates = list(filter(lambda n: self._cantus[0].get_chromatic_interval(n) in [-12, 0, 7, 12], self._valid_pitches))
         else:
             candidates = list(filter(lambda n: self._passes_insertion_checks(n, (bar, beat)), self._valid_pitches)) 
         if bar == 0 and beat == 0:
@@ -206,7 +204,7 @@ class GenerateTwoPartFourthSpecies:
             if not self._is_valid_harmonically(self._cantus[bar], note): return False 
             return True 
 
-    def _doesnt_create_parallels(self, note: Note, index: tuple) -> bool:
+    def _doesnt_create_parallels(self, note: Note, (index): tuple) -> bool:
         (bar, beat) = index 
         if beat != 0 or bar == 0: return True 
         if self._cantus[bar].get_chromatic_interval(note) not in [-19, -12, -7, 0, 7, 12, 19]: return True 

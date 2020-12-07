@@ -25,6 +25,12 @@ class ScaleOption (Enum):
     SHARP = "SHP"
     REST = "REST"
 
+class RangeOption (Enum):
+    SOPRANO = "SOPRANO"
+    ALTO = "ALTO"
+    TENOR = "TENOR"
+    BASS = "BASS"
+
 #contains scale degree, accidental, octave (standard octave identification)
 #and duration (in eighth notes) and 
 class Note:
@@ -89,11 +95,25 @@ class Note:
         return "%s %d, %s NOTE" % (pitch_value, self.get_octave(), rhythmic_value)
 
 class ModeResolver: 
-    def __init__(self, mode: ModeOption):
+    def __init__(self, mode: ModeOption, range_option: RangeOption = RangeOption.ALTO):
         self._mode = mode 
+        self._range = range_option
+
+    def get_lowest(self) -> Note:
+        sdg = 5 if self._range in [RangeOption.ALTO, RangeOption.BASS] else 2
+        octv = 4 if self._range == RangeOption.SOPRANO else 2 if self._range == RangeOption.BASS else 3
+        return Note(sdg, octv, 8, ScaleOption.NATURAL)
+
+    def get_highest(self) -> Note:
+        sdg = 2 if self._range in [RangeOption.ALTO, RangeOption.BASS] else 6
+        octv = 5 if self._range in [RangeOption.SOPRANO, RangeOption.ALTO] else 4
+        return Note(sdg, octv, 8, ScaleOption.NATURAL)
 
     def is_leading_tone(self, note: Note) -> bool:
         return note.get_accidental() == ScaleOption.SHARP or (note.get_scale_degree() == 7 and self._mode in [ModeOption.DORIAN, ModeOption.LYDIAN])
+
+    def is_sharp(self, note: Note) -> bool:
+        return self.is_leading_tone(note)
     
     def resolve_b(self) -> ScaleOption: #determines if default is b or b-flat, depending on mode
         if self._mode == ModeOption.DORIAN or self._mode == ModeOption.LYDIAN:
@@ -111,6 +131,11 @@ class ModeResolver:
     def is_unison(self, note1: Note, note2: Note) -> bool:
         return note1.get_scale_degree_interval(note2) == 1 and note1.get_chromatic_interval(note2) == 0 
 
+    def is_cross_relation(self, note1: Note, note2: Note) -> bool:
+        return abs(note1.get_scale_degree_interval(note2)) in [1, 8, 15] and abs(note1.get_chromatic_interval(note2)) not in [0, 12, 24]
+
+    def get_intervals(self, note1: Note, note2: Note) -> tuple:
+        return (note1.get_scale_degree_interval(note2), note1.get_chromatic_interval(note2))
 
     def get_default_scale_option(self, scale_degree: int) -> ScaleOption:
         if scale_degree <= 6:
@@ -121,6 +146,14 @@ class ModeResolver:
     def make_default_scale_option(self, note: Note) -> None:
         sdg = note.get_scale_degree()
         note.set_accidental(self.get_default_scale_option(sdg))
+
+    def get_final(self) -> int:
+        if self._mode == ModeOption.IONIAN: return 1
+        if self._mode == ModeOption.DORIAN: return 2
+        if self._mode == ModeOption.PHRYGIAN: return 3
+        if self._mode == ModeOption.LYDIAN: return 4
+        if self._mode == ModeOption.MIXOLYDIAN: return 5
+        if self._mode == ModeOption.AEOLIAN: return 6
 
     def get_leading_tone_of_note(self, note: Note) -> Note:
         lt = self.get_default_note_from_interval(note, -2)
