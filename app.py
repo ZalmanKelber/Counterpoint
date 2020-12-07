@@ -77,7 +77,7 @@ def main():
         #     fs.play_midi("counterpoint.mid")
             # fs.midi_to_audio("counterpoint.mid", "audio/fourth-species-" + mode.value["name"] + ".wav")
 
-    for mode in [ModeOption.AEOLIAN]:
+    for mode in ModeOption:
         g1p5s = GenerateOnePartFifthSpecies(8, mode)
         g1p5s.generate_1p5s()
         optimal = g1p5s.get_optimal()
@@ -87,6 +87,7 @@ def main():
             for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
                 fs = FluidSynth("/Users/alexkelber/Development/" + filename)
                 fs.play_midi("counterpoint.mid")
+                fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-one-part-" + mode.value["name"] + ".wav")
 
 
     

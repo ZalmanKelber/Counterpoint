@@ -100,13 +100,19 @@ class ModeResolver:
         self._range = range_option
 
     def get_lowest(self) -> Note:
-        sdg = 5 if self._range in [RangeOption.ALTO, RangeOption.BASS] else 2
-        octv = 5 if self._range == RangeOption.SOPRANO else 3 if self._range == RangeOption.BASS else 4
+        sdg, octv = None, None 
+        if self._range == RangeOption.BASS: sdg, octv = 5, 3
+        if self._range == RangeOption.TENOR: sdg, octv = 2, 4
+        if self._range == RangeOption.ALTO: sdg, octv = 5, 4
+        if self._range == RangeOption.SOPRANO: sdg, octv = 2, 5
         return Note(sdg, octv, 8, ScaleOption.NATURAL)
 
     def get_highest(self) -> Note:
-        sdg = 2 if self._range in [RangeOption.ALTO, RangeOption.BASS] else 6
-        octv = 5 if self._range in [RangeOption.SOPRANO, RangeOption.ALTO] else 4
+        sdg, octv = None, None 
+        if self._range == RangeOption.BASS: sdg, octv = 2, 4
+        if self._range == RangeOption.TENOR: sdg, octv = 6, 4
+        if self._range == RangeOption.ALTO: sdg, octv = 2, 5
+        if self._range == RangeOption.SOPRANO: sdg, octv = 6, 5
         return Note(sdg, octv, 8, ScaleOption.NATURAL)
 
     def is_leading_tone(self, note: Note) -> bool:
