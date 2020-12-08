@@ -92,7 +92,7 @@ def main():
     #             fs.play_midi("counterpoint.mid")
     #             # fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-one-part-" + mode.value["name"] + ".wav")
 
-    for mode in [ModeOption.IONIAN, ModeOption.LYDIAN, ModeOption.AEOLIAN]:
+    for mode in [ModeOption.LYDIAN]:
         optimal = None 
         while optimal is None:
             g2p5s = GenerateTwoPartFifthSpecies(randint(8, 12), mode, range_option=RangeOption.SOPRANO)

@@ -31,7 +31,17 @@ class GenerateTwoPartFifthSpecies:
             self._handles_upper_neighbor,
             self._handles_antipenultimate_bar,
         ]
-        self._rhythm_filters = [
+        self._harmonic_insertion_checks = [
+            self._filters_dissonance_on_downbeat,
+            self._resolves_suspension,
+            self._prepares_weak_quarter_dissonance,
+            self._resolves_weak_quarter_dissonance,
+            self._resolves_cambiata_tail,
+            self._prepares_weak_half_note,
+            self._resolves_dissonant_quarter_on_weak_half_note,
+            self._resolves_passing_half_note
+        ]
+        self._melodic_rhythm_filters = [
             self._handles_consecutive_quarters,
             self._handles_penultimate_bar,
             self._handles_first_eighth,
@@ -42,6 +52,11 @@ class GenerateTwoPartFifthSpecies:
             self._handles_dotted_whole_after_quarters,
             self._handles_repeated_dotted_halfs,
             self._handles_antipenultimate_rhythm
+        ]
+        self._harmonic_rhythm_filters = [
+            self._prepares_suspension,
+            self._resolves_cambiata,
+            self._handles_weak_half_note_dissonance,
         ]
         self._index_checks = [
             self._highest_and_lowest_placed
@@ -73,13 +88,14 @@ class GenerateTwoPartFifthSpecies:
         print("  FIFTH SPECIES:")
         for i in range(self._length):
             for j in range(4):
+                cf_note = str(self._cantus[i]) if j == 0 else "                   "
                 cntpt_note = str(self._counterpoint_obj[(i, j)]) if (i, j) in self._counterpoint_obj else ""
                 if cntpt_note is None: cntpt_note = "None"
                 if (i, j + 0.5) in self._counterpoint_obj: cntpt_note += "  " + str(self._counterpoint_obj[(i, j + 0.5)])
                 show_index = "    "
                 if j == 0:
                     show_index = str(i) + ":  " if i < 10 else str(i) + ": "
-                print(show_index + "   " + str(cntpt_note))
+                print(show_index + "  " + cf_note + "  " + str(cntpt_note))
 
     def get_optimal(self):
         if len(self._solutions) == 0:
@@ -151,12 +167,13 @@ class GenerateTwoPartFifthSpecies:
         return True 
 
     def _backtrack(self) -> None:
-        if (self._solutions_this_attempt > 500 or self._num_backtracks > 50000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 20000):
+        if (self._solutions_this_attempt > 500 or self._num_backtracks > 100000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 100000):
             return 
         self._num_backtracks += 1
         if self._num_backtracks % 10000 == 0:
             print("backtrack number:", self._num_backtracks)
         if len(self._remaining_indices) == 0:
+            print("found possible solution")
             if self._passes_final_checks():
                 if self._solutions_this_attempt == 0:
                     print("FOUND SOLUTION!")
@@ -198,6 +215,10 @@ class GenerateTwoPartFifthSpecies:
                 # print("failed insertion check:", str(note), index, "on function", check.__name__)
                 return False 
         # print("passed insertion checks!", str(note), index)
+        for check in self._harmonic_insertion_checks:
+            if not check(note, (bar, beat)): 
+                # print("failed insertion check:", str(note), index, "on function", check.__name__)
+                return False 
         return True 
 
     def _get_valid_durations(self, note: Note, index: tuple) -> set:
@@ -207,7 +228,7 @@ class GenerateTwoPartFifthSpecies:
         if bar == 0 and beat == 0: return { 12, 8, 6, 4 }
         durs = self._get_durations_from_beat(beat)
         prev_length = len(durs)
-        for check in self._rhythm_filters:
+        for check in self._melodic_rhythm_filters:
             durs = check(note, index, durs)
             if len(durs) == 0: break
         return durs 
@@ -397,10 +418,79 @@ class GenerateTwoPartFifthSpecies:
             if note.get_accidental() != ScaleOption.NATURAL or note.get_scale_degree() != self._mr.get_final():
                 return False 
         return True 
-        
 
     ######################################
-    ########## rhythms filters ###########
+    ###### harmonic insertion checks ######
+
+    def _filters_dissonance_on_downbeat(self, note: Note, index: tuple) -> bool:
+        (bar, beat) = index 
+        if beat != 0: return True
+        cf_note = self._cantus[bar]
+        return self._is_consonant(cf_note, note)
+        
+    def _resolves_suspension(self, note: Note, index: tuple) -> bool:
+        (bar, beat) = index
+        if beat not in [1, 2] or (bar, 0) in self._counterpoint_obj: return True 
+        susp_index = (bar - 1, 2) if (bar - 1, 2) in self._counterpoint_obj else (bar - 1, 0)
+        cf_note, susp = self._cantus[bar], self._counterpoint_obj[susp_index]
+        if cf_note.get_scale_degree_interval(susp) in LegalIntervalsFifthSpecies["resolvable_dissonance"]:
+            return susp.get_scale_degree_interval(note) == -2
+        return True 
+
+    def _prepares_weak_quarter_dissonance(self, note: Note, index: tuple) -> bool:
+        (bar, beat) = index
+        if beat % 2 != 1 or self._is_consonant(self._cantus[bar], note): return True 
+        if not self._is_consonant(self._cantus[bar], self._counterpoint_lst[-1]): return False 
+        return abs(self._counterpoint_lst[-1].get_scale_degree_interval(note)) == 2
+
+    def _resolves_weak_quarter_dissonance(self, note: Note, index: tuple) -> bool:
+        (bar, beat) = index
+        if beat % 2 != 0 or self._counterpoint_lst[-1].get_duration() != 2: return True 
+        if self._is_consonant(self._cantus[bar if beat > 0 else bar - 1], self._counterpoint_lst[-1]): return True 
+        first_interval = self._counterpoint_lst[-2].get_scale_degree_interval(self._counterpoint_lst[-1])
+        second_interval = self._counterpoint_lst[-1].get_scale_degree_interval(note) 
+        if second_interval not in [-3, -2, 1]: return False 
+        if first_interval == 2 and second_interval == -3: return False 
+        return True 
+
+    def _resolves_cambiata_tail(self, note: Note, index: tuple) -> bool:
+        (bar, beat) = index
+        if beat == 1.5: return True 
+        first_index, second_index = (bar - 1, 1), (bar - 1, 2)
+        if beat in [1, 2]:
+            first_index, second_index = (bar - 1, 3), (bar - 1, 0)
+        if beat == 3:
+            first_index, second_index = (bar , 1), (bar, 2)
+        if first_index not in self._counterpoint_obj or second_index not in self._counterpoint_obj: return True 
+        cf_note = self._cantus[bar if beat == 3 else bar - 1]
+        if not self._is_consonant(cf_note, self._counterpoint_obj[first_index]) and self._counterpoint_obj[first_index].get_scale_degree_interval(self._counterpoint_obj[second_index]) == -3:
+            return self._counterpoint_lst[-1].get_scale_degree_interval(note) == 2
+        return True 
+
+    def _prepares_weak_half_note(self, note: Note, index: tuple) -> bool:
+        (bar, beat) = index
+        if beat != 2: return True 
+        cf_note = self._cantus[bar]
+        if self._is_consonant(cf_note, note): return True 
+        if (bar, 0) not in self._counterpoint_obj or self._counterpoint_obj[(bar, 0)].get_duration() != 4: return False 
+        return abs(self._counterpoint_obj[(bar, 0)].get_scale_degree_interval(note)) == 2
+
+    def _resolves_dissonant_quarter_on_weak_half_note(self, note: Note, index: tuple) -> bool:
+        (bar, beat) = index
+        if beat != 3 or (bar, 2) not in self._counterpoint_obj: return True 
+        if self._is_consonant(self._cantus[bar], self._counterpoint_obj[(bar, 2)]): return True 
+        return self._counterpoint_obj[(bar, 2)].get_scale_degree_interval(note) == -2
+
+    def _resolves_passing_half_note(self, note: Note, index: tuple) -> bool:
+        (bar, beat) = index
+        if beat != 0 or (bar - 1, 2) not in self._counterpoint_obj or self._counterpoint_obj[(bar - 1, 2)].get_duration() != 4: return True 
+        if self._is_consonant(self._counterpoint_obj[(bar - 1, 2)], self._cantus[bar - 1]): return True 
+        return self._counterpoint_lst[-2].get_scale_degree_interval(self._counterpoint_lst[-1]) == self._counterpoint_lst[-1].get_scale_degree_interval(note)
+
+
+
+    ######################################
+    ###### melodic rhythms filters #######
 
     def _get_durations_from_beat(self, beat: int) -> set:
         if beat == 1.5: return { 1 }
@@ -487,6 +577,43 @@ class GenerateTwoPartFifthSpecies:
             durs.discard(8)
             durs.discard(6)
         return durs 
+
+    ##########################################
+    ###### harmonic rhythm filters ###########
+
+    def _prepares_suspension(self, note: Note, index: tuple, durs: set) -> set:
+        (bar, beat) = index 
+        if bar == self._length - 1 or self._is_consonant(self._cantus[bar + 1], note): return durs 
+        if self._cantus[bar + 1].get_scale_degree_interval(note) in LegalIntervalsFifthSpecies["resolvable_dissonance"]:
+            return durs 
+        if beat == 0:
+            durs.discard(12)
+        if beat == 2:
+            durs.discard(8)
+            durs.discard(6)
+        return durs 
+
+    def _resolves_cambiata(self, note: Note, index: tuple, durs: set) -> set:
+        (bar, beat) = index 
+        if beat % 2 != 0: return durs 
+        index_to_check = (bar - 1, 3) if beat == 0 else (bar, 1)
+        if index_to_check not in self._counterpoint_obj: return durs 
+        if self._is_consonant(self._cantus[bar - 1 if beat == 0 else bar], self._counterpoint_obj[index_to_check]): return durs 
+        if self._counterpoint_obj[index_to_check].get_scale_degree_interval(note) != -3: return durs 
+        durs.discard(12)
+        durs.discard(8)
+        durs.discard(6)
+        return durs 
+
+    def _handles_weak_half_note_dissonance(self, note: Note, index: tuple, durs: set) -> set:
+        (bar, beat) = index 
+        if beat != 2 or self._is_consonant(self._cantus[bar], note): return durs 
+        durs.discard(6)
+        durs.discard(8)
+        if self._counterpoint_lst[-1].get_scale_degree_interval(note) == 2:
+            durs.discard(2)
+        return durs
+        
 
     ##########################################
     ########### index checks #################
@@ -616,3 +743,10 @@ class GenerateTwoPartFifthSpecies:
             while beat >= 4:
                 beat -= 4
                 bar += 1
+
+    def _is_consonant(self, note1: Note, note2: Note) -> bool:
+        (sdg_interval, chro_interval) = self._mr.get_intervals(note1, note2)
+        if sdg_interval not in LegalIntervalsFifthSpecies["harmonic_scalar"]: return False 
+        if chro_interval not in LegalIntervalsFifthSpecies["harmonic_chromatic"]: return False 
+        if (sdg_interval, chro_interval) in LegalIntervalsFifthSpecies["forbidden_combinations"]: return False 
+        return True 
