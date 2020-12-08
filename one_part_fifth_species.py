@@ -36,7 +36,9 @@ class GenerateOnePartFifthSpecies:
             self._handles_sharp_durations,
             self._handles_whole_note_quota,
             self._handles_repeated_note,
-            self._handles_rhythm_after_descending_quarter_leap
+            self._handles_rhythm_after_descending_quarter_leap,
+            self._handles_dotted_whole_after_quarters,
+            self._handles_repeated_dotted_halfs
         ]
         self._index_checks = [
             self._highest_and_lowest_placed
@@ -140,14 +142,15 @@ class GenerateOnePartFifthSpecies:
         return True 
 
     def _backtrack(self) -> None:
-        if self._solutions_this_attempt > 500 or self._num_backtracks > 50000:
+        if (self._solutions_this_attempt > 500 or self._num_backtracks > 50000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 20000):
             return 
         self._num_backtracks += 1
         if self._num_backtracks % 10000 == 0:
             print("backtrack number:", self._num_backtracks)
         if len(self._remaining_indices) == 0:
             if self._passes_final_checks():
-                print("FOUND SOLUTION!")
+                if self._solutions_this_attempt == 0:
+                    print("FOUND SOLUTION!")
                 self._solutions.append(self._counterpoint_lst[:])
                 self._solutions_this_attempt += 1
             return 
@@ -285,7 +288,7 @@ class GenerateOnePartFifthSpecies:
         if self._mr.is_cross_relation(note, self._counterpoint_lst[-2]) and self._counterpoint_lst[-1].get_duration() <= 2: return False 
         if self._counterpoint_lst[-2].get_duration() != 2 and self._counterpoint_lst[-1].get_duration() != 2: return True 
         (sdg_interval, chro_interval) = self._mr.get_intervals(self._counterpoint_lst[-2], note)
-        return abs(sdg_interval) != 2 or abs(chro_interval) != 3
+        return (abs(sdg_interval) != 2 or abs(chro_interval) != 3) and (abs(sdg_interval) != 3 or abs(chro_interval) != 2)
 
     def _handles_nearby_leading_tones(self, note: Note, index: tuple) -> bool:
         (bar, beat) = index
@@ -313,7 +316,10 @@ class GenerateOnePartFifthSpecies:
 
     def _handles_ascending_quarter_leaps(self, note: Note, index: tuple) -> bool:
         (bar, beat) = index
-        if beat % 2 == 1 and self._counterpoint_lst[-1].get_scale_degree_interval(note) > 2: return False 
+        if self._counterpoint_lst[-1].get_scale_degree_interval(note) > 2:
+            if beat % 2 == 1: return False 
+            if len(self._counterpoint_lst) >= 2 and self._counterpoint_lst[-1].get_duration() == 2:
+                if self._counterpoint_lst[-2].get_scale_degree_interval(self._counterpoint_lst[-1]) > 0: return False
         return True 
 
     def _handles_descending_quarter_leaps(self, note: Note, index: tuple) -> bool:
@@ -440,6 +446,16 @@ class GenerateOnePartFifthSpecies:
             durs.discard(6)
         return durs
 
+    def _handles_dotted_whole_after_quarters(self, note: Note, index: tuple, durs: set) -> set:
+        if self._counterpoint_lst[-1].get_duration() == 2: durs.discard(12)
+        return durs
+
+    def _handles_repeated_dotted_halfs(self, note: Note, index: tuple, durs: set) -> set:
+        (bar, beat) = index 
+        if (bar - 1, beat) in self._counterpoint_obj and self._counterpoint_obj[(bar - 1, beat)].get_duration() == 6:
+            durs.discard(6)
+        return durs
+
     ##########################################
     ########### index checks #################
 
@@ -528,7 +544,31 @@ class GenerateOnePartFifthSpecies:
     ########### scoring ######################
 
     def _score_solution(self, solution: list[Note]) -> int:
-        return 1
+        score = 0
+        self._map_solution_onto_counterpoint_dict(solution)
+        if (self._length - 2, 0) in self._counterpoint_obj: score += 40
+        num_ties = 0
+        num_tied_dotted_halfs = 0
+        num_tied_wholes = 0
+        ties = [False] * (self._length - 2)
+        for i in range(1, self._length - 1):
+            if (i, 0) not in self._counterpoint_obj: 
+                ties[i - 1] = True
+                num_ties += 1
+                if (i - 1, 2) in self._counterpoint_obj:
+                    if self._counterpoint_obj[(i - 1, 2)].get_duration() == 6:
+                        num_tied_dotted_halfs += 1
+                    else:
+                        num_tied_wholes += 1
+        ideal_ties = 3 if self._length < 12 else 4 
+        score += abs(ideal_ties - num_ties) * 10 
+        score += abs(num_tied_wholes - num_tied_dotted_halfs) * 7
+        has_isolated_tie = False
+        for i in range(1, len(ties) - 1):
+            if ties[i - 1] == False and ties[i] == True and ties[i + 1] == False:
+                has_isolated_tie = True 
+        if has_isolated_tie: score += 12
+        return score 
 
     def _map_solution_onto_counterpoint_dict(self, solution: list[Note]) -> None:
         self._counterpoint_obj = {}

@@ -5,7 +5,7 @@ from midi2audio import FluidSynth
 
 from time import time 
 import math
-from random import random
+from random import random, randint
 
 from notation_system import ModeOption
 from cantus_firmus import CantusFirmus, GenerateCantusFirmus
@@ -78,9 +78,11 @@ def main():
             # fs.midi_to_audio("counterpoint.mid", "audio/fourth-species-" + mode.value["name"] + ".wav")
 
     for mode in ModeOption:
-        g1p5s = GenerateOnePartFifthSpecies(8, mode)
-        g1p5s.generate_1p5s()
-        optimal = g1p5s.get_optimal()
+        optimal = None 
+        while optimal is None:
+            g1p5s = GenerateOnePartFifthSpecies(randint(8, 12), mode)
+            g1p5s.generate_1p5s()
+            optimal = g1p5s.get_optimal()
         if optimal is not None:
             mw = MidiWriter()
             mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
