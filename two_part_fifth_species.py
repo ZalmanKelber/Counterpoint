@@ -58,7 +58,8 @@ class GenerateTwoPartFifthSpecies:
             self._handles_antipenultimate_rhythm,
             self._handles_half_note_chain,
             self._handles_missing_syncopation,
-            self._handles_quarters_after_whole
+            self._handles_quarters_after_whole,
+            self._handles_repetition_on_consecutive_syncopated_measures
         ]
         self._harmonic_rhythm_filters = [
             self._prepares_suspension,
@@ -664,6 +665,15 @@ class GenerateTwoPartFifthSpecies:
         if beat == 0 and self._counterpoint_lst[-1].get_duration() == 8:
             durs.discard(2)
         return durs
+        
+    def _handles_repetition_on_consecutive_syncopated_measures(self, note: Note, index: tuple, durs: set) -> set:
+        (bar, beat) = index 
+        if beat == 2 and (bar, 0) not in self._counterpoint_obj and (bar - 1, 2) in self._counterpoint_obj and self._mr.is_unison(self._counterpoint_obj[(bar - 1, 2)], note):
+            durs.discard(6)
+            durs.discard(8)
+        return durs
+
+
 
     ##########################################
     ###### harmonic rhythm filters ###########
@@ -828,7 +838,7 @@ class GenerateTwoPartFifthSpecies:
                         num_tied_wholes += 1
         ideal_ties = 3 if self._length < 12 else 4 
         score += abs(ideal_ties - num_ties) * 10 
-        score += abs(num_tied_wholes - num_tied_dotted_halfs) * 7
+        score += abs(num_tied_wholes - num_tied_dotted_halfs) * 5
         has_isolated_tie = False
         for i in range(1, len(ties) - 1):
             if ties[i - 1] == False and ties[i] == True and ties[i + 1] == False:
@@ -846,7 +856,7 @@ class GenerateTwoPartFifthSpecies:
             if beat == 2 and self._counterpoint_lst[i].get_duration() == 2 and self._counterpoint_lst[i - 1].get_duration() != 2:
                 if self._counterpoint_lst[i + 2].get_duration() != 2:
                     num_other_two_note_quarter_runs += 1
-        score += num_quarter_runs_starting_on_beat * 20 + num_quarter_runs_starting_on_beat_of_length_two * 30 + num_other_two_note_quarter_runs * 15
+        score += num_quarter_runs_starting_on_beat * 60 + num_quarter_runs_starting_on_beat_of_length_two * 60 + num_other_two_note_quarter_runs * 45
         num_fifths, num_octaves = 0, 0
         for i in range(1, self._length - 2):
             if (i, 0) in self._counterpoint_obj:

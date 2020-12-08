@@ -156,6 +156,16 @@ The following diagram compares the logical flow of the parallel and hidden fifth
 
 ![Parallel and Hidden Perfect interval check logical flow](ParallelsCheckFlow.png)
 
+Dec 8 2020: The following exercises have been added:
+
+  * [two part fourth species](https://github.com/ZalmanKelber/Counterpoint/blob/main/two_part_fourth_species.py)
+
+  * [one part fifth species](https://github.com/ZalmanKelber/Counterpoint/blob/main/one_part_fifth_species.py)
+
+  * [two party fifth species](https://github.com/ZalmanKelber/Counterpoint/blob/main/two_part_fifth_species.py)
+
+  In the fourth and especially fifth species, because rhythm is variable, the amount of remaining indices will change depending on the rhythmic duration of the notes we insert at any point in the backtracking algorithm.  As a result, it's necessary to store a snapshot of the current remaining indices (along with some other variables) before we insert a note onto the stack.  This snapshot of variables are stored by adding them onto a parallel stack that follows the backtracking algorithm so that the previous environment can be restored once a note is removed
+
 
 
 ### Notes:
