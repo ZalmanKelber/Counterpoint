@@ -1,5 +1,9 @@
 # Counterpoint Project (in progress)
 
+## Results
+
+Temporary gallery of results on GitHub Pages [here](https://zalmankelber.github.io/Counterpoint/)
+
 ## Project goals
 
 **Main goal:** create computer-generated small musical compositions in the style of 16th century counterpoint -- a style of foundational importance to Western Music Theory and central to hundreds of years of Music Pedagogy.  Using the analysis of this style by **Knud Jeppesen** as a guide, generate compositions in the style of standard species counterpoint pedagogical exercises and then work up to compositions in the style of the 16th century composer **Giovanni Pierluigi da Palestrina**, whose liturgical vocal works are often used to represent this style.

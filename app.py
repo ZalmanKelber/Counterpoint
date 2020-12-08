@@ -96,7 +96,7 @@ def main():
         optimal = None 
         range_option = RangeOption.ALTO if mode in [ModeOption.IONIAN, ModeOption.DORIAN, ModeOption.PHRYGIAN] else RangeOption.SOPRANO
         while optimal is None:
-            g2p5s = GenerateTwoPartFifthSpecies(randint(8, 12), mode, range_option=range_option)
+            g2p5s = GenerateTwoPartFifthSpecies(randint(14, 16), mode, range_option=range_option)
             g2p5s.generate_2p5s()
             optimal = g2p5s.get_optimal()
         if optimal is not None:

@@ -186,7 +186,7 @@ class GenerateTwoPartFifthSpecies:
                 self._attempt_params["run_indices"].add(index)
 
     def _backtrack(self) -> None:
-        if (self._num_backtracks > 100000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 20000):
+        if (self._num_backtracks > 100000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 50000):
             return 
         self._num_backtracks += 1
         if self._num_backtracks % 10000 == 0:
