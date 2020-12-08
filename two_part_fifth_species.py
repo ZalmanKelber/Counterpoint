@@ -39,9 +39,13 @@ class GenerateTwoPartFifthSpecies:
             self._resolves_cambiata_tail,
             self._prepares_weak_half_note,
             self._resolves_dissonant_quarter_on_weak_half_note,
-            self._resolves_passing_half_note
+            self._resolves_passing_half_note,
+            self._handles_hiddens,
+            self._handles_parallels,
+            self._handles_doubled_leading_tone
         ]
         self._melodic_rhythm_filters = [
+            self._handles_runs,
             self._handles_consecutive_quarters,
             self._handles_penultimate_bar,
             self._handles_first_eighth,
@@ -51,7 +55,8 @@ class GenerateTwoPartFifthSpecies:
             self._handles_rhythm_after_descending_quarter_leap,
             self._handles_dotted_whole_after_quarters,
             self._handles_repeated_dotted_halfs,
-            self._handles_antipenultimate_rhythm
+            self._handles_antipenultimate_rhythm,
+            self._handles_half_note_chain
         ]
         self._harmonic_rhythm_filters = [
             self._prepares_suspension,
@@ -64,16 +69,15 @@ class GenerateTwoPartFifthSpecies:
         self._change_params = [
             self._check_for_highest_and_lowest,
             self._check_for_on_beat_whole_note,
-            self._check_if_new_run_is_added,
+            # self._check_if_new_run_is_added,
             self._check_if_eighths_are_added
         ]
         self._final_checks = [
-            self._parameters_are_correct,
+            # self._parameters_are_correct,
             self._has_only_one_octave
         ]
         self._params = [
             "highest_has_been_placed", "lowest_has_been_placed",
-            "max_quarter_run_has_been_placed", "num_runs_placed",
             "num_on_beat_whole_notes_placed", "eighths_have_been_placed"
         ]
         gcf = GenerateCantusFirmus(self._length, self._mode, 4)
@@ -141,39 +145,50 @@ class GenerateTwoPartFifthSpecies:
         self._attempt_params = {
             "lowest": None, "highest": None, "highest_must_appear_by": None, "lowest_must_appear_by": None, 
             "highest_has_been_placed": False, "lowest_has_been_placed": False,
-            "min_length_of_max_quarter_run": None, "max_quarter_run_has_been_placed": False,
-            "min_runs_of_length_4_or_more": None, "num_runs_placed": 0,
             "max_on_beat_whole_notes": None, "num_on_beat_whole_notes_placed": 0,
-            "eighths_have_been_placed": False
+            "eighths_have_been_placed": False, "run_indices": set()
         }
         vocal_range = randint(8, 10)
         self._attempt_params["lowest"] = self._mr.get_default_note_from_interval(self._mr.get_lowest(), randint(1, 13 - vocal_range))
         self._attempt_params["highest"] = self._mr.get_default_note_from_interval(self._attempt_params["lowest"], vocal_range)
         self._attempt_params["highest_must_appear_by"] = randint(3, self._length - 1)
         self._attempt_params["lowest_must_appear_by"] = randint(3 if self._attempt_params["highest_must_appear_by"] >= 5 else 5, self._length - 1)
-        self._attempt_params["min_length_of_max_quarter_run"] = randint(5, 10)
-        self._attempt_params["min_runs_of_length_4_or_more"] = randint(1, 2)
         self._attempt_params["max_on_beat_whole_notes"] = randint(1, 2)
+
+        self._place_runs()
+
         self._store_params = []
         self._stored_indices = []
-        # print("min runs of length 4 or more:")
-        # print(self._attempt_params["min_runs_of_length_4_or_more"])
-        # print("min length of max quarter run")
-        # print(self._attempt_params["min_length_of_max_quarter_run"])
         self._valid_pitches = [self._attempt_params["lowest"], self._attempt_params["highest"]] #order is unimportant
         for i in range(2, vocal_range):
             self._valid_pitches += self._mr.get_notes_from_interval(self._attempt_params["lowest"], i)
         
         return True 
 
+    def _place_runs(self) -> None:
+        runs = [randint(5, 11)]
+        if self._length > 8: runs.append(4)
+        shuffle(runs)
+        start_beats = []
+        for run in runs:
+            start_beats.append(randint(3, (self._length - 2) * 4 - run))
+        if len(runs) == 2 and start_beats[0] + runs[0] + 12 >= start_beats[1]:
+            start_beats.pop()
+            runs.pop()
+        for i in range(len(runs)):
+            for j in range(runs[i]):
+                total_beats = start_beats[i] + j 
+                index = (total_beats // 4, total_beats % 4)
+                self._attempt_params["run_indices"].add(index)
+        print(self._attempt_params["run_indices"])
+
     def _backtrack(self) -> None:
-        if (self._solutions_this_attempt > 500 or self._num_backtracks > 100000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 100000):
+        if (self._num_backtracks > 100000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 10000):
             return 
         self._num_backtracks += 1
         if self._num_backtracks % 10000 == 0:
             print("backtrack number:", self._num_backtracks)
         if len(self._remaining_indices) == 0:
-            print("found possible solution")
             if self._passes_final_checks():
                 if self._solutions_this_attempt == 0:
                     print("FOUND SOLUTION!")
@@ -190,8 +205,7 @@ class GenerateTwoPartFifthSpecies:
             for candidate in candidates: 
                 durations = self._get_valid_durations(candidate, (bar, beat))
                 for dur in durations:
-                    if dur in [2, 6, 4, 8, 12, 1, 16]:
-                        notes_to_insert.append(Note(candidate.get_scale_degree(), candidate.get_octave(), dur, accidental=candidate.get_accidental()))
+                    notes_to_insert.append(Note(candidate.get_scale_degree(), candidate.get_octave(), dur, accidental=candidate.get_accidental()))
             shuffle(notes_to_insert)
             for note_to_insert in notes_to_insert:
                 self._insert_note(note_to_insert, (bar, beat))
@@ -225,10 +239,13 @@ class GenerateTwoPartFifthSpecies:
         (bar, beat) = index 
         if bar == self._length - 1: return { 16 }
         if note.get_accidental() == ScaleOption.REST: return { 4 }
-        if bar == 0 and beat == 0: return { 12, 8, 6, 4 }
-        durs = self._get_durations_from_beat(beat)
+        if bar == 0 and beat == 0: return self._get_first_beat_options(note)
+        durs = self._get_durations_from_beat(index)
         prev_length = len(durs)
         for check in self._melodic_rhythm_filters:
+            durs = check(note, index, durs)
+            if len(durs) == 0: break
+        for check in self._harmonic_rhythm_filters:
             durs = check(note, index, durs)
             if len(durs) == 0: break
         return durs 
@@ -265,6 +282,7 @@ class GenerateTwoPartFifthSpecies:
         if note.get_accidental() == ScaleOption.REST:
             return True 
         if note.get_scale_degree() != self._mr.get_final(): return False 
+        if abs(self._cantus[0].get_scale_degree_interval(note)) > 12: return False
         return note.get_accidental() == ScaleOption.NATURAL
         
     def _check_last_pitch(self, note: Note) -> bool:
@@ -487,17 +505,60 @@ class GenerateTwoPartFifthSpecies:
         if self._is_consonant(self._counterpoint_obj[(bar - 1, 2)], self._cantus[bar - 1]): return True 
         return self._counterpoint_lst[-2].get_scale_degree_interval(self._counterpoint_lst[-1]) == self._counterpoint_lst[-1].get_scale_degree_interval(note)
 
+    def _handles_hiddens(self, note: Note, index: tuple) -> bool:
+        (bar, beat) = index
+        if beat != 0 or self._cantus[bar].get_chromatic_interval(note) not in [-19, -12, -7, 0, 7, 12, 19]: return True 
+        upper_interval = self._counterpoint_lst[-1].get_scale_degree_interval(note)
+        lower_interval = self._cantus[bar - 1].get_scale_degree_interval(self._cantus[bar])
+        if (upper_interval > 0 and lower_interval > 0) or (upper_interval < 0 and lower_interval < 0): return False 
+        return True 
 
+    def _handles_parallels(self, note: Note, index: tuple) -> bool:
+        (bar, beat) = index
+        if beat == 2 and self._counterpoint_lst[-1].get_duration() >= 8 and self._cantus[bar].get_chromatic_interval(note) in [-19, -12, 0, 12, 19]:
+            return self._cantus[bar].get_chromatic_interval(note) != self._cantus[bar - 1].get_chromatic_interval(self._counterpoint_lst[-1])
+        if beat != 0 or self._cantus[bar].get_chromatic_interval(note) not in [-19, -12, 0, 12, 19]: return True 
+        if (bar - 1, 2) in self._counterpoint_obj and self._cantus[bar - 1].get_chromatic_interval(self._counterpoint_obj[(bar - 1, 2)]) == self._cantus[bar].get_chromatic_interval(note):
+            return False 
+        index_to_check = (bar - 1, 0)
+        if index_to_check not in self._counterpoint_obj or self._counterpoint_obj[index_to_check].get_duration() == 2: 
+            return True 
+        if self._cantus[bar - 1].get_chromatic_interval(self._counterpoint_obj[index_to_check]) == self._cantus[bar].get_chromatic_interval(note):
+            return False
+        return True 
+
+    def _handles_doubled_leading_tone(self, note: Note, index: tuple) -> bool:
+        (bar, beat) = index
+        if beat != 0 or self._cantus[bar].get_chromatic_interval(note) not in [-12, 0, 12]: return True 
+        if (note.get_scale_degree() + 1) % 7 == self._mr.get_final(): return False 
+        return True 
 
     ######################################
     ###### melodic rhythms filters #######
 
-    def _get_durations_from_beat(self, beat: int) -> set:
+    def _handles_runs(self, note: Note, index: tuple, durs: set) -> set:
+        (bar, beat) = index
+        if index in self._attempt_params["run_indices"]: 
+            return { 2 } if 2 in durs else set()
+        if (bar, beat + 1) in self._attempt_params["run_indices"]: 
+            for d in [4, 6, 8, 12]: durs.discard(d)
+        two_beats_next = (bar, beat + 2) if beat == 0 else (bar + 1, 0)
+        if two_beats_next in self._attempt_params["run_indices"]: 
+            for d in [2, 6, 8, 12]: durs.discard(d)
+        three_beats_next = (bar, beat + 3) if beat == 0 else (bar + 1, 1)
+        if three_beats_next in self._attempt_params["run_indices"]: 
+            for d in [2, 8, 12]: durs.discard(d)
+        if (bar + 1, 2) in self._attempt_params["run_indices"]:
+            durs.discard(12)
+        return durs
+
+    def _get_durations_from_beat(self, index: tuple) -> set:
+        (bar, beat) = index
         if beat == 1.5: return { 1 }
         if beat == 3: return { 2 }
         if beat == 1: return { 1, 2 }
         if beat == 2: return { 2, 4, 6, 8 }
-        if beat == 0: return { 2, 4, 6, 8, 12 }
+        if beat == 0: return { 2, 4, 6, 8, 12 } if bar == 0 else { 2, 4, 6, 8 }
 
     def _handles_consecutive_quarters(self, note: Note, index: tuple, durs: set) -> set:
         (bar, beat) = index
@@ -578,8 +639,21 @@ class GenerateTwoPartFifthSpecies:
             durs.discard(6)
         return durs 
 
+    def _handles_half_note_chain(self, note: Note, index: tuple, durs: set) -> set:
+        (bar, beat) = index
+        if beat == 2 and len(self._counterpoint_lst) >= 3:
+            if self._counterpoint_lst[-3].get_duration() == 4 and self._counterpoint_lst[-2].get_duration() == 4 and self._counterpoint_lst[-1].get_duration() == 4:
+                durs.discard(4)
+        return durs
+
     ##########################################
     ###### harmonic rhythm filters ###########
+
+    def _get_first_beat_options(self, note: Note) -> set:
+        durs = { 4, 6, 8, 12 }
+        if not self._is_consonant(self._cantus[1], note) and self._cantus[1].get_scale_degree_interval(note) not in LegalIntervalsFifthSpecies["resolvable_dissonance"]:
+            durs.discard(12)
+        return durs
 
     def _prepares_suspension(self, note: Note, index: tuple, durs: set) -> set:
         (bar, beat) = index 
@@ -705,7 +779,6 @@ class GenerateTwoPartFifthSpecies:
     def _score_solution(self, solution: list[Note]) -> int:
         score = 0
         self._map_solution_onto_counterpoint_dict(solution)
-        if (self._length - 2, 0) in self._counterpoint_obj: score += 500
         num_ties = 0
         num_tied_dotted_halfs = 0
         num_tied_wholes = 0
@@ -726,7 +799,32 @@ class GenerateTwoPartFifthSpecies:
         for i in range(1, len(ties) - 1):
             if ties[i - 1] == False and ties[i] == True and ties[i + 1] == False:
                 has_isolated_tie = True 
-        if has_isolated_tie: score += 12
+        if has_isolated_tie: score -= 12
+        num_quarter_runs_starting_on_beat = 0
+        num_quarter_runs_starting_on_beat_of_length_two = 0
+        num_other_two_note_quarter_runs = 0
+        for i, index in enumerate(self._all_indices):
+            (bar, beat) = index 
+            if beat == 0 and self._counterpoint_lst[i].get_duration() == 2 and self._counterpoint_lst[i - 1].get_duration() != 2:
+                num_quarter_runs_starting_on_beat += 1
+                if self._counterpoint_lst[i + 2].get_duration() != 2:
+                    num_quarter_runs_starting_on_beat_of_length_two += 1
+            if beat == 2 and self._counterpoint_lst[i].get_duration() == 2 and self._counterpoint_lst[i - 1].get_duration() != 2:
+                if self._counterpoint_lst[i + 2].get_duration() != 2:
+                    num_other_two_note_quarter_runs += 1
+        score += num_quarter_runs_starting_on_beat * 20 + num_quarter_runs_starting_on_beat_of_length_two * 30 + num_other_two_note_quarter_runs * 15
+        num_fifths, num_octaves = 0, 0
+        for i in range(1, self._length - 2):
+            if (i, 0) in self._counterpoint_obj:
+                intvl = self._cantus[i].get_chromatic_interval(self._counterpoint_obj[(i, 0)])
+                if intvl in [-19, -7, 7, 19]: num_fifths += 1
+                elif intvl in [-12, 0, 12]: num_octaves += 1
+        score += num_fifths * 30 + num_octaves * 10
+        num_steps = 0
+        for i in range(len(self._counterpoint_lst) - 1):
+            if abs(self._counterpoint_lst[i].get_scale_degree_interval(self._counterpoint_lst[i + 1])) == 2:
+                num_steps += 1
+        score += math.floor(150 * abs(.712 - (num_steps / (len(self._counterpoint_lst) - 1))))
         return score 
 
     def _map_solution_onto_counterpoint_dict(self, solution: list[Note]) -> None:

@@ -39,7 +39,8 @@ class GenerateOnePartFifthSpecies:
             self._handles_repeated_note,
             self._handles_rhythm_after_descending_quarter_leap,
             self._handles_dotted_whole_after_quarters,
-            self._handles_repeated_dotted_halfs
+            self._handles_repeated_dotted_halfs,
+            self._handles_runs
         ]
         self._index_checks = [
             self._highest_and_lowest_placed
@@ -47,7 +48,7 @@ class GenerateOnePartFifthSpecies:
         self._change_params = [
             self._check_for_highest_and_lowest,
             self._check_for_on_beat_whole_note,
-            self._check_if_new_run_is_added,
+            # self._check_if_new_run_is_added,
             self._check_if_eighths_are_added
         ]
         self._final_checks = [
@@ -56,7 +57,6 @@ class GenerateOnePartFifthSpecies:
         ]
         self._params = [
             "highest_has_been_placed", "lowest_has_been_placed",
-            "max_quarter_run_has_been_placed", "num_runs_placed",
             "num_on_beat_whole_notes_placed", "eighths_have_been_placed"
         ]
 
@@ -117,19 +117,17 @@ class GenerateOnePartFifthSpecies:
         self._attempt_params = {
             "lowest": None, "highest": None, "highest_must_appear_by": None, "lowest_must_appear_by": None, 
             "highest_has_been_placed": False, "lowest_has_been_placed": False,
-            "min_length_of_max_quarter_run": None, "max_quarter_run_has_been_placed": False,
-            "min_runs_of_length_4_or_more": None, "num_runs_placed": 0,
             "max_on_beat_whole_notes": None, "num_on_beat_whole_notes_placed": 0,
-            "eighths_have_been_placed": False
+            "eighths_have_been_placed": False, "run_indices": set()
         }
         vocal_range = randint(8, 10)
         self._attempt_params["lowest"] = self._mr.get_default_note_from_interval(self._mr.get_lowest(), randint(1, 13 - vocal_range))
         self._attempt_params["highest"] = self._mr.get_default_note_from_interval(self._attempt_params["lowest"], vocal_range)
         self._attempt_params["highest_must_appear_by"] = randint(3, self._length - 1)
         self._attempt_params["lowest_must_appear_by"] = randint(3 if self._attempt_params["highest_must_appear_by"] >= 5 else 5, self._length - 1)
-        self._attempt_params["min_length_of_max_quarter_run"] = randint(5, 10)
-        self._attempt_params["min_runs_of_length_4_or_more"] = randint(1, 2)
-        self._attempt_params["max_on_beat_whole_notes"] = randint(1, 2)
+        
+        self._place_runs()
+
         self._store_params = []
         self._stored_indices = []
         # print("min runs of length 4 or more:")
@@ -141,6 +139,25 @@ class GenerateOnePartFifthSpecies:
             self._valid_pitches += self._mr.get_notes_from_interval(self._attempt_params["lowest"], i)
         
         return True 
+
+    def _place_runs(self) -> None:
+        runs = [randint(5, 11)]
+        if self._length > 8 and random() < .35: runs.append(4)
+        shuffle(runs)
+        start_beats = []
+        for run in runs:
+            start_beats.append(randint(3, (self._length - 2) * 4 - run))
+        while len(runs) == 2 and start_beats[0] + runs[0] + 12 >= start_beats[1]:
+            start_beats = []
+            for run in runs:
+                start_beats.append(randint(3, (self._length - 2) * 4 - run))
+        for i in range(len(runs)):
+            for j in range(runs[i]):
+                total_beats = start_beats[i] + j 
+                index = (total_beats // 4, total_beats % 4)
+                self._attempt_params["run_indices"].add(index)
+        print(self._attempt_params["run_indices"])
+
 
     def _backtrack(self) -> None:
         if (self._solutions_this_attempt > 500 or self._num_backtracks > 50000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 20000):
@@ -419,6 +436,22 @@ class GenerateOnePartFifthSpecies:
             durs.discard(12)
         return durs
 
+    def _handles_runs(self, note: Note, index: tuple, durs: set) -> set:
+        (bar, beat) = index
+        if index in self._attempt_params["run_indices"]: 
+            return { 2 } if 2 in durs else set()
+        if (bar, beat + 1) in self._attempt_params["run_indices"]: 
+            for d in [4, 6, 8, 12]: durs.discard(d)
+        two_beats_next = (bar, beat + 2) if beat == 0 else (bar + 1, 0)
+        if two_beats_next in self._attempt_params["run_indices"]: 
+            for d in [2, 6, 8, 12]: durs.discard(d)
+        three_beats_next = (bar, beat + 3) if beat == 0 else (bar + 1, 1)
+        if three_beats_next in self._attempt_params["run_indices"]: 
+            for d in [2, 8, 12]: durs.discard(d)
+        if (bar + 1, 2) in self._attempt_params["run_indices"]:
+            durs.discard(12)
+        return durs
+
     def _handles_first_eighth(self, note: Note, index: tuple, durs: set) -> set:
         (bar, beat) = index 
         if (beat == 1 and abs(self._counterpoint_lst[-1].get_scale_degree_interval(note)) != 2) or self._attempt_params["eighths_have_been_placed"]:
@@ -535,9 +568,7 @@ class GenerateOnePartFifthSpecies:
     ########### final checks #################
 
     def _parameters_are_correct(self) -> bool:
-        # print("num runs placed:", self._attempt_params["num_runs_placed"])
-        # print("max run has been placed?", self._attempt_params["max_quarter_run_has_been_placed"])
-        return self._attempt_params["num_runs_placed"] >= self._attempt_params["min_runs_of_length_4_or_more"] and self._attempt_params["max_quarter_run_has_been_placed"]
+        return True
 
     def _has_only_one_octave(self) -> bool:
         num_octaves = 0
