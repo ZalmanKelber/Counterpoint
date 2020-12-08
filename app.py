@@ -92,7 +92,7 @@ def main():
     #             fs.play_midi("counterpoint.mid")
     #             # fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-one-part-" + mode.value["name"] + ".wav")
 
-    for mode in ModeOption:
+    for mode in [ModeOption.MIXOLYDIAN, ModeOption.AEOLIAN, ModeOption.DORIAN, ModeOption.LYDIAN]:
         optimal = None 
         range_option = RangeOption.ALTO if mode in [ModeOption.IONIAN, ModeOption.DORIAN, ModeOption.PHRYGIAN] else RangeOption.SOPRANO
         while optimal is None:
@@ -105,7 +105,7 @@ def main():
             for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
                 fs = FluidSynth("/Users/alexkelber/Development/" + filename)
                 fs.play_midi("counterpoint.mid")
-                fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-" + mode.value["name"] + ".wav")
+                # fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-" + mode.value["name"] + ".wav")
 
 
     

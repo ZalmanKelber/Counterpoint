@@ -76,7 +76,8 @@ class GenerateTwoPartFifthSpecies:
         ]
         self._final_checks = [
             # self._parameters_are_correct,
-            self._has_only_one_octave
+            self._has_only_one_octave,
+            self._no_unresolved_leading_tones
         ]
         self._params = [
             "highest_has_been_placed", "lowest_has_been_placed",
@@ -184,12 +185,13 @@ class GenerateTwoPartFifthSpecies:
                 self._attempt_params["run_indices"].add(index)
 
     def _backtrack(self) -> None:
-        if (self._num_backtracks > 100000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 10000):
+        if (self._num_backtracks > 100000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 20000):
             return 
         self._num_backtracks += 1
         if self._num_backtracks % 10000 == 0:
             print("backtrack number:", self._num_backtracks)
         if len(self._remaining_indices) == 0:
+            print("found potential solution")
             if self._passes_final_checks():
                 if self._solutions_this_attempt == 0:
                     print("FOUND SOLUTION!")
@@ -345,7 +347,6 @@ class GenerateTwoPartFifthSpecies:
             if self._mr.is_sharp(self._counterpoint_obj[(bar - 1, 2)]) and self._counterpoint_obj[(bar - 1, 2)].get_chromatic_interval(note) != 1:
                 return False 
         if beat == 0 and bar != 0:
-            prev_measure_notes = []
             for i, num in enumerate([0, 1, 1.5, 2, 3]):
                 if (bar - 1, num) in self._counterpoint_obj and self._mr.is_sharp(self._counterpoint_obj[(bar - 1, num)]):
                     resolved = False
@@ -627,8 +628,11 @@ class GenerateTwoPartFifthSpecies:
 
     def _handles_repeated_dotted_halfs(self, note: Note, index: tuple, durs: set) -> set:
         (bar, beat) = index 
-        if (bar - 1, beat) in self._counterpoint_obj and self._counterpoint_obj[(bar - 1, beat)].get_duration() == 6:
+        if beat != 0: return durs 
+        if (bar - 1, 0) in self._counterpoint_obj and self._counterpoint_obj[(bar - 1, 0)].get_duration() == 6:
             durs.discard(6)
+        if bar % 2 == 0 and (bar - 2, 0) in self._counterpoint_obj and self._counterpoint_obj[(bar - 2, 0)].get_duration() == 6:  
+            durs.discard(6) 
         return durs
 
     def _handles_antipenultimate_rhythm(self, note: Note, index: tuple, durs: set) -> set:
@@ -787,6 +791,21 @@ class GenerateTwoPartFifthSpecies:
                 num_octaves += 1
                 if num_octaves > 1: 
                     return False 
+        return True 
+
+    def _no_unresolved_leading_tones(self) -> bool:
+        for i in range(1, self._length - 2):
+            if (i, 0) not in self._counterpoint_obj:
+                notes_to_check = []
+                for index in [(i - 1, 0), (i - 1, 1), (i - 1, 2), (i, 2)]:
+                    if index in self._counterpoint_obj: notes_to_check.append(self._counterpoint_obj[index])
+                for j, note in enumerate(notes_to_check):
+                    if self._mr.is_sharp(note):
+                        resolved = False 
+                        for k in range(j + 1, len(notes_to_check)):
+                            if note.get_chromatic_interval(notes_to_check[k]) == 1:
+                                resolved = True 
+                        if not resolved: return False 
         return True 
 
 
