@@ -7,14 +7,14 @@ from cantus_firmus import CantusFirmus, GenerateCantusFirmus
 from two_part_first_species import Orientation
 from legal_intervals import LegalIntervalsFifthSpecies, MaxAcceptableRepetitions
 
-class GenerateOnePartFifthSpecies:
+class GenerateTwoPartFifthSpecies:
 
     def __init__(self, length: int = None, mode: ModeOption = None, range_option: RangeOption = None):
         self._mode = mode or ModeOption.AEOLIAN
         self._length = length or 8 + math.floor(random() * 5) #todo: replace with normal distribution
         self._range = range_option if range_option is not None else RangeOption.ALTO
         self._mr = ModeResolver(self._mode, range_option=self._range)
-        self._insertion_checks = [
+        self._melodic_insertion_checks = [
             self._handles_adjacents,
             self._handles_interval_order,
             self._handles_nearby_augs_and_dims,
@@ -28,7 +28,8 @@ class GenerateOnePartFifthSpecies:
             self._handles_resolution_of_anticipation,
             self._handles_repeated_two_notes,
             self._handles_quarter_between_two_leaps,
-            self._handles_upper_neighbor
+            self._handles_upper_neighbor,
+            self._handles_antipenultimate_bar,
         ]
         self._rhythm_filters = [
             self._handles_consecutive_quarters,
@@ -39,7 +40,8 @@ class GenerateOnePartFifthSpecies:
             self._handles_repeated_note,
             self._handles_rhythm_after_descending_quarter_leap,
             self._handles_dotted_whole_after_quarters,
-            self._handles_repeated_dotted_halfs
+            self._handles_repeated_dotted_halfs,
+            self._handles_antipenultimate_rhythm
         ]
         self._index_checks = [
             self._highest_and_lowest_placed
@@ -59,6 +61,13 @@ class GenerateOnePartFifthSpecies:
             "max_quarter_run_has_been_placed", "num_runs_placed",
             "num_on_beat_whole_notes_placed", "eighths_have_been_placed"
         ]
+        gcf = GenerateCantusFirmus(self._length, self._mode, 4)
+        cf = None 
+        #limit ourselves to Cantus Firmuses that end with a descending step to allow for easier cadences
+        while cf is None or cf.get_note(self._length - 2).get_scale_degree_interval(cf.get_note(self._length - 1)) != -2:
+            cf = gcf.generate_cf()
+        self._cantus_object = cf
+        self._cantus = cf.get_notes()
 
     def print_counterpoint(self):
         print("  FIFTH SPECIES:")
@@ -78,10 +87,9 @@ class GenerateOnePartFifthSpecies:
         optimal = self._solutions[0]
         self._map_solution_onto_counterpoint_dict(optimal)
         self.print_counterpoint()
-        return [optimal]
+        return [optimal, self._cantus]
 
-    def generate_1p5s(self):
-        start_time = time()
+    def generate_2p5s(self):
         print("MODE = ", self._mode.value["name"])
         self._solutions = []
         def attempt():
@@ -185,7 +193,7 @@ class GenerateOnePartFifthSpecies:
             return self._check_starting_pitch(note)
         if bar == self._length - 1:
             if not self._check_last_pitch(note): return False
-        for check in self._insertion_checks:
+        for check in self._melodic_insertion_checks:
             if not check(note, (bar, beat)): 
                 # print("failed insertion check:", str(note), index, "on function", check.__name__)
                 return False 
@@ -230,7 +238,7 @@ class GenerateOnePartFifthSpecies:
         return True 
 
     ######################################
-    ########## insertion checks ##########
+    ### melodic insertion checks #########
 
     def _check_starting_pitch(self, note: Note) -> bool:
         if note.get_accidental() == ScaleOption.REST:
@@ -383,6 +391,12 @@ class GenerateOnePartFifthSpecies:
             self._counterpoint_lst[-2].get_scale_degree_interval(self._counterpoint_lst[-1]) == 2 and 
             self._counterpoint_lst[-2].get_duration() != 2 ): return False 
         return True 
+
+    def _handles_antipenultimate_bar(self, note: Note, index: tuple) -> bool:
+        if index == (self._length - 3, 2):
+            if note.get_accidental() != ScaleOption.NATURAL or note.get_scale_degree() != self._mr.get_final():
+                return False 
+        return True 
         
 
     ######################################
@@ -464,6 +478,15 @@ class GenerateOnePartFifthSpecies:
         if (bar - 1, beat) in self._counterpoint_obj and self._counterpoint_obj[(bar - 1, beat)].get_duration() == 6:
             durs.discard(6)
         return durs
+
+    def _handles_antipenultimate_rhythm(self, note: Note, index: tuple, durs: set) -> set:
+        if index == (self._length - 3, 2): 
+            durs.discard(4)
+            durs.discard(2)
+        if index == (self._length - 3, 0):
+            durs.discard(8)
+            durs.discard(6)
+        return durs 
 
     ##########################################
     ########### index checks #################

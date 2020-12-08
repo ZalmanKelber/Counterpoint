@@ -7,13 +7,14 @@ from time import time
 import math
 from random import random, randint
 
-from notation_system import ModeOption
+from notation_system import ModeOption, RangeOption
 from cantus_firmus import CantusFirmus, GenerateCantusFirmus
 from two_part_first_species import GenerateTwoPartFirstSpecies, Orientation
 from two_part_second_species import GenerateTwoPartSecondSpecies
 from two_part_third_species import GenerateTwoPartThirdSpecies
 from two_part_fourth_species import GenerateTwoPartFourthSpecies
 from one_part_fifth_species import GenerateOnePartFifthSpecies
+from two_part_fifth_species import GenerateTwoPartFifthSpecies
 from midi_writer import MidiWriter
 
 def main():
@@ -77,19 +78,33 @@ def main():
         #     fs.play_midi("counterpoint.mid")
             # fs.midi_to_audio("counterpoint.mid", "audio/fourth-species-" + mode.value["name"] + ".wav")
 
-    for mode in ModeOption:
+    # for mode in ModeOption:
+    #     optimal = None 
+    #     while optimal is None:
+    #         g1p5s = GenerateOnePartFifthSpecies(randint(8, 12), mode, range_option=RangeOption.TENOR)
+    #         g1p5s.generate_1p5s()
+    #         optimal = g1p5s.get_optimal()
+    #     if optimal is not None:
+    #         mw = MidiWriter()
+    #         mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
+    #         for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
+    #             fs = FluidSynth("/Users/alexkelber/Development/" + filename)
+    #             fs.play_midi("counterpoint.mid")
+    #             # fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-one-part-" + mode.value["name"] + ".wav")
+
+    for mode in [ModeOption.IONIAN, ModeOption.LYDIAN, ModeOption.AEOLIAN]:
         optimal = None 
         while optimal is None:
-            g1p5s = GenerateOnePartFifthSpecies(randint(8, 12), mode)
-            g1p5s.generate_1p5s()
-            optimal = g1p5s.get_optimal()
+            g2p5s = GenerateTwoPartFifthSpecies(randint(8, 12), mode, range_option=RangeOption.SOPRANO)
+            g2p5s.generate_2p5s()
+            optimal = g2p5s.get_optimal()
         if optimal is not None:
             mw = MidiWriter()
             mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
             for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
                 fs = FluidSynth("/Users/alexkelber/Development/" + filename)
                 fs.play_midi("counterpoint.mid")
-                fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-one-part-" + mode.value["name"] + ".wav")
+                # fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-one-part-" + mode.value["name"] + ".wav")
 
 
     

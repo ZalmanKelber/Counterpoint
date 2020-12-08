@@ -1,7 +1,7 @@
 from random import random, shuffle
 import math
 
-from notation_system import ModeOption, ScaleOption, Note, ModeResolver 
+from notation_system import ModeOption, ScaleOption, Note, ModeResolver, RangeOption
 
 #intervals it is permissible to move directly to
 VALID_MELODIC_INTERVALS_CHROMATIC = { -12, -7, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 7, 8, 12 }
