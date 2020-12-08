@@ -56,7 +56,9 @@ class GenerateTwoPartFifthSpecies:
             self._handles_dotted_whole_after_quarters,
             self._handles_repeated_dotted_halfs,
             self._handles_antipenultimate_rhythm,
-            self._handles_half_note_chain
+            self._handles_half_note_chain,
+            self._handles_missing_syncopation,
+            self._handles_quarters_after_whole
         ]
         self._harmonic_rhythm_filters = [
             self._prepares_suspension,
@@ -180,7 +182,6 @@ class GenerateTwoPartFifthSpecies:
                 total_beats = start_beats[i] + j 
                 index = (total_beats // 4, total_beats % 4)
                 self._attempt_params["run_indices"].add(index)
-        print(self._attempt_params["run_indices"])
 
     def _backtrack(self) -> None:
         if (self._num_backtracks > 100000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 10000):
@@ -644,6 +645,22 @@ class GenerateTwoPartFifthSpecies:
         if beat == 2 and len(self._counterpoint_lst) >= 3:
             if self._counterpoint_lst[-3].get_duration() == 4 and self._counterpoint_lst[-2].get_duration() == 4 and self._counterpoint_lst[-1].get_duration() == 4:
                 durs.discard(4)
+        return durs
+
+    def _handles_missing_syncopation(self, note: Note, index: tuple, durs: set) -> set:
+        (bar, beat) = index 
+        if beat != 0 or (bar - 1, 0) not in self._counterpoint_obj or (bar - 2, 0) not in self._counterpoint_obj or (bar - 3, 0) not in self._counterpoint_obj:
+            return durs 
+        if self._counterpoint_obj[(bar - 3, 0)].get_duration() >= 4 and self._counterpoint_obj[(bar - 2, 0)].get_duration() >= 4 and self._counterpoint_obj[(bar - 1, 0)].get_duration() >= 4:
+            durs.discard(4)
+            durs.discard(6)
+            durs.discard(8)
+        return durs
+
+    def _handles_quarters_after_whole(self, note: Note, index: tuple, durs: set) -> set:
+        (bar, beat) = index
+        if beat == 0 and self._counterpoint_lst[-1].get_duration() == 8:
+            durs.discard(2)
         return durs
 
     ##########################################
