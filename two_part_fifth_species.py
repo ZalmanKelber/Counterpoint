@@ -191,7 +191,6 @@ class GenerateTwoPartFifthSpecies:
         if self._num_backtracks % 10000 == 0:
             print("backtrack number:", self._num_backtracks)
         if len(self._remaining_indices) == 0:
-            print("found potential solution")
             if self._passes_final_checks():
                 if self._solutions_this_attempt == 0:
                     print("FOUND SOLUTION!")
@@ -284,8 +283,7 @@ class GenerateTwoPartFifthSpecies:
     def _check_starting_pitch(self, note: Note) -> bool:
         if note.get_accidental() == ScaleOption.REST:
             return True 
-        if note.get_scale_degree() != self._mr.get_final(): return False 
-        if abs(self._cantus[0].get_scale_degree_interval(note)) > 12: return False
+        if self._cantus[0].get_scale_degree_interval(note) not in  [-8, 1, 5, 8]: return False
         return note.get_accidental() == ScaleOption.NATURAL
         
     def _check_last_pitch(self, note: Note) -> bool:
@@ -478,7 +476,7 @@ class GenerateTwoPartFifthSpecies:
         if beat == 1.5: return True 
         first_index, second_index = (bar - 1, 1), (bar - 1, 2)
         if beat in [1, 2]:
-            first_index, second_index = (bar - 1, 3), (bar - 1, 0)
+            first_index, second_index = (bar - 1, 3), (bar, 0)
         if beat == 3:
             first_index, second_index = (bar , 1), (bar, 2)
         if first_index not in self._counterpoint_obj or second_index not in self._counterpoint_obj: return True 
