@@ -37,7 +37,7 @@ def main():
     #     # optimal = g2p2s.get_optimal()
     #     # if optimal is not None:
     #     #     mw = MidiWriter()
-    #     #     mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
+    #     #     mw.write_midi_from_counterpoint(optimal, "counterpointçc.mid")
     #     #     for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
     #     #         print(filename)
     #     #         fs = FluidSynth("/Users/alexkelber/Development/" + filename)
@@ -108,7 +108,7 @@ def main():
     #             fs.play_midi("counterpoint.mid")
                 # fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-" + mode.value["name"] + ".wav")
 
-    for mode in [ModeOption.IONIAN]:
+    for mode in [ModeOption.DORIAN]:
         optimal = None 
         while optimal is None:
             g2pfc = GenerateTwoPartFreeCounterpoint(8, mode)
@@ -120,6 +120,7 @@ def main():
             for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
                 fs = FluidSynth("/Users/alexkelber/Development/" + filename)
                 fs.play_midi("counterpoint.mid")
+                fs.midi_to_audio("counterpoint.mid", "audio/free-counterpoint-" + mode.value["name"] + ".wav")
 
 
     

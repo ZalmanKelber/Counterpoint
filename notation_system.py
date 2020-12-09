@@ -90,6 +90,7 @@ class Note:
 
 
     def __str__(self) -> str:
+        if self.get_accidental() == ScaleOption.REST: return "REST"
         pitch_value = PITCH_NAMES[self.get_scale_degree()] + " " + self.get_accidental().value
         rhythmic_value = RHYTHM_NAMES[self.get_duration()]
         if self.get_duration() == 1:
