@@ -33,6 +33,7 @@ class GenerateTwoPartFreeCounterpoint:
             self._handles_contrary_motion_surrounding_quarter_note_octave_leap,
             self._handles_final_leading_tone
         ]
+
         self._harmonic_insertion_checks = [
             self._filters_dissonance_on_downbeat,
             self._resolves_suspension,
@@ -48,6 +49,7 @@ class GenerateTwoPartFreeCounterpoint:
             self._handles_doubled_leading_tone,
             self._no_vertical_cross_relations
         ]
+
         self._melodic_rhythm_filters = [
             self._handles_runs,
             self._handles_consecutive_quarters,
@@ -84,7 +86,7 @@ class GenerateTwoPartFreeCounterpoint:
         ]
         self._final_checks = [
             # self._parameters_are_correct,
-            self._has_only_one_octave,
+            self._has_only_two_octaves,
             self._no_unresolved_leading_tones
         ]
         self._params = [
@@ -104,6 +106,12 @@ class GenerateTwoPartFreeCounterpoint:
                     upper_note += " " + str(self._counterpoint_obj[1][(i, j + .5)])
                 index_display = str(i) + ":" if j == 0 else ""
                 print(index_display.ljust(5), lower_note.ljust(28), upper_note.ljust(25))
+
+    def print_function_log(self):
+        for func in self._function_log:
+            passes, fails = str(self._function_log[func]["pass"]), str(self._function_log[func]["fail"])
+            failure_rate = str(self._function_log[func]["fail"] / (self._function_log[func]["pass"] + self._function_log[func]["fail"]))[:6] if fails != "0" else "N/A"
+            print(func[:25].ljust(30), "passes:", passes.ljust(10), "fails:", fails.ljust(10), "failure rate:", failure_rate)
 
     def get_optimal(self):
         if len(self._solutions) == 0:
@@ -130,9 +138,6 @@ class GenerateTwoPartFreeCounterpoint:
         if len(self._solutions) > 0:
             shuffle(self._solutions)
             self._solutions.sort(key = lambda sol: self._score_solution(sol)) 
-            # print("LOG")
-            # for line in self._backtrack_log:
-            #     print(line)
 
     def _initialize(self) -> bool:
         indices = [[], []]
@@ -166,7 +171,7 @@ class GenerateTwoPartFreeCounterpoint:
             self._attempt_params[line]["highest_must_appear_by"] = randint(3, self._length - 1)
             self._attempt_params[line]["lowest_must_appear_by"] = randint(3 if self._attempt_params[line]["highest_must_appear_by"] >= 5 else 5, self._length - 1)
 
-        self._place_runs()
+        # self._place_runs()
 
         self._store_params_stack = [[], []]
         self._stored_all_indices_stack = [[], []]
@@ -179,7 +184,9 @@ class GenerateTwoPartFreeCounterpoint:
                 valid_pitches += self._mr[line].get_notes_from_interval(self._attempt_params[line]["lowest"], i)
             self._valid_pitches[line] = valid_pitches
 
-        self._backtrack_log = []
+        self._function_log = {}
+        for check in self._melodic_insertion_checks + self._harmonic_insertion_checks + self._melodic_rhythm_filters + self._harmonic_rhythm_filters:
+            self._function_log[check.__name__] = { "pass": 0, "fail": 0}
         return True 
 
     def _place_runs(self) -> None:
@@ -197,7 +204,7 @@ class GenerateTwoPartFreeCounterpoint:
                 self._attempt_params[line]["run_indices"].add(index)
 
     def _backtrack(self) -> None:
-        if (self._num_backtracks > 10000) or (self._solutions_this_attempt > 500) or (not self._found_possible and self._num_backtracks > 1500):
+        if (self._num_backtracks > 10000) or (self._solutions_this_attempt > 500) or (not self._found_possible and self._num_backtracks > 1000):
             return 
         self._num_backtracks += 1
         if len(self._remaining_indices[0]) == 0 and len(self._remaining_indices[1]) == 0:
@@ -213,8 +220,6 @@ class GenerateTwoPartFreeCounterpoint:
         line = 1 if len(self._remaining_indices[0]) == 0 else 0
 
         (bar, beat) = self._remaining_indices[line].pop() 
-        if not self._found_possible:
-            self._backtrack_log.append("backtrack number: " + str(self._num_backtracks) + ", index: " + str((bar, beat)) + ", line: " + str(line))
         back_tracks_at_start = self._num_backtracks
         if self._passes_index_checks((bar, beat), line):
             candidates = list(filter(lambda n: self._passes_insertion_checks(n, (bar, beat), line), self._valid_pitches[line]))
@@ -249,13 +254,17 @@ class GenerateTwoPartFreeCounterpoint:
             if not self._check_last_pitch(note, line): return False
         for check in self._melodic_insertion_checks:
             if not check(note, (bar, beat), line): 
+                self._function_log[check.__name__]["fail"] += 1
                 # print("failed insertion check:", str(note), index, "on function", check.__name__)
                 return False 
+            self._function_log[check.__name__]["pass"] += 1
         # print("passed insertion checks!", str(note), index)
         for check in self._harmonic_insertion_checks:
             if not check(note, (bar, beat), line): 
                 # print("failed insertion check:", str(note), index, "on function", check.__name__)
+                self._function_log[check.__name__]["fail"] += 1
                 return False 
+            self._function_log[check.__name__]["pass"] += 1
         return True 
 
     def _get_valid_durations(self, note: Note, index: tuple, line: int) -> set:
@@ -265,9 +274,18 @@ class GenerateTwoPartFreeCounterpoint:
         if bar == 0 and beat == 0: return self._get_first_beat_options(note, line)
         durs = self._get_durations_from_beat(index)
         for check in self._melodic_rhythm_filters:
+            prev_length = len(durs)
             durs = check(note, index, line, durs)
+            post_length = len(durs)
+            self._function_log[check.__name__]["fail"] += prev_length - post_length
+            self._function_log[check.__name__]["pass"] += post_length
             if len(durs) == 0: break
         for check in self._harmonic_rhythm_filters:
+            prev_length = len(durs)
+            durs = check(note, index, line, durs)
+            post_length = len(durs)
+            self._function_log[check.__name__]["fail"] += prev_length - post_length
+            self._function_log[check.__name__]["pass"] += post_length
             durs = check(note, index, line, durs)
             if len(durs) == 0: break
         return durs 
@@ -973,13 +991,14 @@ class GenerateTwoPartFreeCounterpoint:
         # print("max run has been placed?", self._attempt_params["max_quarter_run_has_been_placed"])
         return self._attempt_params["num_runs_placed"] >= self._attempt_params["min_runs_of_length_4_or_more"] and self._attempt_params["max_quarter_run_has_been_placed"]
 
-    def _has_only_one_octave(self) -> bool:
+    def _has_only_two_octaves(self) -> bool:
         for line in range(2):
             num_octaves = 0
             for i in range(0 if self._counterpoint_lst[line][0].get_accidental() != ScaleOption.REST else 1, len(self._counterpoint_lst[line]) - 1):
                 if abs(self._counterpoint_lst[line][i].get_scale_degree_interval(self._counterpoint_lst[line][i + 1])) == 8:
                     num_octaves += 1
-                    if num_octaves > 1: 
+                    max_octaves = 1 if self._length < 10 else 2
+                    if num_octaves > max_octaves: 
                         return False 
         return True 
 
