@@ -30,7 +30,8 @@ class GenerateTwoPartFreeCounterpoint:
             self._handles_upper_neighbor,
             self._handles_antipenultimate_bar,
             self._handles_final_unsyncopated_whole_note,
-            self._handles_contrary_motion_surrounding_quarter_note_octave_leap
+            self._handles_contrary_motion_surrounding_quarter_note_octave_leap,
+            self._handles_final_leading_tone
         ]
         self._harmonic_insertion_checks = [
             self._filters_dissonance_on_downbeat,
@@ -129,6 +130,9 @@ class GenerateTwoPartFreeCounterpoint:
         if len(self._solutions) > 0:
             shuffle(self._solutions)
             self._solutions.sort(key = lambda sol: self._score_solution(sol)) 
+            print("LOG")
+            for line in self._backtrack_log:
+                print(line)
 
     def _initialize(self) -> bool:
         indices = [[], []]
@@ -174,6 +178,8 @@ class GenerateTwoPartFreeCounterpoint:
             for i in range(2, vocal_range[line]):
                 valid_pitches += self._mr[line].get_notes_from_interval(self._attempt_params[line]["lowest"], i)
             self._valid_pitches[line] = valid_pitches
+
+        self._backtrack_log = []
         return True 
 
     def _place_runs(self) -> None:
@@ -191,7 +197,7 @@ class GenerateTwoPartFreeCounterpoint:
                 self._attempt_params[line]["run_indices"].add(index)
 
     def _backtrack(self) -> None:
-        if (self._num_backtracks > 10000) or (self._solutions_this_attempt > 500) or (self._solutions_this_attempt == 0 and self._num_backtracks > 1500):
+        if (self._num_backtracks > 10000) or (self._solutions_this_attempt > 500) or (not self._found_possible and self._num_backtracks > 1500):
             return 
         self._num_backtracks += 1
         if len(self._remaining_indices[0]) == 0 and len(self._remaining_indices[1]) == 0:
@@ -207,6 +213,8 @@ class GenerateTwoPartFreeCounterpoint:
         line = 1 if len(self._remaining_indices[0]) == 0 else 0
 
         (bar, beat) = self._remaining_indices[line].pop() 
+        if not self._found_possible:
+            self._backtrack_log.append("backtrack number: " + str(self._num_backtracks) + ", index: " + str((bar, beat)) + ", line: " + str(line))
         back_tracks_at_start = self._num_backtracks
         if self._passes_index_checks((bar, beat), line):
             candidates = list(filter(lambda n: self._passes_insertion_checks(n, (bar, beat), line), self._valid_pitches[line]))
@@ -468,6 +476,15 @@ class GenerateTwoPartFreeCounterpoint:
         prev_interval, cur_interval = self._counterpoint_lst[line][-2].get_scale_degree_interval(self._counterpoint_lst[line][-1]), self._counterpoint_lst[line][-1].get_scale_degree_interval(note)
         if prev_interval < 0 and cur_interval == -8: return False 
         if prev_interval == 8 and cur_interval > 0: return False 
+        return True 
+
+    def _handles_final_leading_tone(self, note: Note, index: tuple, line: int) -> bool:
+        if index != (self._length - 2, 2): return True 
+        final = self._mr[line].get_final() 
+        if (note.get_scale_degree() + 1) % 7 != final: return True 
+        if (final in [2, 5, 6] and note.get_accidental() != ScaleOption.SHARP) or (final in [1, 3, 4] in note.get_accidental() != ScaleOption.NATURAL):
+            if line == 1: print("threw out wrong leading tone")
+            return False 
         return True 
 
     ######################################
