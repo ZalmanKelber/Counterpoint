@@ -171,7 +171,7 @@ class GenerateTwoPartFreeCounterpoint:
             self._attempt_params[line]["highest_must_appear_by"] = randint(3, self._length - 1)
             self._attempt_params[line]["lowest_must_appear_by"] = randint(3 if self._attempt_params[line]["highest_must_appear_by"] >= 5 else 5, self._length - 1)
 
-        # self._place_runs()
+        self._place_runs()
 
         self._store_params_stack = [[], []]
         self._stored_all_indices_stack = [[], []]
@@ -807,9 +807,9 @@ class GenerateTwoPartFreeCounterpoint:
     ###### harmonic rhythm filters ###########
 
     def _get_first_beat_options(self, note: Note, line: int) -> set:
+        other_line = (line + 1) % 2
         durs = { 4, 6, 8, 12 }
-        # if not self._is_consonant(self._cantus[1], note) and self._cantus[1].get_scale_degree_interval(note) not in LegalIntervalsFifthSpecies["resolvable_dissonance"]:
-        #     durs.discard(12)
+        if (1, 0) not in self._counterpoint_obj[other_line]: durs.discard(12)
         return durs
 
     def _prepares_suspension(self, note: Note, index: tuple, line: int, durs: set) -> set:
@@ -1025,7 +1025,10 @@ class GenerateTwoPartFreeCounterpoint:
     def _score_solution(self, solution: list[list[Note]]) -> int:
         score = 0
         self._map_solution_onto_counterpoint_dict(solution)
-        if (self._length - 2, 0) in self._counterpoint_obj[0]: score += 1000
+        for i in range(1, self._length - 1):
+            note1, note2 = self._get_counterpoint_note((i, 0), 0), self._get_counterpoint_note((i, 0), 1)
+            if note1.get_scale_degree_interval(note2) in LegalIntervalsFifthSpecies["resolvable_dissonance"] or note2.get_scale_degree_interval(note1) in LegalIntervalsFifthSpecies["resolvable_dissonance"]:
+                score -= 1000
         for line in range(2):
             num_ties = 0
             num_tied_dotted_halfs = 0
@@ -1105,5 +1108,6 @@ class GenerateTwoPartFreeCounterpoint:
             if beat < 0:
                 beat += 4
                 bar -= 1
-            if bar < 0: return None
+            if bar < 0: 
+                return None
         return self._counterpoint_obj[other_line][(bar, beat)]

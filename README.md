@@ -166,9 +166,11 @@ Dec 8 2020: The following exercises have been added:
 
   * [one part fifth species](https://github.com/ZalmanKelber/Counterpoint/blob/main/one_part_fifth_species.py)
 
-  * [two party fifth species](https://github.com/ZalmanKelber/Counterpoint/blob/main/two_part_fifth_species.py)
+  * [two part fifth species](https://github.com/ZalmanKelber/Counterpoint/blob/main/two_part_fifth_species.py)
 
   In the fourth and especially fifth species, because rhythm is variable, the amount of remaining indices will change depending on the rhythmic duration of the notes we insert at any point in the backtracking algorithm.  As a result, it's necessary to store a snapshot of the current remaining indices (along with some other variables) before we insert a note onto the stack.  This snapshot of variables are stored by adding them onto a parallel stack that follows the backtracking algorithm so that the previous environment can be restored once a note is removed
+
+Dec 9 2020:  The [gallery](https://zalmankelber.github.io/Counterpoint/) now includes examples of [free counterpoint in two parts](https://github.com/ZalmanKelber/Counterpoint/blob/main/two_part_free_counterpoint.py).  An obstacle that remains to be overcome is the fact that the examples are not generating enough suspensions (generally only zero or one besides the mandatory, "inserted" one at the end), even when the solutions are scored so as to encourage them.  These will likely have to be rectified by generating a mandatory amount and designating measures in which to place them.
 
 
 
