@@ -130,9 +130,9 @@ class GenerateTwoPartFreeCounterpoint:
         if len(self._solutions) > 0:
             shuffle(self._solutions)
             self._solutions.sort(key = lambda sol: self._score_solution(sol)) 
-            print("LOG")
-            for line in self._backtrack_log:
-                print(line)
+            # print("LOG")
+            # for line in self._backtrack_log:
+            #     print(line)
 
     def _initialize(self) -> bool:
         indices = [[], []]
@@ -482,8 +482,7 @@ class GenerateTwoPartFreeCounterpoint:
         if index != (self._length - 2, 2): return True 
         final = self._mr[line].get_final() 
         if (note.get_scale_degree() + 1) % 7 != final: return True 
-        if (final in [2, 5, 6] and note.get_accidental() != ScaleOption.SHARP) or (final in [1, 3, 4] in note.get_accidental() != ScaleOption.NATURAL):
-            if line == 1: print("threw out wrong leading tone")
+        if (final in [2, 5, 6] and note.get_accidental() != ScaleOption.SHARP) or (final in [1, 3, 4] and note.get_accidental() != ScaleOption.NATURAL):
             return False 
         return True 
 
@@ -540,7 +539,7 @@ class GenerateTwoPartFreeCounterpoint:
         if c_note is None or self._is_consonant(c_note, self._counterpoint_lst[line][-1]): return True 
         first_interval = self._counterpoint_lst[line][-2].get_scale_degree_interval(self._counterpoint_lst[line][-1])
         second_interval = self._counterpoint_lst[line][-1].get_scale_degree_interval(note) 
-        if second_interval not in [-3, -2, 1]: return False 
+        if second_interval not in [-3, -2, 2]: return False 
         if first_interval == 2 and second_interval == -3: return False 
         return True 
 
@@ -876,23 +875,24 @@ class GenerateTwoPartFreeCounterpoint:
         if c_note is None or self._is_consonant(c_note, note): return durs 
         is_handled = True 
         if not self._is_consonant(self._get_counterpoint_note((index), line), note): is_handled = False
-        c_prev = self._get_counterpoint_note((bar, beat + 1), line)
-        if abs(c_prev.get_scale_degree_interval(c_note)) != 2 or c_note.get_duration() > 4:
-            is_handled = False 
-        elif c_note.get_duration() == 2:
-            if c_prev.get_scale_degree_interval(c_note) != -2: is_handled = False 
+        else:
+            c_prev = self._get_counterpoint_note((bar, 1), line)
+            if abs(c_prev.get_scale_degree_interval(c_note)) != 2 or c_note.get_duration() > 4:
+                is_handled = False 
+            elif c_note.get_duration() == 2:
+                if c_prev.get_scale_degree_interval(c_note) != -2: is_handled = False 
+                else:
+                    c_next = self._counterpoint_obj[other_line][(bar, 3)]
+                    if c_next is not None and c_note.get_scale_degree_interval(c_next) != -2: is_handled = False 
+                    if c_next is not None and not self._is_consonant(c_next, note):
+                        durs.discard(12)
+                        durs.discard(8)
             else:
-                c_next = self._counterpoint_obj[other_line][(bar, 3)]
-                if c_next is not None and c_note.get_scale_degree_interval(c_next) != -2: is_handled = False 
+                c_next = self._counterpoint_obj[other_line][(bar + 1, 0)]
                 if c_next is not None and not self._is_consonant(c_next, note):
                     durs.discard(12)
-                    durs.discard(8)
-        else:
-            c_next = self._counterpoint_obj[other_line][(bar + 1, 0)]
-            if c_next is not None and not self._is_consonant(c_next, note):
-                durs.discard(12)
-            if c_next is not None and c_note.get_scale_degree_interval(c_next) != c_prev.get_scale_degree_interval(c_note):
-                is_handled = False 
+                if c_next is not None and c_note.get_scale_degree_interval(c_next) != c_prev.get_scale_degree_interval(c_note):
+                    is_handled = False 
         if not is_handled:
             durs.discard(12)
             durs.discard(8)

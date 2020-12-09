@@ -108,10 +108,10 @@ def main():
     #             fs.play_midi("counterpoint.mid")
                 # fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-" + mode.value["name"] + ".wav")
 
-    for mode in [ModeOption.AEOLIAN]:
+    for mode in [ModeOption.PHRYGIAN, ModeOption.DORIAN]:
         optimal = None 
         while optimal is None:
-            g2pfc = GenerateTwoPartFreeCounterpoint(8, mode)
+            g2pfc = GenerateTwoPartFreeCounterpoint(15, mode)
             g2pfc.generate_2pfc()
             optimal = g2pfc.get_optimal()
         if optimal is not None:
