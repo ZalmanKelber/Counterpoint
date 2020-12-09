@@ -140,6 +140,7 @@ class GenerateTwoPartFifthSpecies:
         self._all_indices = indices[:]
         self._remaining_indices = indices[:]
         self._remaining_indices.reverse()
+        print(self._all_indices)
         #initialize counterpoint data structure, that will map indices to notes
         self._counterpoint_obj = {}
         for index in self._all_indices: self._counterpoint_obj[index] = None 
@@ -175,7 +176,10 @@ class GenerateTwoPartFifthSpecies:
         shuffle(runs)
         start_beats = []
         for run in runs:
-            start_beats.append(randint(3, (self._length - 2) * 4 - run))
+            pos = randint(3, (self._length - 2) * 4 - run)
+            while pos % 4 == 0:
+                pos = randint(3, (self._length - 2) * 4 - run)
+            start_beats.append(pos)
         if len(runs) == 2 and start_beats[0] + runs[0] + 12 >= start_beats[1]:
             start_beats.pop()
             runs.pop()
@@ -186,7 +190,7 @@ class GenerateTwoPartFifthSpecies:
                 self._attempt_params["run_indices"].add(index)
 
     def _backtrack(self) -> None:
-        if (self._num_backtracks > 100000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 50000):
+        if (self._num_backtracks > 100000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 10000):
             return 
         self._num_backtracks += 1
         if self._num_backtracks % 10000 == 0:

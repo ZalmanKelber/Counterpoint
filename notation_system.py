@@ -92,6 +92,8 @@ class Note:
     def __str__(self) -> str:
         pitch_value = PITCH_NAMES[self.get_scale_degree()] + " " + self.get_accidental().value
         rhythmic_value = RHYTHM_NAMES[self.get_duration()]
+        if self.get_duration() == 1:
+            return "%s %d," % (pitch_value, self.get_octave())
         return "%s %d, %s NOTE" % (pitch_value, self.get_octave(), rhythmic_value)
 
 class ModeResolver: 
