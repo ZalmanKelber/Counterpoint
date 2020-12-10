@@ -12,7 +12,6 @@ class MidiWriter:
         channel = 0
         track = 0
         start_time = 0
-        next_start_time = 8
         CounterpointMIDI = MIDIFile(1)
         CounterpointMIDI.addTempo(track, start_time, tempo)
         # for line in lines:
@@ -25,7 +24,7 @@ class MidiWriter:
         #     time_index += duration
         #     next_start_time += duration
         for line in lines:
-            time_index = next_start_time
+            time_index = start_time
             for note in line:
                 duration = note.get_duration()
                 pitch = note.get_chromatic_with_octave()

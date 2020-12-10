@@ -73,14 +73,14 @@ class GenerateCantusFirmus:
         self._octave = octave
         self._mr = ModeResolver(self._mode)
         
-    def generate_cf(self) -> CantusFirmus:
+    def generate_cf(self, range_option: RangeOption = RangeOption.TENOR) -> CantusFirmus:
         run_count = 1
         self._solutions = []
-        self._initialize_cf()
+        self._initialize_cf(range_option)
         self._backtrack_cf()
         while len(self._solutions) == 0 and run_count < 100:
             run_count += 1
-            self._initialize_cf()
+            self._initialize_cf(range_option)
             self._backtrack_cf()
         self._solutions = sorted(self._solutions, key = self._steps_are_proportional)
         if len(self._solutions) > 0:
@@ -97,11 +97,19 @@ class GenerateCantusFirmus:
         proportion = steps / (len(solution) - 1)
         return abs(proportion - AVERAGE_STEPS_PERCENTAGE)
 
-    def _initialize_cf(self):
+    def _initialize_cf(self, range_option: RangeOption):
+        self._mr = ModeResolver(self._mode, range_option)
         self._cf = CantusFirmus(self._length, self._mr, self._octave)
         #"final" is equal to the mode's starting scale degree.  All notes in the cantus firmus will be whole notes
         final = Note(self._mode.value["starting"], self._octave, 8) 
         last_note = Note(self._mode.value["starting"], self._octave, 16) 
+        while self._mr.get_lowest().get_scale_degree_interval(final) > 8:
+            final = self._mr.get_default_note_from_interval(final, -8)
+            last_note = self._mr.get_default_note_from_interval(final, -8)
+        while self._mr.get_lowest().get_scale_degree_interval(final) < 0:
+            final = self._mr.get_default_note_from_interval(final, 8)
+            last_note = self._mr.get_default_note_from_interval(final, 8)
+        last_note.set_duration(16)
         #add the "final" to the first and last pitches 
         self._cf.insert_note(final, 0)
         self._cf.insert_note(last_note, self._length - 1)

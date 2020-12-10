@@ -120,9 +120,17 @@ class ModeResolver:
 
     def is_leading_tone(self, note: Note) -> bool:
         return note.get_accidental() == ScaleOption.SHARP or (note.get_scale_degree() == 7 and self._mode in [ModeOption.DORIAN, ModeOption.LYDIAN])
-
+    
     def is_sharp(self, note: Note) -> bool:
         return self.is_leading_tone(note)
+
+    def should_not_be_doubled(self, note: Note) -> bool:
+        if self._mode == ModeOption.IONIAN: return note.get_scale_degree() == 7 and note.get_accidental() == ScaleOption.NATURAL
+        if self._mode == ModeOption.DORIAN: return note.get_scale_degree() == 1 and note.get_accidental() == ScaleOption.SHARP
+        if self._mode == ModeOption.PHRYGIAN: return note.get_scale_degree() == 4 and note.get_accidental() == ScaleOption.NATURAL
+        if self._mode == ModeOption.LYDIAN: return note.get_scale_degree() == 3 and note.get_accidental() == ScaleOption.NATURAL
+        if self._mode == ModeOption.MIXOLYDIAN: return note.get_scale_degree() == 4 and note.get_accidental() == ScaleOption.SHARP
+        if self._mode == ModeOption.AEOLIAN: return note.get_scale_degree() == 5 and note.get_accidental() == ScaleOption.SHARP
     
     def resolve_b(self) -> ScaleOption: #determines if default is b or b-flat, depending on mode
         if self._mode == ModeOption.DORIAN or self._mode == ModeOption.LYDIAN:
