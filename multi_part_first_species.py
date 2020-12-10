@@ -81,7 +81,6 @@ class GenerateMultiPartFirstSpecies:
 
     def generate_mp1s(self, last_segment: bool = False):
         self._last_segment = last_segment
-        print("MODE = ", self._mode.value["name"])
         self._solutions = []
         def attempt():
             self._num_backtracks = 0
@@ -93,7 +92,8 @@ class GenerateMultiPartFirstSpecies:
         while len(self._solutions) < 100 and attempts < 1:
             attempts += 1
             attempt()
-        print("number of solutions:", len(self._solutions))
+        if len(self._solutions) > 0:
+            print("number of solutions:", len(self._solutions))
         if len(self._solutions) > 0:
             shuffle(self._solutions)
             self._solutions.sort(key = lambda sol: self._score_solution(sol)) 
@@ -164,7 +164,7 @@ class GenerateMultiPartFirstSpecies:
         if self._solutions_this_attempt >= 10000 or self._num_backtracks > 50000 or (len(self._solutions) == 0 and self._num_backtracks > 5000):
             return 
         self._num_backtracks += 1
-        if self._num_backtracks % 5000 == 0:
+        if self._num_backtracks % 5000 == 0 and self._found_possible:
             print("num backtracks:", self._num_backtracks)
         if all([len(self._remaining_indices[line]) == 0 for line in range(self._height)]):
             if not self._found_possible:
@@ -362,7 +362,7 @@ class GenerateMultiPartFirstSpecies:
         bar = index[0]
         if bar == 0: return True 
         for other_line in range(self._height):
-            if other_line >= line and other_line != self._cf_index: break
+            if other_line >= line and other_line != self._cf_index: continue
             intvl = self._counterpoint_obj[other_line][index].get_scale_degree_interval(note)
             if abs(intvl) % 7 in [1, 5] and self._counterpoint_obj[other_line][(bar - 1, 0)].get_scale_degree_interval(self._counterpoint_obj[line][(bar - 1, 0)]) == intvl:
                 return False 
@@ -392,7 +392,7 @@ class GenerateMultiPartFirstSpecies:
         has_fifth, has_third = False, False 
         for i in range(1, self._height):
             low_note, high_note = self._counterpoint_obj[0][(0, 0)], self._counterpoint_obj[i][(0, 0)]
-            if low_note is None or high_note is None: break
+            if low_note is None or high_note is None: continue
             intvl_to_check = low_note.get_chromatic_interval(high_note) % 12 
             if intvl_to_check == 4: has_third = True 
             if intvl_to_check == 7: has_fifth = True 
@@ -429,6 +429,7 @@ class GenerateMultiPartFirstSpecies:
         final = self._mr[line].get_final()
         intvl = low_note.get_scale_degree_interval(high_note) % 7
         if intvl == 6:
+            if self._last_segment: return False 
             if self._mr[line].get_default_note_from_interval(low_note, -2).get_scale_degree() != final: return False 
             for line_to_check in range(1, self._height):
                 note_to_check = self._counterpoint_obj[line_to_check][index]
