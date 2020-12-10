@@ -7,7 +7,7 @@ from time import time
 import math
 from random import random, randint
 
-from notation_system import ModeOption, RangeOption
+from notation_system import ModeOption, RangeOption, ScaleOption, Note
 from cantus_firmus import CantusFirmus, GenerateCantusFirmus
 from two_part_first_species import GenerateTwoPartFirstSpecies, Orientation
 from two_part_second_species import GenerateTwoPartSecondSpecies
@@ -125,22 +125,27 @@ def main():
     #                 fs.play_midi("counterpoint.mid")
     #                 fs.midi_to_audio("counterpoint.mid", "audio/free-counterpoint-" + str(i) + "-" + mode.value["name"] + ".wav")
 
-    for mode in ModeOption:
+    HEIGHT = 5
+    LENGTH = 9
+    hymn = [[] for i in range(HEIGHT)]
+    for index, (mode, cf_index) in enumerate([(ModeOption.DORIAN, 2), (ModeOption.PHRYGIAN, 1), (ModeOption.IONIAN, 1), (ModeOption.AEOLIAN, 1), (ModeOption.MIXOLYDIAN, 1), (ModeOption.PHRYGIAN, 1), (ModeOption.AEOLIAN, 1), (ModeOption.DORIAN, 2)]):
         optimal = None 
         count = 0
         while optimal is None:
             count += 1
-            gmp1s = GenerateMultiPartFirstSpecies(randint(8, 12), 5, 1, mode)
-            gmp1s.generate_mp1s()
+            gmp1s = GenerateMultiPartFirstSpecies(LENGTH, HEIGHT, cf_index, mode)
+            gmp1s.generate_mp1s(last_segment=True if index == 7 else False)
             optimal = gmp1s.get_optimal()
         if optimal is not None:
-            # g2pfc.print_function_log()
-            mw = MidiWriter()
-            mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
-            for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
-                fs = FluidSynth("/Users/alexkelber/Development/" + filename)
-                fs.play_midi("counterpoint.mid")
-                # fs.midi_to_audio("counterpoint.mid", "audio/free-counterpoint-" + str(i) + "-" + mode.value["name"] + ".wav")
+            for i, line in enumerate(optimal): 
+                line.append(Note(1, 0, 8, ScaleOption.REST))
+                hymn[i] += line
+    mw = MidiWriter()
+    mw.write_midi_from_counterpoint(hymn, "counterpoint.mid", speed_up=1.9)
+    for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
+        fs = FluidSynth("/Users/alexkelber/Development/" + filename)
+        fs.play_midi("counterpoint.mid")
+        fs.midi_to_audio("counterpoint.mid", "audio/hymn-five-part-first-species.wav")
 
 
     

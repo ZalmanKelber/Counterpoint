@@ -6,9 +6,9 @@ from midiutil import MIDIFile
 from notation_system import Note, ScaleOption
 
 class MidiWriter:
-    def write_midi_from_counterpoint(self, lines: list[list[Note]], filename: str) -> None:
+    def write_midi_from_counterpoint(self, lines: list[list[Note]], filename: str, speed_up: float = 1.0 ) -> None:
         if lines is None: return
-        tempo = 672
+        tempo = 672 * speed_up
         channel = 0
         track = 0
         start_time = 0
