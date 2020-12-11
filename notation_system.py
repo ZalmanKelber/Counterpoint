@@ -31,6 +31,10 @@ class RangeOption (Enum):
     TENOR = "TENOR"
     BASS = "BASS"
 
+class HexachordOption (Enum):
+    DURUM = "DURUM"
+    MOLLE = "MOLLE"
+
 #contains scale degree, accidental, octave (standard octave identification)
 #and duration (in eighth notes) and 
 class Note:
@@ -101,6 +105,33 @@ class ModeResolver:
     def __init__(self, mode: ModeOption, range_option: RangeOption = RangeOption.ALTO):
         self._mode = mode 
         self._range = range_option
+
+    def get_scale_degrees_of_outline(self, hexachord: HexachordOption) -> list[int]:
+        if (self._mode, hexachord) == (ModeOption.IONIAN, HexachordOption.DURUM):
+            return [2, 5]
+        if (self._mode, hexachord) == (ModeOption.IONIAN, HexachordOption.MOLLE):
+            return [1, 5]
+        if (self._mode, hexachord) == (ModeOption.DORIAN, HexachordOption.DURUM):
+            return [3, 6]
+        if (self._mode, hexachord) == (ModeOption.DORIAN, HexachordOption.MOLLE):
+            return [2, 6]
+        if (self._mode, hexachord) == (ModeOption.PHRYGIAN, HexachordOption.DURUM):
+            return [3, 7]
+        if (self._mode, hexachord) == (ModeOption.PHRYGIAN, HexachordOption.MOLLE):
+            return [2, 7]
+        if (self._mode, hexachord) == (ModeOption.LYDIAN, HexachordOption.DURUM):
+            return [1, 5]
+        if (self._mode, hexachord) == (ModeOption.LYDIAN, HexachordOption.MOLLE):
+            return [1, 4]
+        if (self._mode, hexachord) == (ModeOption.MIXOLYDIAN, HexachordOption.DURUM):
+            return [2, 5]
+        if (self._mode, hexachord) == (ModeOption.MIXOLYDIAN, HexachordOption.MOLLE):
+            return [1, 5]
+        if (self._mode, hexachord) == (ModeOption.AEOLIAN, HexachordOption.DURUM):
+            return [3, 6]
+        if (self._mode, hexachord) == (ModeOption.AEOLIAN, HexachordOption.MOLLE):
+            return [2, 6]
+        
 
     def get_lowest(self) -> Note:
         sdg, octv = None, None 
