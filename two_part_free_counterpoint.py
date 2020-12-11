@@ -237,13 +237,13 @@ class GenerateTwoPartFreeCounterpoint:
 
     def _place_suspensions(self) -> None:
         suspension_bars = [self._length - 2]
-        # max_additional_suspensions = 2 if self._length <= 12 else 3
-        # num_additional_suspensions = randint(0, max_additional_suspensions)
-        # for i in range(num_additional_suspensions):
-        #     susp_bar = randint(1, self._length - 2)
-        #     while susp_bar in suspension_bars:
-        #         susp_bar = randint(1, self._length - 2)
-        #     suspension_bars.append(susp_bar)
+        max_additional_suspensions = 2 if self._length - self._theme_measures <= 12 else 3
+        num_additional_suspensions = randint(0, max_additional_suspensions)
+        for i in range(num_additional_suspensions):
+            susp_bar = randint(self._theme_measures + 1, self._length - 2)
+            while susp_bar in suspension_bars:
+                susp_bar = randint(self._theme_measures + 1, self._length - 2)
+            suspension_bars.append(susp_bar)
         for susp_bar in suspension_bars:
             line = 0 if random() <= .33 else 1
             self._attempt_params[line]["suspension_indices"].add((susp_bar, 0))

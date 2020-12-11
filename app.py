@@ -112,7 +112,7 @@ def main():
                 # fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-" + mode.value["name"] + ".wav")
 
     for mode in ModeOption:
-        if mode in [ModeOption.IONIAN, ModeOption.DORIAN]: continue
+        if mode in ModeOption: continue
         optimal = None 
         count = 0
         while optimal is None:

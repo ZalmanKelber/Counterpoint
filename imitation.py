@@ -90,7 +90,9 @@ class GenerateImitation:
             self._resolves_cambiata,
             self._handles_weak_half_note_dissonance,
             self._forms_weak_quarter_dissonance,
-            self._forms_weak_half_note_dissonance
+            self._forms_weak_half_note_dissonance,
+            self._doesnt_create_dissonance_on_following_measure,
+            self._doesnt_create_dissonance_on_next_half_note
         ]
         self._index_checks = [
             # self._highest_and_lowest_placed
@@ -127,7 +129,7 @@ class GenerateImitation:
             return None 
         optimal = self._solutions[0]
         self._map_solution_onto_counterpoint_dict(optimal)
-        # self.print_counterpoint()
+        self.print_counterpoint()
         return optimal
 
     def generate_imitation(self):
@@ -262,7 +264,6 @@ class GenerateImitation:
             if len(durs) == 0: 
                 break
         for check in self._harmonic_rhythm_filters:
-            durs = check(note, index, line, durs)
             durs = check(note, index, line, durs)
             if len(durs) == 0: break
         return durs 
@@ -941,7 +942,7 @@ class GenerateImitation:
                     durs.discard(4)
         return durs
 
-    def _forms_weak_half_note_dissonance(self, note: Note, index: tuple, line: int, durs: set) -> bool:
+    def _forms_weak_half_note_dissonance(self, note: Note, index: tuple, line: int, durs: set) -> set:
         (bar, beat), other_line = index, (line + 1) % 2
         if beat != 0: return durs 
         c_note = self._counterpoint_obj[other_line][(bar, 2)] if (bar, 2) in self._counterpoint_obj[other_line] else None 
@@ -971,6 +972,33 @@ class GenerateImitation:
             durs.discard(8)
             durs.discard(6)
         return durs 
+
+    def _doesnt_create_dissonance_on_following_measure(self, note: Note, index: tuple, line: int, durs: set) -> set:
+        (bar, beat) = index
+        if beat != 0: return durs 
+        c_note = self._get_counterpoint_note((bar + 1, 2), line)
+        if c_note is not None and not self._is_consonant(c_note, note): durs.discard(16)
+        if (bar + 1, 0) not in self._counterpoint_obj[0] or self._is_consonant(self._counterpoint_obj[0][(bar + 1, 0)], note): return durs 
+        durs.discard(16)
+        if (bar + 1, 0) in self._counterpoint_obj[0] and self._counterpoint_obj[0][(bar + 1, 0)].get_scale_degree_interval(note) not in LegalIntervalsFifthSpecies["resolvable_dissonance"]:
+            durs.discard(12)
+        return durs
+
+    def _doesnt_create_dissonance_on_next_half_note(self, note: Note, index: tuple, line: int, durs: set) -> set:
+        (bar, beat) = index
+        if beat != 0: return durs 
+        c_note = self._counterpoint_obj[0][(bar, 2)] if (bar, 2) in self._counterpoint_obj[0] else None 
+        if c_note is None or self._is_consonant(c_note, note): return durs 
+        if c_note.get_duration() > 4: return set()
+        if self._get_counterpoint_note(index, line).get_scale_degree_interval(c_note) not in [-2, 2]: return set()
+        c_next = self._counterpoint_obj[0][(bar + 1, 0)] if (bar + 1, 0) in self._counterpoint_obj[0] else None 
+        if c_next is not None and c_note.get_scale_degree_interval(note) != self._get_counterpoint_note(index, line).get_scale_degree_interval(c_note):
+            return durs
+        if c_next is not None and not self._is_consonant(c_next, note):
+            durs.discard(12)
+            durs.discard(16)
+        return durs
+
                 
 
     ##########################################
