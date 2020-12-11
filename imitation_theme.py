@@ -10,7 +10,7 @@ class GenerateImitationTheme:
 
     def __init__(self, mode: ModeOption, hexachord: HexachordOption, highest: Note, lowest: Note):
         self._mode = mode
-        self._length = randint(4, 6)
+        self._length = randint(3, 6)
         self._hexachord = hexachord
         self._mr = ModeResolver(self._mode)
         self._attempt_params = {
@@ -76,22 +76,22 @@ class GenerateImitationTheme:
             return None 
         optimal = self._solutions[0]
         self._map_solution_onto_counterpoint_dict(optimal)
-        self.print_counterpoint()
+        # self.print_counterpoint()
         return [optimal]
 
     def generate_theme(self):
         self._solutions = []
         attempts = 1
-        while len(self._solutions) < 100 and attempts < 1000:
-            if attempts % 1000 == 0:
-                print("attempt", attempts)
+        while len(self._solutions) < 1 and attempts < 100:
+            # if attempts % 1000 == 0:
+                # print("attempt", attempts)
             self._num_backtracks = 0
             self._solutions_this_attempt = 0
             initialized = self._initialize()
             self._backtrack()
             attempts += 1
-        print("number of attempts:", attempts)
-        print("number of solutions:", len(self._solutions))
+        # print("number of attempts:", attempts)
+        # print("number of solutions:", len(self._solutions))
         if len(self._solutions) > 0:
             shuffle(self._solutions)
             self._solutions.sort(key = lambda sol: self._score_solution(sol)) 
@@ -119,29 +119,28 @@ class GenerateImitationTheme:
         self._valid_pitches = [self._attempt_params["lowest"], self._attempt_params["highest"]] #order is unimportant
         for i in range(2, self._attempt_params["lowest"].get_scale_degree_interval(self._attempt_params["highest"])):
             self._valid_pitches.append(self._mr.get_default_note_from_interval(self._attempt_params["lowest"], i))
-        
         return True 
 
 
     def _backtrack(self) -> None:
-        if (self._solutions_this_attempt > 500 or self._num_backtracks > 50000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 20000):
+        if (self._solutions_this_attempt > 0 or self._num_backtracks > 50000) or (self._solutions_this_attempt == 0 and self._num_backtracks > 1000000):
             return 
         self._num_backtracks += 1
-        if self._num_backtracks % 10000 == 0:
-            print("backtrack number:", self._num_backtracks)
+        # if self._num_backtracks % 10000 == 0:
+            # print("backtrack number:", self._num_backtracks)
         if len(self._remaining_indices) == 0:
             #print("found possible solution")
             if self._passes_final_checks():
-                if self._solutions_this_attempt == 0:
-                    print("FOUND SOLUTION!")
+                # if self._solutions_this_attempt == 0:
+                    # print("FOUND SOLUTION!")
                 self._solutions.append(self._counterpoint_lst[:])
                 self._solutions_this_attempt += 1
             return 
         (bar, beat) = self._remaining_indices.pop() 
+
         if self._passes_index_checks((bar, beat)):
             candidates = list(filter(lambda n: self._passes_insertion_checks(n, (bar, beat)), self._valid_pitches))
             shuffle(candidates)
-            if bar == 0 and beat == 0: candidates.append(Note(1, 0, 4, accidental=ScaleOption.REST))
             # print("candidates for index", bar, beat, ": ", len(candidates))
             notes_to_insert = []
             for candidate in candidates: 
@@ -174,7 +173,11 @@ class GenerateImitationTheme:
 
     def _get_valid_durations(self, note: Note, index: tuple) -> set:
         (bar, beat) = index 
-        if bar == 0 and beat == 0: return { 16, 12, 8, 6 }
+        if bar == 0 and beat == 0: 
+            if self._length == 3:
+                return { 6 }
+            else:
+                return { 16, 12, 8, 6 }
         durs = self._get_durations_from_beat(beat)
         prev_length = len(durs)
         for check in self._rhythm_filters:
@@ -364,13 +367,13 @@ class GenerateImitationTheme:
         if beat == 3: return { 2 }
         if beat == 1: return { 1, 2 }
         if beat == 2: return { 2, 4, 6, 8 }
-        if beat == 0: return { 2, 4, 6, 8, 12, 16 }
+        if beat == 0: return { 2, 4, 6, 8, 12 }
 
     def _handles_consecutive_quarters(self, note: Note, index: tuple, durs: set) -> set:
         (bar, beat) = index
         if self._counterpoint_lst[-1].get_duration() != 2: return durs 
         if self._counterpoint_lst[-1].get_scale_degree_interval(note) > 0 and beat == 2: durs.discard(4)
-        if beat == 2 and self._counterpoint_lst[-2].get_duration() == 2 and self._counterpoint_lst[-3].get_duration() != 2:
+        if beat == 2 and self._counterpoint_lst[-2].get_duration() == 2 and self._counterpoint_lst[-1].get_duration() == 2 and self._counterpoint_lst[-3].get_duration() != 2:
             durs.discard(4)
         for i in range(len(self._counterpoint_lst) - 2, -1, -1):
             if self._counterpoint_lst[i].get_duration() != 2:
@@ -378,6 +381,7 @@ class GenerateImitationTheme:
             if abs(self._counterpoint_lst[i].get_scale_degree_interval(self._counterpoint_lst[i + 1])) > 2:
                 durs.discard(2)
                 return durs 
+        return durs
 
     def _handles_repeated_note(self, note: Note, index: tuple, durs: set) -> set:
         if self._mr.is_unison(self._counterpoint_lst[-1], note): 
@@ -400,11 +404,11 @@ class GenerateImitationTheme:
 
     def _handles_slow_beginning(self, note: Note, index: tuple, durs: set) -> set:
         (bar, beat) = index 
-        if bar <= self._length - 4:
+        if bar <= self._length - 6:
             durs.discard(2)
             durs.discard(4)
             durs.discard(6)
-        if bar <= self._length - 3:
+        if bar <= self._length - 5:
             durs.discard(2)
             durs.discard(4)
         return durs
@@ -521,7 +525,7 @@ class GenerateImitationTheme:
         ideal_ties = 1
         score += abs(ideal_ties - num_ties) * 10 
         score += abs(num_tied_wholes - num_tied_dotted_halfs) * 7
-        if self._counterpoint_lst[0].get_duration() == 8 and self._counterpoint_lst[1].get_duration() > 8: score += 1000
+        if self._counterpoint_lst[0].get_duration() == 6: score -= 1000
         return score 
 
     def _map_solution_onto_counterpoint_dict(self, solution: list[Note]) -> None:

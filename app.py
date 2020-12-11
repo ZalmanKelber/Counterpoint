@@ -18,6 +18,7 @@ from two_part_fifth_species import GenerateTwoPartFifthSpecies
 from two_part_free_counterpoint import GenerateTwoPartFreeCounterpoint
 from multi_part_first_species import GenerateMultiPartFirstSpecies
 from imitation_theme import GenerateImitationTheme
+from imitation import GenerateImitation
 from midi_writer import MidiWriter
 
 def main():
@@ -110,20 +111,23 @@ def main():
     #             fs.play_midi("counterpoint.mid")
                 # fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-" + mode.value["name"] + ".wav")
 
-    # for mode in [ModeOption.PHRYGIAN]:
-    #     optimal = None 
-    #     while optimal is None:
-    #         g2pfc = GenerateTwoPartFreeCounterpoint(randint(11, 16), mode)
-    #         g2pfc.generate_2pfc()
-    #         optimal = g2pfc.get_optimal()
-    #     if optimal is not None:
-    #         # g2pfc.print_function_log()
-    #         mw = MidiWriter()
-    #         mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
-    #         for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
-    #             fs = FluidSynth("/Users/alexkelber/Development/" + filename)
-    #             fs.play_midi("counterpoint.mid")
-    #             fs.midi_to_audio("counterpoint.mid", "audio/free-counterpoint-" + mode.value["name"] + ".wav")
+    for mode in ModeOption:
+        if mode in [ModeOption.IONIAN, ModeOption.DORIAN]: continue
+        optimal = None 
+        count = 0
+        while optimal is None:
+            count += 1
+            g2pfc = GenerateTwoPartFreeCounterpoint(randint(13, 19), mode, with_imitation=True)
+            g2pfc.generate_2pfc()
+            optimal = g2pfc.get_optimal()
+        if optimal is not None:
+            # g2pfc.print_function_log()
+            mw = MidiWriter()
+            mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
+            for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
+                fs = FluidSynth("/Users/alexkelber/Development/" + filename)
+                fs.play_midi("counterpoint.mid")
+                fs.midi_to_audio("counterpoint.mid", "audio/imitative-counterpoint-" + mode.value["name"] + ".wav")
 
     # HEIGHT = 5
     # LENGTH = 9
@@ -148,26 +152,45 @@ def main():
     #     fs.play_midi("counterpoint.mid")
     #     fs.midi_to_audio("counterpoint.mid", "audio/hymn-five-part-first-species.wav")
 
-    for mode in ModeOption:
-        for hexachord in HexachordOption:
-            print("MODE = ", mode.value["name"])
-            print("HEXACHORD = ", hexachord.value)
-            optimal = None 
-            count = 0
-            while optimal is None and count < 1:
-                count += 1
-                mr = ModeResolver(mode)
-                notes = mr.get_scale_degrees_of_outline(hexachord)
-                #generate_theme = GenerateImitationTheme(mode, hexachord, mr.get_default_note_from_interval(Note(notes[1], 5, 8, ScaleOption.NATURAL), 4), mr.get_default_note_from_interval(Note(notes[0], 5, 8, ScaleOption.NATURAL), -2))
-                generate_theme = GenerateImitationTheme(mode, hexachord, Note(2, 6, 4, ScaleOption.NATURAL), Note(1, 5, 4, ScaleOption.NATURAL))
-                generate_theme.generate_theme()
-                optimal = generate_theme.get_optimal()
-            if optimal is not None:
-                mw = MidiWriter()
-                mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
-                for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
-                    fs = FluidSynth("/Users/alexkelber/Development/" + filename)
-                    fs.play_midi("counterpoint.mid")
+    # for mode in ModeOption:
+    #     for hexachord in HexachordOption:
+    #         print("MODE = ", mode.value["name"])
+    #         print("HEXACHORD = ", hexachord.value)
+    #         optimal = None 
+    #         count = 0
+    #         while optimal is None and count < 1:
+    #             count += 1
+    #             mr = ModeResolver(mode)
+    #             notes = mr.get_scale_degrees_of_outline(hexachord)
+    #             #generate_theme = GenerateImitationTheme(mode, hexachord, mr.get_default_note_from_interval(Note(notes[1], 5, 8, ScaleOption.NATURAL), 4), mr.get_default_note_from_interval(Note(notes[0], 5, 8, ScaleOption.NATURAL), -2))
+    #             generate_theme = GenerateImitationTheme(mode, hexachord, Note(2, 6, 4, ScaleOption.NATURAL), Note(1, 5, 4, ScaleOption.NATURAL))
+    #             generate_theme.generate_theme()
+    #             optimal = generate_theme.get_optimal()
+    #         if optimal is not None:
+    #             mw = MidiWriter()
+    #             mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
+    #             for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
+    #                 fs = FluidSynth("/Users/alexkelber/Development/" + filename)
+    #                 fs.play_midi("counterpoint.mid")
+
+    # for mode in ModeOption:
+    #     for hexachord in HexachordOption:
+    #         print("MODE = ", mode.value["name"])
+    #         print("HEXACHORD = ", hexachord.value)
+    #         optimal = None 
+    #         count = 0
+    #         while optimal is None and count < 1:
+    #             count += 1
+    #             gi = GenerateImitation(mode, Note(6, 5, 8), Note(6, 4, 8), Note(3, 6, 8), Note(2, 5, 8))
+    #             gi.generate_imitation()
+    #             optimal = gi.get_optimal()
+    #         if optimal is not None:
+    #             mw = MidiWriter()
+    #             mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
+    #             for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
+    #                 fs = FluidSynth("/Users/alexkelber/Development/" + filename)
+    #                 fs.play_midi("counterpoint.mid")
+
 
 
     

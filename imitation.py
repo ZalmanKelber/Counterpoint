@@ -2,19 +2,27 @@ from random import random, shuffle, randint
 import math
 from time import time
 
-from notation_system import ModeOption, ScaleOption, RangeOption, Note, ModeResolver 
+from notation_system import ModeOption, ScaleOption, RangeOption, Note, ModeResolver, HexachordOption
 from two_part_first_species import Orientation
 from legal_intervals import LegalIntervalsFifthSpecies, MaxAcceptableRepetitions
-from imitation import GenerateImitation
+from imitation_theme import GenerateImitationTheme
 
-class GenerateTwoPartFreeCounterpoint:
+class GenerateImitation:
 
-    def __init__(self, length: int = None, mode: ModeOption = None, with_imitation: bool = False):
-        self._mode = mode or ModeOption.AEOLIAN
-        self._length = length or 8 + math.floor(random() * 5) #todo: replace with normal distribution
-        self._range = [RangeOption.TENOR, RangeOption.SOPRANO]
-        self._mr = [ModeResolver(self._mode, range_option=self._range[0]), ModeResolver(self._mode, range_option=self._range[1])]
-        self._num_backtracks = 0
+    def __init__(self, mode: ModeOption, first_highest: Note, first_lowest: Note, second_highest: Note, second_lowest):
+        self._mode = mode
+        self._mr = [ModeResolver(mode), ModeResolver(mode)]
+        self._length = 20
+        hexachords = [HexachordOption.DURUM, HexachordOption.MOLLE]
+        shuffle(hexachords)
+        self._attempt_params = []
+        for line in range(2): self._attempt_params.append({
+            "lowest": first_lowest if line == 0 else second_lowest, 
+            "highest": first_highest if line == 0 else second_highest, 
+            "hexachord": hexachords[line],
+            "highest_has_been_placed": False,
+            "theme_index": 0
+        })
         self._melodic_insertion_checks = [
             self._handles_adjacents,
             self._handles_interval_order,
@@ -34,8 +42,7 @@ class GenerateTwoPartFreeCounterpoint:
             self._handles_final_unsyncopated_whole_note,
             self._handles_contrary_motion_surrounding_quarter_note_octave_leap,
             self._handles_final_leading_tone,
-            self._handles_preset_suspension_resolution,
-            self._handles_penultimate_whole_note
+            # self._handles_preset_suspension_resolution
         ]
 
         self._harmonic_insertion_checks = [
@@ -53,30 +60,30 @@ class GenerateTwoPartFreeCounterpoint:
             self._handles_doubled_leading_tone,
             self._no_vertical_cross_relations,
             self._no_diagonal_cross_relations,
-            self._forms_preset_suspension,
-            self._prevents_suspensions_from_resolving_to_perfect_intervals,
+            # self._forms_preset_suspension,
+            # self._prevents_suspensions_from_resolving_to_perfect_intervals,
             self._sharp_moves_up_if_against_tritone,
             self._handles_landini
         ]
 
         self._melodic_rhythm_filters = [
-            self._handles_runs,
+            # self._handles_runs,
             self._handles_consecutive_quarters,
             self._handles_penultimate_bar,
-            self._handles_first_eighth,
+            # self._handles_first_eighth,
             self._handles_sharp_durations,
             # self._handles_whole_note_quota,
-            self._handles_double_syncopation,
-            self._handles_repeated_note,
-            self._handles_rhythm_after_descending_quarter_leap,
-            self._handles_dotted_whole_after_quarters,
-            self._handles_repeated_dotted_halfs,
-            self._handles_antipenultimate_rhythm,
+            # self._handles_double_syncopation,
+            # self._handles_repeated_note,
+            # self._handles_rhythm_after_descending_quarter_leap,
+            # self._handles_dotted_whole_after_quarters,
+            # self._handles_repeated_dotted_halfs,
+            # self._handles_antipenultimate_rhythm,
             # self._handles_half_note_chain,
-            self._handles_missing_syncopation,
-            self._handles_quarters_after_whole,
-            self._handles_repetition_on_consecutive_syncopated_measures,
-            self._prepares_preset_suspension_rhythmically
+            # self._handles_missing_syncopation,
+            # self._handles_quarters_after_whole,
+            # self._handles_repetition_on_consecutive_syncopated_measures,
+            # self._prepares_preset_suspension_rhythmically
         ]
         self._harmonic_rhythm_filters = [
             self._prepares_suspension,
@@ -86,116 +93,44 @@ class GenerateTwoPartFreeCounterpoint:
             self._forms_weak_half_note_dissonance
         ]
         self._index_checks = [
-            self._highest_and_lowest_placed
+            # self._highest_and_lowest_placed
         ]
         self._change_params = [
             self._check_for_highest_and_lowest,
             # self._check_for_on_beat_whole_note,
             # self._check_if_new_run_is_added,
-            self._check_if_eighths_are_added
+            self._increment_theme_index
         ]
         self._final_checks = [
             # self._parameters_are_correct,
-            self._has_only_two_octaves,
-            self._no_unresolved_leading_tones,
-            self._top_line_resolves_by_step
+            # self._has_only_two_octaves,
+            # self._no_unresolved_leading_tones,
+            # self._top_line_resolves_by_step
         ]
         self._params = [
-            "highest_has_been_placed", "lowest_has_been_placed",
-            "eighths_have_been_placed"
+            "theme_index"
         ]
 
-        indices = [[], []]
-        for line in range(2):
-            for bar in range(self._length - 1):
-                for beat in [0, 1, 1.5, 2, 3]:
-                    indices[line].append((bar, beat))
-            indices[line].append((self._length - 1, 0))
-        self._all_indices = [indices[line][:] for line in range(2)]
-        self._remaining_indices = [indices[line][:] for line in range(2)]
-        for line in range(2):
-            self._remaining_indices[line].reverse()
-        #initialize counterpoint data structure, that will map indices to notes
-        self._counterpoint_obj = [{}, {}]
-        for line in range(2):
-            for index in self._all_indices[line]:
-                self._counterpoint_obj[line][index] = None 
-        #also initialize counterpoint data structure as list 
-        self._counterpoint_lst = [[], []]
-        #initialize parameters for this attempt
-        self._attempt_params = [[], []] 
-        for line in range(2): self._attempt_params[line] = {
-            "lowest": None, "highest": None, "highest_must_appear_by": None, "lowest_must_appear_by": None, 
-            "highest_has_been_placed": False, "lowest_has_been_placed": False,
-            "eighths_have_been_placed": False, "suspension_indices": set(), "run_indices": set()
-        }
-        vocal_range = [randint(8, 10), randint(8, 10)]
-        for line in range(2):
-            self._attempt_params[line]["lowest"] = self._mr[line].get_default_note_from_interval(self._mr[line].get_lowest(), randint(1, 13 - vocal_range[line]))
-            self._attempt_params[line]["highest"] = self._mr[line].get_default_note_from_interval(self._attempt_params[line]["lowest"], vocal_range[line])
-
-
-        self._theme_measures = 0
-        if with_imitation:
-            optimal = None
-            while optimal is None:
-                gi = GenerateImitation(self._mode, self._attempt_params[0]["highest"], self._attempt_params[0]["lowest"], self._attempt_params[1]["highest"], self._attempt_params[1]["lowest"])
-                gi.generate_imitation()
-                optimal = gi.get_optimal()
-            if optimal is not None:
-                total_measures = 0
-                for note in optimal[0]: total_measures += note.get_duration() / 8
-                self._theme_measures = math.ceil(total_measures)
-                for line in range(2):
-                    (bar, beat) = (0, 0)
-                    for note in optimal[line]:
-                        if self._mr[line].is_unison(note, self._attempt_params[line]["highest"]): 
-                            self._attempt_params[line]["highest_has_been_placed"] = True 
-                        self._counterpoint_lst[line].append(note)
-                        self._counterpoint_obj[line][(bar, beat)] = note
-                        self._remaining_indices[line].remove((bar, beat))
-                        for i in range(note.get_duration()):
-                            beat += .5
-                            if beat >= 4:
-                                beat -= 4
-                                bar += 1
-                            if i != note.get_duration() - 1:
-                                if (bar, beat) in self._all_indices[line]:
-                                    del self._counterpoint_obj[line][(bar, beat)]
-                                    self._all_indices[line].remove((bar, beat))
-                                    self._remaining_indices[line].remove((bar, beat))
-
     def print_counterpoint(self):
-        for line in range(2):
-            print(self._attempt_params[line]["suspension_indices"])
+        length = 0
+        for note in self._counterpoint_lst[1]: length += note.get_duration() / 8
         print("     LOWER:                   UPPER:")
-        for i in range(self._length):
+        for i in range(math.ceil(length)):
             for j in range(4):
                 lower_note = str(self._counterpoint_obj[0][(i, j)]) if (i, j) in self._counterpoint_obj[0] else "                  "
-                if (i, j + 0.5) in self._counterpoint_obj[0]:
-                    lower_note += " " + str(self._counterpoint_obj[0][(i, j + .5)])
                 upper_note = str(self._counterpoint_obj[1][(i, j)]) if (i, j) in self._counterpoint_obj[1] else "                  "
-                if (i, j + 0.5) in self._counterpoint_obj[1]:
-                    upper_note += " " + str(self._counterpoint_obj[1][(i, j + .5)])
                 index_display = str(i) + ":" if j == 0 else ""
                 print(index_display.ljust(5), lower_note.ljust(28), upper_note.ljust(25))
 
-    def print_function_log(self):
-        for func in self._function_log:
-            passes, fails = str(self._function_log[func]["pass"]), str(self._function_log[func]["fail"])
-            failure_rate = str(self._function_log[func]["fail"] / (self._function_log[func]["pass"] + self._function_log[func]["fail"]))[:6] if fails != "0" else "N/A"
-            print(func[:25].ljust(30), "passes:", passes.ljust(10), "fails:", fails.ljust(10), "failure rate:", failure_rate)
-
-    def get_optimal(self) -> list[list[Note]]:
+    def get_optimal(self):
         if len(self._solutions) == 0:
             return None 
         optimal = self._solutions[0]
         self._map_solution_onto_counterpoint_dict(optimal)
-        self.print_counterpoint()
+        # self.print_counterpoint()
         return optimal
 
-    def generate_2pfc(self) -> None:
-        print("MODE = ", self._mode.value["name"])
+    def generate_imitation(self):
         self._solutions = []
         def attempt():
             self._num_backtracks = 0
@@ -204,83 +139,69 @@ class GenerateTwoPartFreeCounterpoint:
             initialized = self._initialize()
             self._backtrack()
         attempts = 0
-        while len(self._solutions) < 100 and attempts < 100:
+        while len(self._solutions) < 10 and attempts < 100:
             attempts += 1
             attempt()
-        print("number of solutions:", len(self._solutions))
+        # solutions:", len(self._solutions))
         if len(self._solutions) > 0:
             shuffle(self._solutions)
             self._solutions.sort(key = lambda sol: self._score_solution(sol)) 
 
     def _initialize(self) -> bool:
-        self._did_not_print = True
-        self._max_line_and_index_reached = (0, 0, 0)
-        for line in range(2):
-            self._attempt_params[line]["highest_must_appear_by"] = randint(self._theme_measures + 3, self._length - 1)
-            self._attempt_params[line]["lowest_must_appear_by"] = randint(self._theme_measures + 3, self._length - 1)
-                
-        self._place_suspensions()
-
+        self._all_indices = [[], []]
+        self._remaining_indices = [[], []]
+        self._counterpoint_lst = [[], []]
+        self._counterpoint_obj = [{}, {}]
+        git = GenerateImitationTheme(self._mode, self._attempt_params[0]["hexachord"], self._attempt_params[0]["highest"], self._attempt_params[0]["lowest"])
+        git.generate_theme()
+        theme = git.get_optimal()[0]
+        theme_measures = 0
+        for note in theme: theme_measures += note.get_duration() / 8
+        self._theme_measures = theme_measures
+        self._map_solution_onto_counterpoint_dict([theme, []])
+        self._theme_length = len(theme)
+        for bar in range(14):
+            for beat in [0, 1, 2, 3]:
+                self._all_indices[1].append((bar, beat))
+        self._remaining_indices[1] = self._all_indices[1][:]
+        self._remaining_indices[1].reverse()
+        #initialize counterpoint data structure, that will map indices to notes
+        for index in self._all_indices[1]:
+            self._counterpoint_obj[1][index] = None 
+        #initialize parameters for this attempt 
         self._store_params_stack = [[], []]
         self._stored_all_indices_stack = [[], []]
         self._stored_remaining_indices_stack = [[], []]
         self._stored_deleted_indices_stack = [[], []]
         self._valid_pitches = [[], []] 
         for line in range(2):
-            valid_pitches = [self._attempt_params[line]["lowest"], self._attempt_params[line]["highest"]]
+            self._valid_pitches[line] = [self._attempt_params[line]["lowest"], self._attempt_params[line]["highest"]]
             for i in range(2, self._attempt_params[line]["lowest"].get_scale_degree_interval(self._attempt_params[line]["highest"])):
-                valid_pitches += self._mr[line].get_notes_from_interval(self._attempt_params[line]["lowest"], i)
-            self._valid_pitches[line] = valid_pitches
-
-        self._num_backtracks = 0
+                self._valid_pitches[line] += self._mr[line].get_notes_from_interval(self._attempt_params[line]["lowest"], i)
         return True 
 
-    def _place_suspensions(self) -> None:
-        suspension_bars = [self._length - 2]
-        # max_additional_suspensions = 2 if self._length <= 12 else 3
-        # num_additional_suspensions = randint(0, max_additional_suspensions)
-        # for i in range(num_additional_suspensions):
-        #     susp_bar = randint(1, self._length - 2)
-        #     while susp_bar in suspension_bars:
-        #         susp_bar = randint(1, self._length - 2)
-        #     suspension_bars.append(susp_bar)
-        for susp_bar in suspension_bars:
-            line = 0 if random() <= .33 else 1
-            self._attempt_params[line]["suspension_indices"].add((susp_bar, 0))
-        
-
     def _backtrack(self) -> None:
-        if self._solutions_this_attempt > 500 or self._num_backtracks > 30000 or (self._solutions_this_attempt == 0 and self._num_backtracks > 10000):
+        # print("backtrack number:", self._num_backtracks, "theme index:", self._attempt_params[1]["theme_index"])
+        if (self._num_backtracks > 10000) or (self._solutions_this_attempt > 500) or (not self._found_possible and self._num_backtracks > 1000):
             return 
-
-        if self._max_line_and_index_reached[0] == 0 and self._num_backtracks > 100 and self._max_line_and_index_reached[1] < self._length - 1: 
-            return
         self._num_backtracks += 1
-        if self._num_backtracks % 10000 == 0: print("num backtracks:", self._num_backtracks)
-        if len(self._remaining_indices[0]) == 0 and len(self._remaining_indices[1]) == 0:
+        if self._attempt_params[1]["theme_index"] >= self._theme_length:
             if not self._found_possible:
                 self._found_possible = True 
-                print("found possible solution!  backtracks:", self._num_backtracks)
+                #print("found possible solution!  backtracks:", self._num_backtracks)
             if self._passes_final_checks():
-                if self._solutions_this_attempt == 0:
-                    print("FOUND SOLUTION!  backtracks:", self._num_backtracks)
+                # if self._solutions_this_attempt == 0:
+                    #print("FOUND SOLUTION!  backtracks:", self._num_backtracks)
                 self._solutions.append([self._counterpoint_lst[0][:], self._counterpoint_lst[1][:]])
                 self._solutions_this_attempt += 1
             return 
-        line = 1 if len(self._remaining_indices[0]) == 0 else 0
-
+        
+        line = 1
         (bar, beat) = self._remaining_indices[line].pop() 
-        if (line, bar, beat) > self._max_line_and_index_reached:
-            self._max_line_and_index_reached = (line, bar, beat)
-            if line == 1 and bar >= self._length - 2: print(self._max_line_and_index_reached)
-        # if self._max_line_and_index_reached[1] >= self._length - 1:
-        #     if self._did_not_print:
-        #         self._did_not_print = False 
-        #         self.print_counterpoint()
+        back_tracks_at_start = self._num_backtracks
         if self._passes_index_checks((bar, beat), line):
             candidates = list(filter(lambda n: self._passes_insertion_checks(n, (bar, beat), line), self._valid_pitches[line]))
             shuffle(candidates)
-            if bar == 0 and beat == 0: candidates.append(Note(1, 0, 4, accidental=ScaleOption.REST))
             # print("candidates for index", bar, beat, ": ", len(candidates))
             notes_to_insert = []
             for candidate in candidates: 
@@ -288,11 +209,33 @@ class GenerateTwoPartFreeCounterpoint:
                 for dur in durations:
                     notes_to_insert.append(Note(candidate.get_scale_degree(), candidate.get_octave(), dur, accidental=candidate.get_accidental()))
             shuffle(notes_to_insert)
+            notes_to_insert.append(Note(1, 0, 8, ScaleOption.REST))
             for note_to_insert in notes_to_insert:
-                self._insert_note(note_to_insert, (bar, beat), line)
-                self._backtrack()
-                self._remove_note(note_to_insert, (bar, beat), line)
+                if self._check_theme(note_to_insert, (bar, beat)):
+                    if note_to_insert.get_accidental() == ScaleOption.REST and note_to_insert.get_duration() != 8:
+                        print(note_to_insert)
+                    self._insert_note(note_to_insert, (bar, beat), line)
+                    self._backtrack()
+                    self._remove_note(note_to_insert, (bar, beat), line)
+                    if self._solutions_this_attempt > 0 and notes_to_insert[-1].get_accidental() == ScaleOption.REST:
+                        notes_to_insert.pop()
         self._remaining_indices[line].append((bar, beat))
+
+    def _check_theme(self, note: Note, index) -> bool:
+        theme_index = self._attempt_params[1]["theme_index"]
+        if note.get_accidental() == ScaleOption.REST: 
+            if theme_index != 0: return False 
+            if index[0] >= self._theme_measures - 2: return False 
+            return True
+        if theme_index == 0:
+            transposition_interval = 5 if self._attempt_params[0]["hexachord"] == HexachordOption.MOLLE else 4
+            if ( self._mr[1].get_default_note_from_interval(note, transposition_interval).get_scale_degree() == self._counterpoint_lst[0][0].get_scale_degree()
+                and note.get_accidental() == ScaleOption.NATURAL): 
+                return self._counterpoint_lst[0][0].get_duration() == note.get_duration()
+            return False 
+        if self._counterpoint_lst[1][-1].get_scale_degree_interval(note) == self._counterpoint_lst[0][theme_index - 1].get_scale_degree_interval(self._counterpoint_lst[0][theme_index]):
+            return self._counterpoint_lst[0][theme_index].get_duration() == note.get_duration()
+        return False
 
     def _passes_index_checks(self, index: tuple, line: int) -> bool:
         for check in self._index_checks:
@@ -301,44 +244,26 @@ class GenerateTwoPartFreeCounterpoint:
 
     def _passes_insertion_checks(self, note: Note, index: tuple, line: int) -> bool:
         (bar, beat) = index 
-        if bar == 0 and (beat == 0 or (beat == 2 and self._counterpoint_lst[line][0].get_accidental() == ScaleOption.REST)):
-            return self._check_starting_pitch(note, line)
-        if bar == self._length - 1:
-            if not self._check_last_pitch(note, line): return False
         for check in self._melodic_insertion_checks:
             if not check(note, (bar, beat), line): 
-                # self._function_log[check.__name__]["fail"] += 1
-                # print("failed insertion check:", str(note), index, "on function", check.__name__)
+                # if bar > 2:
+                #     print(note,"failed insertion check", check.__name__, "at index", str((bar, beat)))
                 return False 
-            # self._function_log[check.__name__]["pass"] += 1
-        # print("passed insertion checks!", str(note), index)
         for check in self._harmonic_insertion_checks:
             if not check(note, (bar, beat), line): 
-                # print("failed insertion check:", str(note), index, "on function", check.__name__)
-                # self._function_log[check.__name__]["fail"] += 1
                 return False 
-            # self._function_log[check.__name__]["pass"] += 1
         return True 
 
     def _get_valid_durations(self, note: Note, index: tuple, line: int) -> set:
         (bar, beat) = index 
-        if bar == self._length - 1: return { 16 }
-        if note.get_accidental() == ScaleOption.REST: return { 4 }
-        if bar == 0 and beat == 0: return self._get_first_beat_options(note, line)
-        durs = self._get_durations_from_beat(index)
+        durs = { 16, 12, 8, 6, 4, 2 }
         for check in self._melodic_rhythm_filters:
-            prev_length = len(durs)
             durs = check(note, index, line, durs)
-            # post_length = len(durs)
-            # self._function_log[check.__name__]["fail"] += prev_length - post_length
-            # self._function_log[check.__name__]["pass"] += post_length
-            if len(durs) == 0: break
+            if len(durs) == 0: 
+                break
         for check in self._harmonic_rhythm_filters:
-            prev_length = len(durs)
             durs = check(note, index, line, durs)
-            # post_length = len(durs)
-            # self._function_log[check.__name__]["fail"] += prev_length - post_length
-            # self._function_log[check.__name__]["pass"] += post_length
+            durs = check(note, index, line, durs)
             if len(durs) == 0: break
         return durs 
 
@@ -383,17 +308,14 @@ class GenerateTwoPartFreeCounterpoint:
     def _check_last_pitch(self, note: Note, line: int) -> bool:
         if self._counterpoint_lst[line][-1].get_duration() < 8 and abs(self._counterpoint_lst[line][-1].get_scale_degree_interval(note)) != 2:
             return False
-        c_note = self._get_counterpoint_note((self._length - 1, 0), line) 
+        c_note = self._get_counterpoint_note((0, 0), line) 
         if c_note is not None:
-            if c_note.get_scale_degree_interval(note) in  [-8, 1, 5, 8] and note.get_accidental() == ScaleOption.NATURAL:
-                return True 
-            return False 
-        if self._mr[line].get_final() == note.get_scale_degree() and note.get_accidental() == ScaleOption.NATURAL:
-            return True 
-        return False
+            return c_note.get_scale_degree_interval(note) in  [-8, 1, 5, 8] and note.get_accidental() == ScaleOption.NATURAL
+        return self._mr[line].get_final() == note.get_scale_degree() and note.get_accidental() == ScaleOption.NATURAL
 
     def _handles_adjacents(self, note: Note, index: tuple, line: int) -> bool:
         (bar, beat) = index
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return True
         (sdg_interval, chro_interval) = self._mr[line].get_intervals(self._counterpoint_lst[line][-1], note)
         if sdg_interval not in LegalIntervalsFifthSpecies["adjacent_melodic_scalar"]: 
             return False 
@@ -483,6 +405,7 @@ class GenerateTwoPartFreeCounterpoint:
 
     def _handles_repetition(self, note: Note, index: tuple, line: int) -> bool:
         (bar, beat) = index
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return True
         if self._mr[line].is_unison(self._counterpoint_lst[line][-1], note) and (beat != 2 or self._counterpoint_lst[line][-1].get_duration() != 2):
             return False 
         return True 
@@ -506,11 +429,13 @@ class GenerateTwoPartFreeCounterpoint:
     def _handles_resolution_of_anticipation(self, note: Note, index: tuple, line: int) -> bool:
         if len(self._counterpoint_lst[line]) < 2 or not self._mr[line].is_unison(self._counterpoint_lst[line][-2], self._counterpoint_lst[line][-1]):
             return True 
+        if self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return True
         return self._counterpoint_lst[line][-1].get_scale_degree_interval(note) == -2
 
     def _handles_repeated_two_notes(self, note: Note, index: tuple, line: int) -> bool:
         (bar, beat) = index
         if len(self._counterpoint_lst[line]) < 3: return True 
+        if self._counterpoint_lst[line][-3].get_accidental() == ScaleOption.REST: return True
         if not self._mr[line].is_unison(self._counterpoint_lst[line][-3], self._counterpoint_lst[line][-1]) or not self._mr[line].is_unison(self._counterpoint_lst[line][-2], note):
             return True 
         if self._counterpoint_lst[line][-1].get_scale_degree_interval(note) != 2: return False 
@@ -518,6 +443,7 @@ class GenerateTwoPartFreeCounterpoint:
         return True
 
     def _handles_quarter_between_two_leaps(self, note: Note, index: tuple, line: int) -> bool:
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return True
         if self._counterpoint_lst[line][-1].get_duration() != 2 or len(self._counterpoint_lst[line]) < 2: return True 
         first_interval, second_interval = self._counterpoint_lst[line][-2].get_scale_degree_interval(self._counterpoint_lst[line][-1]), self._counterpoint_lst[line][-1].get_scale_degree_interval(note)
         if abs(first_interval) == 2 or abs(second_interval) == 2:
@@ -528,6 +454,8 @@ class GenerateTwoPartFreeCounterpoint:
 
     def _handles_upper_neighbor(self, note: Note, index: tuple, line: int) -> bool:
         (bar, beat) = index
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return True
+        if len(self._counterpoint_lst[line]) >= 2 and self._counterpoint_lst[line][-2].get_accidental() == ScaleOption.REST: return True
         if ( beat % 2 == 0 and self._counterpoint_lst[line][-1].get_duration() == 2 and  
             self._counterpoint_lst[line][-1].get_scale_degree_interval(note) == -2 and len(self._counterpoint_lst[line]) >= 2 and 
             self._counterpoint_lst[line][-2].get_scale_degree_interval(self._counterpoint_lst[line][-1]) == 2 and 
@@ -550,6 +478,7 @@ class GenerateTwoPartFreeCounterpoint:
         return False 
 
     def _handles_contrary_motion_surrounding_quarter_note_octave_leap(self, note: Note, index: tuple, line: int) -> bool:
+        if len(self._counterpoint_lst[line]) < 2 or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return True
         if self._counterpoint_lst[line][-1].get_duration() != 2: return True 
         prev_interval, cur_interval = self._counterpoint_lst[line][-2].get_scale_degree_interval(self._counterpoint_lst[line][-1]), self._counterpoint_lst[line][-1].get_scale_degree_interval(note)
         if prev_interval < 0 and cur_interval == -8: return False 
@@ -572,12 +501,6 @@ class GenerateTwoPartFreeCounterpoint:
         if susp_note.get_scale_degree_interval(note) != -2: return False 
         return True
 
-    def _handles_penultimate_whole_note(self, note: Note, index: tuple, line: int) -> bool:
-        if index != (self._length - 2, 0): return True 
-        if self._mr[line].get_default_note_from_interval(note, 4).get_scale_degree() == self._mr[line].get_final():
-            return self._mode != ModeOption.PHRYGIAN
-        return self._mr[line].get_default_note_from_interval(note, -2).get_scale_degree() == self._mr[line].get_final()
-
     ######################################
     ###### harmonic insertion checks ######
 
@@ -585,7 +508,8 @@ class GenerateTwoPartFreeCounterpoint:
         (bar, beat), other_line = index, (line + 1) % 2 
         if beat % 2 != 0 or (bar, beat) not in self._counterpoint_obj[other_line]: return True 
         c_note = self._counterpoint_obj[other_line][(bar, beat)]
-        if c_note is not None and not self._is_consonant(c_note, note): return False 
+        if c_note is not None and not self._is_consonant(c_note, note): 
+            return False 
         return True 
         
     def _resolves_suspension(self, note: Note, index: tuple, line: int) -> bool:
@@ -623,7 +547,8 @@ class GenerateTwoPartFreeCounterpoint:
         if not self._is_consonant(self._get_counterpoint_note((bar, beat - 1), line), self._counterpoint_lst[line][-1]): return False 
         if index in self._counterpoint_obj[other_line]:
             c_prev = self._get_counterpoint_note((bar, beat - 1), line)
-            c_next = self._counterpoint_obj[other_line][(bar + 1, 0) if beat == 3 else (bar, 2)]
+            c_next_index = (bar + 1, 0) if beat == 3 else (bar, 2)
+            c_next = self._counterpoint_obj[other_line][c_next_index] if c_next_index in self._counterpoint_obj[other_line] else None
             if c_note is None or c_prev is None or c_next is None: return True
             first_intvl, second_intvl = c_prev.get_scale_degree_interval(c_note), c_note.get_scale_degree_interval(c_next)
             if (first_intvl, second_intvl) not in [(-2, -2), (2, 2), (2, -2), (-2, 2), (-2, -3)]: return False
@@ -641,6 +566,7 @@ class GenerateTwoPartFreeCounterpoint:
 
     def _resolves_weak_quarter_dissonance(self, note: Note, index: tuple, line: int) -> bool:
         (bar, beat) = index
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return True
         if beat % 2 != 0 or self._counterpoint_lst[line][-1].get_duration() != 2: return True 
         index_to_check = (bar, 1) if beat == 2 else (bar - 1, 3)
         c_note = self._get_counterpoint_note(index_to_check, line)
@@ -689,6 +615,7 @@ class GenerateTwoPartFreeCounterpoint:
 
     def _handles_hiddens(self, note: Note, index: tuple, line: int) -> bool:
         (bar, beat), other_line = index, (line + 1) % 2
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return True
         if index not in self._counterpoint_obj[other_line]: return True 
         c_note = self._counterpoint_obj[other_line][index]
         if c_note is None or c_note.get_chromatic_interval(note) not in [-19, -12, -7, 0, 7, 12, 19]: return True 
@@ -704,7 +631,7 @@ class GenerateTwoPartFreeCounterpoint:
         intvl = c_note.get_chromatic_interval(note)
         if intvl not in [-19, -12, 0, 12, 19]: return True 
         prev_beat_index = (bar, beat - 1) if beat != 0 else (bar - 1, 3)
-        if self._get_counterpoint_note(prev_beat_index, line).get_chromatic_interval(self._counterpoint_lst[line][-1]) == intvl:
+        if self._get_counterpoint_note(prev_beat_index, line) is not None and self._get_counterpoint_note(prev_beat_index, line).get_chromatic_interval(self._counterpoint_lst[line][-1]) == intvl:
             if not self._mr[line].is_unison(self._counterpoint_lst[line][-1], note): return False 
         if beat % 2 != 0: return True 
         prev_half_note_index = (bar, 0) if beat == 2 else (bar - 1, 2)
@@ -743,20 +670,6 @@ class GenerateTwoPartFreeCounterpoint:
             return False 
         return True
 
-    def _forms_preset_suspension(self, note: Note, index: tuple, line: int) -> bool:
-        (bar, beat), other_line = index, (line + 1) % 2
-        if beat == 0:
-            if index not in self._attempt_params[other_line]["suspension_indices"]: return True 
-            c_note = self._get_counterpoint_note(index, line)
-            if c_note is not None and note.get_scale_degree_interval(c_note) not in LegalIntervalsFifthSpecies["resolvable_dissonance"]: 
-                return False 
-        if beat == 2:
-            if (bar + 1, 0) not in self._attempt_params[line]["suspension_indices"]: return True 
-            c_note = self._counterpoint_obj[other_line][(bar + 1, 0)] if (bar + 1, 0) in self._counterpoint_obj[other_line] else None
-            if c_note is not None and c_note.get_scale_degree_interval(note) not in LegalIntervalsFifthSpecies["resolvable_dissonance"]:
-                return False 
-        return True
-
     def _prevents_suspensions_from_resolving_to_perfect_intervals(self, note: Note, index: tuple, line: int) -> bool:
         (bar, beat), other_line = index, (line + 1) % 2
         if beat != 2: return True 
@@ -769,6 +682,7 @@ class GenerateTwoPartFreeCounterpoint:
 
     def _sharp_moves_up_if_against_tritone(self, note: Note, index: tuple, line: int) -> bool:
         (bar, beat), other_line = index, (line + 1) % 2
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return True
         if self._mr[line].is_sharp(self._counterpoint_lst[line][-1]):
             c_note = self._get_counterpoint_note((bar, beat - 1) if beat != 0 else (bar - 1, 3), line)
             if c_note is not None and abs(c_note.get_chromatic_interval(note)) % 12 == 6:
@@ -777,6 +691,7 @@ class GenerateTwoPartFreeCounterpoint:
 
     def _handles_landini(self, note: Note, index: tuple, line: int) -> bool:
         (bar, beat), other_line = index, (line + 1) % 2
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return True
         if beat % 2 != 0: return True 
         if self._mr[line].is_sharp(self._counterpoint_lst[line][-1]) and index in self._counterpoint_obj[other_line]:
             c_note = self._counterpoint_obj[other_line][index]
@@ -788,32 +703,17 @@ class GenerateTwoPartFreeCounterpoint:
     ######################################
     ###### melodic rhythms filters #######
 
-    def _handles_runs(self, note: Note, index: tuple, line: int, durs: set) -> set:
-        (bar, beat) = index
-        if index in self._attempt_params[line]["run_indices"]: 
-            return { 2 } if 2 in durs else set()
-        if (bar, beat + 1) in self._attempt_params[line]["run_indices"]: 
-            for d in [4, 6, 8, 12]: durs.discard(d)
-        two_beats_next = (bar, beat + 2) if beat == 0 else (bar + 1, 0)
-        if two_beats_next in self._attempt_params[line]["run_indices"]: 
-            for d in [2, 6, 8, 12]: durs.discard(d)
-        three_beats_next = (bar, beat + 3) if beat == 0 else (bar + 1, 1)
-        if three_beats_next in self._attempt_params[line]["run_indices"]: 
-            for d in [2, 8, 12]: durs.discard(d)
-        if (bar + 1, 2) in self._attempt_params[line]["run_indices"]:
-            durs.discard(12)
-        return durs
-
     def _get_durations_from_beat(self, index: tuple) -> set:
         (bar, beat) = index
         if beat == 1.5: return { 1 }
         if beat == 3: return { 2 }
         if beat == 1: return { 1, 2 }
         if beat == 2: return { 2, 4, 6, 8 }
-        if beat == 0: return { 2, 4, 6, 8, 12 } if bar == 0 else { 2, 4, 6, 8 }
+        if beat == 0: return { 2, 4, 6, 8, 12, 16 }
 
     def _handles_consecutive_quarters(self, note: Note, index: tuple, line: int, durs: set) -> set:
         (bar, beat) = index
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return durs
         if self._counterpoint_lst[line][-1].get_duration() != 2: return durs 
         if self._counterpoint_lst[line][-1].get_scale_degree_interval(note) > 0 and beat == 2: durs.discard(4)
         if beat == 2 and self._counterpoint_lst[line][-2].get_duration() == 2 and self._counterpoint_lst[line][-1].get_duration() == 2 and self._counterpoint_lst[line][-3].get_duration() != 2:
@@ -840,16 +740,6 @@ class GenerateTwoPartFreeCounterpoint:
             durs.discard(2)
         return durs
 
-    def _handles_first_eighth(self, note: Note, index: tuple, line: int, durs: set) -> set:
-        (bar, beat) = index 
-        if (beat == 1 and abs(self._counterpoint_lst[line][-1].get_scale_degree_interval(note)) != 2) or self._attempt_params[line]["eighths_have_been_placed"]:
-            durs.discard(1)
-        if beat == 2 and self._counterpoint_lst[line][-1].get_duration() == 1 and self._counterpoint_lst[line][-3].get_duration() == 2:
-            durs.discard(4)
-            durs.discard(8)
-            durs.discard(6)
-        return durs 
-
     def _handles_sharp_durations(self, note: Note, index: tuple, line: int, durs: set) -> set:
         if self._mr[line].is_sharp(note): durs.discard(12)
         return durs 
@@ -872,12 +762,14 @@ class GenerateTwoPartFreeCounterpoint:
         return durs 
 
     def _handles_repeated_note(self, note: Note, index: tuple, line: int, durs: set) -> set:
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return durs
         if self._mr[line].is_unison(self._counterpoint_lst[line][-1], note): 
             durs.discard(4)
             durs.discard(2)
         return durs
 
     def _handles_rhythm_after_descending_quarter_leap(self, note: Note, index: tuple, line: int, durs: set) -> set:
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return durs
         (bar, beat) = index
         if self._counterpoint_lst[line][-1].get_duration() == 2 and self._counterpoint_lst[line][-1].get_scale_degree_interval(note) < -2:
             durs.discard(8)
@@ -886,6 +778,7 @@ class GenerateTwoPartFreeCounterpoint:
         return durs
 
     def _handles_dotted_whole_after_quarters(self, note: Note, index: tuple, line: int, durs: set) -> set:
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return durs
         if self._counterpoint_lst[line][-1].get_duration() == 2: durs.discard(12)
         return durs
 
@@ -932,6 +825,7 @@ class GenerateTwoPartFreeCounterpoint:
 
     def _handles_quarters_after_whole(self, note: Note, index: tuple, line: int, durs: set) -> set:
         (bar, beat) = index
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return durs
         if beat == 0 and self._counterpoint_lst[line][-1].get_duration() == 8:
             durs.discard(2)
         return durs
@@ -973,7 +867,8 @@ class GenerateTwoPartFreeCounterpoint:
 
     def _prepares_suspension(self, note: Note, index: tuple, line: int, durs: set) -> set:
         (bar, beat) = index 
-        if bar == self._length - 1 or self._get_counterpoint_note((bar + 1, 0), line) is None or self._is_consonant(self._get_counterpoint_note((bar + 1, 0), line), note): return durs 
+        if bar == self._length - 1 or self._get_counterpoint_note((bar + 1, 0), line) is None or self._is_consonant(self._get_counterpoint_note((bar + 1, 0), line), note): 
+            return durs 
         if self._get_counterpoint_note((bar + 1, 0), line).get_scale_degree_interval(note) in LegalIntervalsFifthSpecies["resolvable_dissonance"]:
             return durs 
         if beat == 0:
@@ -1003,6 +898,7 @@ class GenerateTwoPartFreeCounterpoint:
         if c_note is None or self._is_consonant(c_note, note): return durs 
         durs.discard(6)
         durs.discard(8)
+        if index == (0, 0) or self._counterpoint_lst[line][-1].get_accidental() == ScaleOption.REST: return durs
         if self._counterpoint_lst[line][-1].get_scale_degree_interval(note) == 2:
             durs.discard(2)
         return durs
@@ -1065,7 +961,7 @@ class GenerateTwoPartFreeCounterpoint:
                         durs.discard(12)
                         durs.discard(8)
             else:
-                c_next = self._counterpoint_obj[other_line][(bar + 1, 0)]
+                c_next = self._counterpoint_obj[other_line][(bar + 1, 0)] if (bar + 1, 0) in self._counterpoint_obj[other_line] else None
                 if c_next is not None and not self._is_consonant(c_next, note):
                     durs.discard(12)
                 if c_next is not None and c_note.get_scale_degree_interval(c_next) != c_prev.get_scale_degree_interval(c_note):
@@ -1136,11 +1032,9 @@ class GenerateTwoPartFreeCounterpoint:
     #     if run_length == self._attempt_params["min_length_of_max_quarter_run"]:
     #         self._attempt_params["max_quarter_run_has_been_placed"] = True 
 
-    def _check_if_eighths_are_added(self, note: Note, index: tuple, line: int) -> None:
-        (bar, beat) = index 
-        if beat == 1.5: 
-            for line in range(2):
-                self._attempt_params[line]["eighths_have_been_placed"] = True
+    def _increment_theme_index(self, note: Note, index: tuple, line: int) -> None:
+        if note.get_accidental() != ScaleOption.REST:
+            self._attempt_params[line]["theme_index"] += 1
 
     ##########################################
     ########### final checks #################
@@ -1188,59 +1082,15 @@ class GenerateTwoPartFreeCounterpoint:
 
     def _score_solution(self, solution: list[list[Note]]) -> int:
         score = 0
-        self._map_solution_onto_counterpoint_dict(solution)
-        for i in range(1, self._length - 1):
-            note1, note2 = self._get_counterpoint_note((i, 0), 0), self._get_counterpoint_note((i, 0), 1)
-            if note1.get_scale_degree_interval(note2) in LegalIntervalsFifthSpecies["resolvable_dissonance"] or note2.get_scale_degree_interval(note1) in LegalIntervalsFifthSpecies["resolvable_dissonance"]:
-                score -= 1000
-        for line in range(2):
-            num_ties = 0
-            num_tied_dotted_halfs = 0
-            num_tied_wholes = 0
-            ties = [False] * (self._length - 2)
-            for i in range(1, self._length - 1):
-                if (i, 0) not in self._counterpoint_obj[line]: 
-                    ties[i - 1] = True
-                    num_ties += 1
-                    if (i - 1, 2) in self._counterpoint_obj[line]:
-                        if self._counterpoint_obj[line][(i - 1, 2)].get_duration() == 6:
-                            num_tied_dotted_halfs += 1
-                        else:
-                            num_tied_wholes += 1
-            ideal_ties = 3 if self._length < 12 else 4 
-            score += abs(ideal_ties - num_ties) * 10 
-            score += abs(num_tied_wholes - num_tied_dotted_halfs) * 5
-            has_isolated_tie = False
-            for i in range(1, len(ties) - 1):
-                if ties[i - 1] == False and ties[i] == True and ties[i + 1] == False:
-                    has_isolated_tie = True 
-            if has_isolated_tie: score -= 12
-            num_quarter_runs_starting_on_beat = 0
-            num_quarter_runs_starting_on_beat_of_length_two = 0
-            num_other_two_note_quarter_runs = 0
-            for i, index in enumerate(self._all_indices[line]):
-                (bar, beat) = index 
-                if beat == 0 and self._counterpoint_lst[line][i].get_duration() == 2 and self._counterpoint_lst[line][i - 1].get_duration() != 2:
-                    num_quarter_runs_starting_on_beat += 1
-                    if self._counterpoint_lst[line][i + 2].get_duration() != 2:
-                        num_quarter_runs_starting_on_beat_of_length_two += 1
-                if beat == 2 and self._counterpoint_lst[line][i].get_duration() == 2 and self._counterpoint_lst[line][i - 1].get_duration() != 2:
-                    if self._counterpoint_lst[line][i + 2].get_duration() != 2:
-                        num_other_two_note_quarter_runs += 1
-            score += num_quarter_runs_starting_on_beat * 60 + num_quarter_runs_starting_on_beat_of_length_two * 60 + num_other_two_note_quarter_runs * 45
-            # num_fifths, num_octaves = 0, 0
-            # for i in range(1, self._length - 2):
-            #     if (i, 0) in self._counterpoint_obj:
-            #         intvl = self._cantus[i].get_chromatic_interval(self._counterpoint_obj[(i, 0)])
-            #         if intvl in [-19, -7, 7, 19]: num_fifths += 1
-            #         elif intvl in [-12, 0, 12]: num_octaves += 1
-            # score += num_fifths * 30 + num_octaves * 10
-            num_steps = 0
-            for i in range(len(self._counterpoint_lst[line]) - 1):
-                if abs(self._counterpoint_lst[line][i].get_scale_degree_interval(self._counterpoint_lst[line][i + 1])) == 2:
-                    num_steps += 1
-            score += math.floor(150 * abs(.712 - (num_steps / (len(self._counterpoint_lst[line]) - 1))))
-        return score 
+        theme_measures = 0
+        for note in solution[0]: theme_measures += note.get_duration() / 8
+        rest_measures = 0
+        for note in solution[1]:
+            if note.get_accidental() == ScaleOption.REST:
+                rest_measures += 1
+            else: break
+        score -= (theme_measures - rest_measures) * 10
+        return score
 
     def _map_solution_onto_counterpoint_dict(self, solution: list[list[Note]]) -> None:
         for line in range(2):
