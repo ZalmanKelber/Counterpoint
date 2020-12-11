@@ -128,7 +128,7 @@ def main():
     HEIGHT = 5
     LENGTH = 9
     hymn = [[] for i in range(HEIGHT)]
-    for index, (mode, cf_index) in enumerate([(ModeOption.DORIAN, 3), (ModeOption.PHRYGIAN, 3), (ModeOption.IONIAN, 1), (ModeOption.AEOLIAN, 1), (ModeOption.MIXOLYDIAN, 1), (ModeOption.PHRYGIAN, 3), (ModeOption.AEOLIAN, 1), (ModeOption.DORIAN, 3)]):
+    for index, (mode, cf_index) in enumerate([(ModeOption.DORIAN, 3), (ModeOption.PHRYGIAN, 0), (ModeOption.IONIAN, 1), (ModeOption.AEOLIAN, 1), (ModeOption.MIXOLYDIAN, 1), (ModeOption.PHRYGIAN, 0), (ModeOption.AEOLIAN, 1), (ModeOption.DORIAN, 3)]):
         print("MODE = ", mode.value["name"])
         optimal = None 
         count = 0

@@ -134,7 +134,9 @@ class GenerateMultiPartFirstSpecies:
             self._store_params_stack.append([])
         gcf = GenerateCantusFirmus(self._length, self._mode)
         cf = gcf.generate_cf(self._range[self._cf_index])
-        while cf.get_notes()[-2].get_chromatic_interval(cf.get_notes()[-1]) == 2:
+        while cf.get_notes()[-2].get_chromatic_interval(cf.get_notes()[-1]) == 2 and self._mode != ModeOption.PHRYGIAN:
+            cf = gcf.generate_cf(self._range[self._cf_index])
+        while cf.get_notes()[-2].get_scale_degree_interval(cf.get_notes()[-1]) != 5 and self._mode == ModeOption.PHRYGIAN:
             cf = gcf.generate_cf(self._range[self._cf_index])
         self._counterpoint_lst[self._cf_index] = cf.get_notes()
         for bar, note in enumerate(self._counterpoint_lst[self._cf_index]):
@@ -161,10 +163,10 @@ class GenerateMultiPartFirstSpecies:
         self._lowest_score = None
 
     def _backtrack(self) -> None:
-        if self._solutions_this_attempt >= 10000 or self._num_backtracks > 50000 or (len(self._solutions) == 0 and self._num_backtracks > 5000):
+        if self._solutions_this_attempt >= 10000 or self._num_backtracks > 50000 or (len(self._solutions) == 0 and self._num_backtracks > 3000):
             return 
         self._num_backtracks += 1
-        if self._num_backtracks % 5000 == 0 and self._found_possible:
+        if self._num_backtracks % 3000 == 0:
             print("num backtracks:", self._num_backtracks)
         if all([len(self._remaining_indices[line]) == 0 for line in range(self._height)]):
             if not self._found_possible:
@@ -298,6 +300,7 @@ class GenerateMultiPartFirstSpecies:
         return True 
 
     def _handles_final_note_in_top_voice(self, note: Note, index: tuple, line: int) -> bool:
+        if self._mode == ModeOption.PHRYGIAN: return True
         if index != (self._length - 1, 0) or line != self._height - 1: return True 
         if abs(self._counterpoint_lst[line][-1].get_scale_degree_interval(note)) > 2: return False 
         return True 
@@ -468,6 +471,7 @@ class GenerateMultiPartFirstSpecies:
     ########### final checks #################
 
     def _top_ends_by_step(self) -> bool:
+        if self._mode == ModeOption.PHRYGIAN: return True
         for line in range(1, self._height - 1):
             if ( self._counterpoint_lst[line][-1].get_chromatic_interval(self._counterpoint_lst[self._height - 1][-1]) < 0 or 
                 self._counterpoint_lst[line][-2].get_chromatic_interval(self._counterpoint_lst[self._height - 1][-2]) < 0 ):

@@ -161,7 +161,10 @@ class GenerateCantusFirmus:
                 final_to_penult_interval, penult_note = self._get_notes_from_interval(final, final_to_dom_interval)[0]
             elif can_end_from_step_below:
                 final_to_penult_interval, penult_note = self._get_notes_from_interval(final, -2)[0]
-        
+        if self._mode == ModeOption.PHRYGIAN:
+            penult_note = self._mr.get_default_note_from_interval(last_note, -5)
+
+
         #insert the penultimate note into the Cantus Firmus
         self._cf.insert_note(penult_note, self._length - 2)
 
