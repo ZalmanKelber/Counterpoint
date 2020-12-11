@@ -109,44 +109,43 @@ def main():
     #             fs.play_midi("counterpoint.mid")
                 # fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-" + mode.value["name"] + ".wav")
 
-    # for i in range(10, 13):
-    #     for mode in ModeOption:
-    #         optimal = None 
-    #         while optimal is None:
-    #             g2pfc = GenerateTwoPartFreeCounterpoint(randint(14, 16), mode)
-    #             g2pfc.generate_2pfc()
-    #             optimal = g2pfc.get_optimal()
-    #         if optimal is not None:
-    #             # g2pfc.print_function_log()
-    #             mw = MidiWriter()
-    #             mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
-    #             for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
-    #                 fs = FluidSynth("/Users/alexkelber/Development/" + filename)
-    #                 fs.play_midi("counterpoint.mid")
-    #                 fs.midi_to_audio("counterpoint.mid", "audio/free-counterpoint-" + str(i) + "-" + mode.value["name"] + ".wav")
-
-    HEIGHT = 5
-    LENGTH = 9
-    hymn = [[] for i in range(HEIGHT)]
-    for index, (mode, cf_index) in enumerate([(ModeOption.DORIAN, 3), (ModeOption.PHRYGIAN, 0), (ModeOption.IONIAN, 1), (ModeOption.AEOLIAN, 1), (ModeOption.MIXOLYDIAN, 1), (ModeOption.PHRYGIAN, 0), (ModeOption.AEOLIAN, 1), (ModeOption.DORIAN, 3)]):
-        print("MODE = ", mode.value["name"])
+    for mode in [ModeOption.PHRYGIAN]:
         optimal = None 
-        count = 0
         while optimal is None:
-            count += 1
-            gmp1s = GenerateMultiPartFirstSpecies(LENGTH, HEIGHT, cf_index, mode)
-            gmp1s.generate_mp1s(last_segment=True if index == 7 else False)
-            optimal = gmp1s.get_optimal()
+            g2pfc = GenerateTwoPartFreeCounterpoint(randint(11, 16), mode)
+            g2pfc.generate_2pfc()
+            optimal = g2pfc.get_optimal()
         if optimal is not None:
-            for i, line in enumerate(optimal): 
-                line.append(Note(1, 0, 8, ScaleOption.REST))
-                hymn[i] += line
-    mw = MidiWriter()
-    mw.write_midi_from_counterpoint(hymn, "counterpoint.mid", speed_up=1.9)
-    for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
-        fs = FluidSynth("/Users/alexkelber/Development/" + filename)
-        fs.play_midi("counterpoint.mid")
-        fs.midi_to_audio("counterpoint.mid", "audio/hymn-five-part-first-species.wav")
+            # g2pfc.print_function_log()
+            mw = MidiWriter()
+            mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
+            for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
+                fs = FluidSynth("/Users/alexkelber/Development/" + filename)
+                fs.play_midi("counterpoint.mid")
+                fs.midi_to_audio("counterpoint.mid", "audio/free-counterpoint-" + mode.value["name"] + ".wav")
+
+    # HEIGHT = 5
+    # LENGTH = 9
+    # hymn = [[] for i in range(HEIGHT)]
+    # for index, (mode, cf_index) in enumerate([(ModeOption.DORIAN, 3), (ModeOption.PHRYGIAN, 0), (ModeOption.IONIAN, 1), (ModeOption.AEOLIAN, 1), (ModeOption.MIXOLYDIAN, 1), (ModeOption.PHRYGIAN, 0), (ModeOption.AEOLIAN, 1), (ModeOption.DORIAN, 3)]):
+    #     print("MODE = ", mode.value["name"])
+    #     optimal = None 
+    #     count = 0
+    #     while optimal is None:
+    #         count += 1
+    #         gmp1s = GenerateMultiPartFirstSpecies(LENGTH, HEIGHT, cf_index, mode)
+    #         gmp1s.generate_mp1s(last_segment=True if index == 7 else False)
+    #         optimal = gmp1s.get_optimal()
+    #     if optimal is not None:
+    #         for i, line in enumerate(optimal): 
+    #             line.append(Note(1, 0, 8, ScaleOption.REST))
+    #             hymn[i] += line
+    # mw = MidiWriter()
+    # mw.write_midi_from_counterpoint(hymn, "counterpoint.mid", speed_up=1.9)
+    # for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
+    #     fs = FluidSynth("/Users/alexkelber/Development/" + filename)
+    #     fs.play_midi("counterpoint.mid")
+    #     fs.midi_to_audio("counterpoint.mid", "audio/hymn-five-part-first-species.wav")
 
 
     
