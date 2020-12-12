@@ -9,11 +9,11 @@ from imitation import GenerateImitation
 
 class GenerateTwoPartFreeCounterpoint:
 
-    def __init__(self, length: int = None, mode: ModeOption = None, with_imitation: bool = False):
+    def __init__(self, ranges, length: int = None, mode: ModeOption = None, with_imitation: bool = False):
         self._max_bar_in_second_line = 0
         self._mode = mode or ModeOption.AEOLIAN
         self._length = length or 8 + math.floor(random() * 5) #todo: replace with normal distribution
-        self._range = [RangeOption.SOPRANO, RangeOption.ALTO]
+        self._range = ranges
         self._mr = [ModeResolver(self._mode, range_option=self._range[0]), ModeResolver(self._mode, range_option=self._range[1])]
         self._num_backtracks = 0
         self._melodic_insertion_checks = [

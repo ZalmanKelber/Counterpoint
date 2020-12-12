@@ -5,7 +5,7 @@ from midi2audio import FluidSynth
 
 from time import time 
 import math
-from random import random, randint
+from random import random, randint, shuffle
 
 from notation_system import ModeOption, RangeOption, ScaleOption, HexachordOption, Note, ModeResolver
 from cantus_firmus import CantusFirmus, GenerateCantusFirmus
@@ -110,23 +110,25 @@ def main():
     #             fs = FluidSynth("/Users/alexkelber/Development/" + filename)
     #             fs.play_midi("counterpoint.mid")
                 # fs.midi_to_audio("counterpoint.mid", "audio/fifth-species-" + mode.value["name"] + ".wav")
-
-    for mode in [ModeOption.LYDIAN]:
-        optimal = None 
-        count = 0
-        while optimal is None:
-            count += 1
-            g2pfc = GenerateTwoPartFreeCounterpoint(randint(14, 19), mode, with_imitation=True)
-            g2pfc.generate_2pfc()
-            optimal = g2pfc.get_optimal()
-        if optimal is not None:
-            # g2pfc.print_function_log()
-            mw = MidiWriter()
-            mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
-            for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
-                fs = FluidSynth("/Users/alexkelber/Development/" + filename)
-                fs.play_midi("counterpoint.mid")
-                fs.midi_to_audio("counterpoint.mid", "audio/imitative-counterpoint-" + mode.value["name"] + ".wav")
+    ranges = [RangeOption.SOPRANO, RangeOption.ALTO, RangeOption.TENOR]
+    for i in range(100):
+        for mode in ModeOption:
+            optimal = None 
+            count = 0
+            while optimal is None and count < 1000:
+                count += 1
+                shuffle(ranges)
+                g2pfc = GenerateTwoPartFreeCounterpoint(ranges[:2], randint(14, 19), mode, with_imitation=True)
+                g2pfc.generate_2pfc()
+                optimal = g2pfc.get_optimal()
+            if optimal is not None:
+                # g2pfc.print_function_log()
+                mw = MidiWriter()
+                mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
+                for filename in ["FluidR3_GM/FluidR3_GM.sf2"]:
+                    fs = FluidSynth("/Users/alexkelber/Development/" + filename)
+                    fs.play_midi("counterpoint.mid")
+                    fs.midi_to_audio("counterpoint.mid", "audio/imitative-counterpoint-" + str(i) + "-" + mode.value["name"] + ".wav")
 
     # HEIGHT = 5
     # LENGTH = 9
