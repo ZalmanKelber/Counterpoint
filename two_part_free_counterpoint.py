@@ -10,9 +10,10 @@ from imitation import GenerateImitation
 class GenerateTwoPartFreeCounterpoint:
 
     def __init__(self, length: int = None, mode: ModeOption = None, with_imitation: bool = False):
+        self._max_bar_in_second_line = 0
         self._mode = mode or ModeOption.AEOLIAN
         self._length = length or 8 + math.floor(random() * 5) #todo: replace with normal distribution
-        self._range = [RangeOption.TENOR, RangeOption.SOPRANO]
+        self._range = [RangeOption.SOPRANO, RangeOption.ALTO]
         self._mr = [ModeResolver(self._mode, range_option=self._range[0]), ModeResolver(self._mode, range_option=self._range[1])]
         self._num_backtracks = 0
         self._melodic_insertion_checks = [
@@ -105,6 +106,8 @@ class GenerateTwoPartFreeCounterpoint:
             "eighths_have_been_placed"
         ]
 
+        self._first_measure_of_second_line = None
+
         indices = [[], []]
         for line in range(2):
             for bar in range(self._length - 1):
@@ -129,6 +132,8 @@ class GenerateTwoPartFreeCounterpoint:
             "highest_has_been_placed": False, "lowest_has_been_placed": False,
             "eighths_have_been_placed": False, "suspension_indices": set(), "run_indices": set()
         }
+        self._final_checks_log = {}
+        self._second_line_first_measure_log = {}
         vocal_range = [randint(8, 10), randint(8, 10)]
         for line in range(2):
             self._attempt_params[line]["lowest"] = self._mr[line].get_default_note_from_interval(self._mr[line].get_lowest(), randint(1, 13 - vocal_range[line]))
@@ -138,10 +143,10 @@ class GenerateTwoPartFreeCounterpoint:
         self._theme_measures = 0
         if with_imitation:
             optimal = None
-            while optimal is None:
-                gi = GenerateImitation(self._mode, self._attempt_params[0]["highest"], self._attempt_params[0]["lowest"], self._attempt_params[1]["highest"], self._attempt_params[1]["lowest"])
-                gi.generate_imitation()
-                optimal = gi.get_optimal()
+            gi = GenerateImitation(self._mode, self._attempt_params[0]["highest"], self._attempt_params[0]["lowest"], self._attempt_params[1]["highest"], self._attempt_params[1]["lowest"])
+            gi.generate_imitation()
+            optimal = gi.get_optimal()
+            self._build_failed = optimal is None
             if optimal is not None:
                 total_measures = 0
                 for note in optimal[0]: total_measures += note.get_duration() / 8
@@ -198,16 +203,20 @@ class GenerateTwoPartFreeCounterpoint:
         print("MODE = ", self._mode.value["name"])
         self._solutions = []
         def attempt():
+            if self._build_failed: return
             self._num_backtracks = 0
             self._found_possible = False
             self._solutions_this_attempt = 0
             initialized = self._initialize()
             self._backtrack()
-        attempts = 0
-        while len(self._solutions) < 100 and attempts < 100:
-            attempts += 1
+        self._attempts = 0
+        while len(self._solutions) < 100 and self._attempts < 5:
+            self._attempts += 1
             attempt()
         print("number of solutions:", len(self._solutions))
+        print("number of attempts:", self._attempts)
+        for key in self._final_checks_log:
+            print(key, self._final_checks_log[key])
         if len(self._solutions) > 0:
             shuffle(self._solutions)
             self._solutions.sort(key = lambda sol: self._score_solution(sol)) 
@@ -237,7 +246,7 @@ class GenerateTwoPartFreeCounterpoint:
 
     def _place_suspensions(self) -> None:
         suspension_bars = [self._length - 2]
-        max_additional_suspensions = 2 if self._length - self._theme_measures <= 12 else 3
+        max_additional_suspensions = 1 if self._length - self._theme_measures <= 5 else 2
         num_additional_suspensions = randint(0, max_additional_suspensions)
         for i in range(num_additional_suspensions):
             susp_bar = randint(self._theme_measures + 1, self._length - 2)
@@ -270,6 +279,11 @@ class GenerateTwoPartFreeCounterpoint:
         line = 1 if len(self._remaining_indices[0]) == 0 else 0
 
         (bar, beat) = self._remaining_indices[line].pop() 
+        if line and self._first_measure_of_second_line is None:
+            self._first_measure_of_second_line = (bar, beat)
+        if line == 1 and bar > self._max_bar_in_second_line:
+            self._max_bar_in_second_line = bar
+            print(bar, "/", self._length, "attempt no.", self._attempts, "backtrack no.", self._num_backtracks)
         if (line, bar, beat) > self._max_line_and_index_reached:
             self._max_line_and_index_reached = (line, bar, beat)
             if line == 1 and bar >= self._length - 2: print(self._max_line_and_index_reached)
@@ -307,6 +321,10 @@ class GenerateTwoPartFreeCounterpoint:
             if not self._check_last_pitch(note, line): return False
         for check in self._melodic_insertion_checks:
             if not check(note, (bar, beat), line): 
+                if (bar, beat) == self._first_measure_of_second_line:
+                    if check.__name__ in self._second_line_first_measure_log:
+                        self._second_line_first_measure_log[check.__name__] += 1
+                    else: self._second_line_first_measure_log[check.__name__] = 1
                 # self._function_log[check.__name__]["fail"] += 1
                 # print("failed insertion check:", str(note), index, "on function", check.__name__)
                 return False 
@@ -314,6 +332,10 @@ class GenerateTwoPartFreeCounterpoint:
         # print("passed insertion checks!", str(note), index)
         for check in self._harmonic_insertion_checks:
             if not check(note, (bar, beat), line): 
+                if (bar, beat) == self._first_measure_of_second_line:
+                    if check.__name__ in self._second_line_first_measure_log:
+                        self._second_line_first_measure_log[check.__name__] += 1
+                    else: self._second_line_first_measure_log[check.__name__] = 1
                 # print("failed insertion check:", str(note), index, "on function", check.__name__)
                 # self._function_log[check.__name__]["fail"] += 1
                 return False 
@@ -363,6 +385,9 @@ class GenerateTwoPartFreeCounterpoint:
     def _passes_final_checks(self) -> bool:
         for check in self._final_checks:
             if not check(): 
+                if check.__name__ in self._final_checks_log:
+                    self._final_checks_log[check.__name__] += 1
+                else: self._final_checks_log[check.__name__] = 1
                 # print("failed final check:", check.__name__)
                 return False 
         return True 

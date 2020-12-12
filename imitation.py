@@ -129,7 +129,7 @@ class GenerateImitation:
             return None 
         optimal = self._solutions[0]
         self._map_solution_onto_counterpoint_dict(optimal)
-        self.print_counterpoint()
+        #self.print_counterpoint()
         return optimal
 
     def generate_imitation(self):
