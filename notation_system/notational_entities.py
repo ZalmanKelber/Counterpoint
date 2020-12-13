@@ -27,6 +27,9 @@ class Hexachord (Enum):
     MOLLE = 1
     DURUM = 2
 
+class NotationalEntity:
+    pass
+
 class Pitch:
 
     #Scale Degrees 1 - 7 are the notes of a C Major scale
@@ -149,15 +152,3 @@ class Note(RhythmicValue, Pitch):
     def __str__(self) -> str:
         return Pitch.__str__(self) + RhythmicValue.__str__(self)
 
- 
-pitch1 = Pitch(4, 5)
-pitch2 = Pitch(4, 5, Accidental.SHARP)
-note1 = Note(8, 4, 5, Accidental.SHARP)
-rest1 = Rest(4)
-
-for entity in [pitch1, pitch2, note1, rest1]:
-    print(entity)
-
-print(note1.get_tonal_interval(pitch2))
-print(pitch1.get_intervals(note1))
-print(note1.is_cross_relation(pitch1))
