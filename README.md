@@ -20,7 +20,7 @@ This project uses backtracking algorithms and pseudo-random number generators to
 
 Pitches (and thus Notes) are represented as a combination of scale degrees, octaves and accidentals.  This makes it convenient for the class methods to compare two pitches and determine both the "tonal" interval as well as the "chromatic" interval between them, both represented as integers, as shown in the diagram below.
 
-![Tonal versus Chromatic Intervals](images/Invervals.png)
+![Tonal versus Chromatic Intervals](images/Intervals.png)
 
 A ModeResolver object (of which every CounterpointGenerator will contain an instance variable) retrieves import information about pitches based on the [church mode](https://en.wikipedia.org/wiki/Mode_(music)) each exercise is written in, including which accidentals for pitches to consider default, which pitches are available for use, and which pitches should occur at the beginning and end of a melody, &c.
 
