@@ -1,17 +1,24 @@
 import sys
 sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/notation_system")
 
-
+from abc import ABC, abstractmethod
 from random import shuffle
 
 from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
 from mode_resolver import ModeResolver
 
+from filter_functions.index_checks import ensure_lowest_and_highest_have_been_placed
+from filter_functions.melodic_insertion_checks import valid_melodic_interval, 
+                                                        prevent_highest_duplicates,
+                                                        ascending_minor_sixths_are_followed_by_descending_half_step,
+                                                        prevent_two_notes_from_immediately_repeating
+from filter_functions.change_parameter_checks import check_for_lowest_and_highest
+
 #an instance of a CounterpointGenerator creates a set of solutions through the generate_counterpoint() 
 #method, scores and sorts the solutions through the score_solutions() method and returns the optimal solution
-#or all solutions through the get_optimal() and get_all_solutions() methods
+#or all solutions through the get_one_solution() and get_all_solutions() methods
 
-class CounterpointGenerator:
+class CounterpointGenerator (ABC):
 
     #stores each line of counterpoint as a stack of notes that can be added and removed
     _counterpoint_stacks = []
@@ -92,8 +99,8 @@ class CounterpointGenerator:
 
     #default list of valid intervals.  This will be changed or overriden in some but not all subclasses
     _legal_intervals = {
-        "tonal_adjacent_melodic": { -8, -5, -4, -3, -2, 1, 2, 3, 4, 5, 6, 8 },
-        "chromatic_adjacent_melodic": { -12, -7, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 7, 8, 12 },
+        "tonal_adjacent_melodic": { -8, -5, -4, -3, -2, 2, 3, 4, 5, 6, 8 },
+        "chromatic_adjacent_melodic": { -12, -7, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 7, 8, 12 },
         "tonal_outline_melodic": { -10, -8, -6, -5, -4, -3, -2, 1, 2, 3, 4, 5, 6, 8, 10 },
         "chromatic_outline_melodic": { -16, -15, -12, -9, -8, -7, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 7, 8, 9, 12, 15, 16 },
         #forbidden combinations of tonal intervals (absolute value, mod 7) and chromatic intervals (absolute value, mod 12)
@@ -126,12 +133,14 @@ class CounterpointGenerator:
             self._store_attempt_parameters_stacks.append([])
 
         #the following are the small number of default functions added to the checks
-        self._index_checks.append(self._ensure_lowest_and_highest_have_been_placed)
+        self._index_checks.append(ensure_lowest_and_highest_have_been_placed)
 
-        self._melodic_insertion_checks.append(self._valid_melodic_interval)
-        self._melodic_insertion_checks.append(self._prevent_highest_duplicates)
+        self._melodic_insertion_checks.append(valid_melodic_interval)
+        self._melodic_insertion_checks.append(ascending_minor_sixths_are_followed_by_descending_half_step)
+        self._melodic_insertion_checks.append(prevent_highest_duplicates)
+        self._melodic_insertion_checks.append(prevent_two_notes_from_immediately_repeating)
 
-        self._change_parameters_checks.append(self._check_for_lowest_and_highest)
+        self._change_parameters_checks.append(check_for_lowest_and_highest)
 
     ###################### public functions ############################
 
@@ -270,6 +279,7 @@ class CounterpointGenerator:
 
         #make sure that the index checks are all true before preceding further
         if not self._passes_index_checks(line, bar, beat):
+            self._remaining_indices[line].append((bar, beat))
             return
 
         #get the valid pitches from available pitches by passing them through the insertion checks
@@ -303,14 +313,14 @@ class CounterpointGenerator:
     #runs a list of functions that examine the current stack to determine if it's valid
     def _passes_final_checks(self) -> bool:
         for check in self._final_checks:
-            if not check(): return False 
+            if not check(self): return False 
         return True 
 
     #runs each pitch through a list of insertion checks to determine whether the pitch may be legally 
     #added to the stack at the specified location
     def _passes_insertion_checks(self, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
         for check in self._melodic_insertion_checks:
-            if not check(pitch, line, bar, beat): return False 
+            if not check(self, pitch, line, bar, beat): return False 
         return True 
 
     #runs each pitch through a list of checks that determine whether a given rhythmic value in combination with that pitch
@@ -318,7 +328,8 @@ class CounterpointGenerator:
     def _get_valid_durations(self, pitch: Pitch, line: int, bar: int, beat: float) -> set[int]:
         durations = get_available_durations(line, bar, beat)
         for check in self._rhythmic_insertion_filters:
-            durations = check(pitch, line, bar, beat, durations)
+            durations = check(self, pitch, line, bar, beat, durations)
+            if len(durations) == 0: return durations
         return durations
 
     #default method, which will be applicable to some subclasses
@@ -371,7 +382,7 @@ class CounterpointGenerator:
 
         #change the attempt paramters as appropriate 
         for check in self._change_parameters_checks:
-            check(entity, line, bar, beat)
+            check(self, entity, line, bar, beat)
 
     def _remove_entity_from_stack(self, line: int, bar: int, beat: float) -> None:
 
@@ -387,43 +398,3 @@ class CounterpointGenerator:
         #add each deleted index back to the counterpoint object 
         for index in self._store_deleted_indices_stacks[line].pop():
             self._counterpoint_objects[line][index] = None 
-
-
-    ############################ default insertion (and other) checks ##################
-
-    ################### index checks ####################
-
-    def _ensure_lowest_and_highest_have_been_placed(self, line: int, bar: int, beat: float) -> bool:
-        if not self._attempt_parameters[line]["lowest_has_been_placed"] and bar >= self._attempt_parameters[line]["lowest_must_appear_by"]:
-            return False 
-        if not self._attempt_parameters[line]["highest_has_been_placed"] and bar >= self._attempt_parameters[line]["highest_must_appear_by"]:
-            return False 
-
-    ################## melodic insertion filters ####################
-
-    #ensures that all adjacent notes move by melodically legal intervals
-    def _valid_melodic_interval(self, entity: RhythmicValue, line: int, bar: int, beat: float) -> bool:
-        if isinstance(entity, Pitch) and len(self._counterpoint_stacks[line]) > 0 and isinstance(self._counterpoint_stacks[line][-1], Pitch):
-            (t_interval, c_interval) = self._counterpoint_stacks[line][-1].get_intervals(entity)
-            if t_interval not in self._legal_intervals["tonal_adjacent_melodic"]: return False 
-            if c_interval not in self._legal_intervals["chromatic_outline_melodic"]: return False
-            if (abs(t_interval) % 7, abs(c_interval) % 12) in self._legal_intervals["forbidden_combinations"]: return False
-        return True 
-
-    #ensures that the highest note appears only once 
-    def _prevent_highest_duplicates(self, entity: RhythmicValue, line: int, bar: int, beat: float) -> bool:
-        if ( isinstance(entity, Pitch) and 
-            self._attempt_parameters[line]["highest_has_been_placed"] and 
-            entity.is_unison(self._attempt_parameters[line]["highest"]) ):
-            return False 
-        return True 
-
-    ################ change parameter checks #######################
-
-    #determines whether inserted note is the highest or lowest
-    def _check_for_lowest_and_highest(self, entity: RhythmicValue, line: int, bar: int, beat: float) -> None:
-        if not isinstance(entity, Pitch): return 
-        if entity.is_unison(self._attempt_parameters[line]["lowest"]):
-            self._attempt_parameters[line]["lowest_has_been_placed"] = True 
-        if entity.is_unison(self._attempt_parameters[line]["highest"]):
-            self._attempt_parameters[line]["highest_has_been_placed"] = True 

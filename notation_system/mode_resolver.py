@@ -118,3 +118,4 @@ class ModeResolver:
     #returns the "default" pitch option for a Scale Degree.  Natural unless B in Dorian or Lydian in which case Flat 
     def get_default_pitch_from_interval(self, pitch: Pitch, interval: int) -> Pitch:
         return self.get_pitches_from_interval(pitch, interval)[0]
+        
