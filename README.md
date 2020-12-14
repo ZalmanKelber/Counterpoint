@@ -6,9 +6,13 @@ Earliest draft of this project (including original README) can be found [here.](
 
 ## Basic Description 
 
-The sacred vocal music of late Renaissance Italy, which reached its apex with the works of [Giovanni Pierluigi da Palestrina](https://en.wikipedia.org/wiki/Giovanni_Pierluigi_da_Palestrina), is unparalleled in history for its unique combination of complexity and extreme strictness of style.  It led to a pedagogical system known as [Species Counterpoint](https://en.wikipedia.org/wiki/Counterpoint), that involves a succession of increasingly difficult and complicated compositional exercises that has since been foundational to Western musical education for centuries.
+**Tl;dr:** This program uses a backtracking algorithm to compose short musical compositions in the very particular and complex style of 16th century vocal polyphony
 
-This project uses backtracking algorithms and pseudo-random number generators to produce unique examples of Counterpoint exercises and Palestrina-style compositions based on various inputs.  To date, a draft of this project has [successfully created](https://zalmankelber.github.io/Counterpoint/) compositions in two-voice, imitative polyphony.  A frontend UI will allow users to select various compositional parameters (including length, vocal range and church mode) to feed into the algorithm.  Eventually, a more complex UI will allow users to create their own examples, evaluate their "legality," and turn their partial results into finished examples
+----
+
+The sacred vocal music of late Renaissance Italy, which reached its apex with the works of [Giovanni Pierluigi da Palestrina](https://en.wikipedia.org/wiki/Giovanni_Pierluigi_da_Palestrina), is unparalleled in history for its unique combination of complexity and extreme strictness of style.  It led to a pedagogical system known as [Species Counterpoint](https://en.wikipedia.org/wiki/Counterpoint), that involves a succession of increasingly difficult and complicated compositional exercises that has, in the centuries since, been foundational to Western musical education.
+
+The project uses backtracking algorithms and pseudo-random number generators to produce unique examples of Counterpoint exercises and Palestrina-style compositions based on various inputs.  To date, a draft of this project has [successfully composed](https://zalmankelber.github.io/Counterpoint/) short pieces in two-voice, imitative polyphony.  A frontend UI will allow users to select various compositional parameters (including length, vocal range and church mode) to feed into the algorithm.  Eventually, a more complex UI will allow users to create their own examples, evaluate their "legality," and turn their partial results into finished examples
 
 ## App design 
 
