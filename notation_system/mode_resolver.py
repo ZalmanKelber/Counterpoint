@@ -65,6 +65,29 @@ class ModeResolver:
         if vocal_range == VocalRange.ALTO: return Pitch(2, 6)
         if vocal_range == VocalRange.SOPRANO: return Pitch(6, 6)
 
+    #returns default final to be used as starting and ending points for Cantus Firmus examples
+    def get_default_mode_final(self, vocal_range: VocalRange) -> Pitch:
+        if self._mode == Mode.IONIAN:
+            if vocal_range == VocalRange.SOPRANO: return Pitch(1, 6)
+            if vocal_range in [VocalRange.TENOR, VocalRange.ALTO]: return Pitch(1, 5)
+            else: return Pitch(1, 4)
+        if self._mode == Mode.DORIAN:
+            if vocal_range == VocalRange.BASS: return Pitch(2, 4)
+            else: return Pitch(2, 5)
+        if self._mode == Mode.PHRYGIAN:
+            if vocal_range in [VocalRange.ALTO, VocalRange.SOPRANO]: return Pitch(3, 5)
+            else: return Pitch(3, 4)
+        if self._mode == Mode.LYDIAN:
+            if vocal_range in [VocalRange.ALTO, VocalRange.SOPRANO]: return Pitch(4, 5)
+            else: return Pitch(4, 4)
+        if self._mode == Mode.MIXOLYDIAN:
+            if vocal_range in [VocalRange.ALTO, VocalRange.SOPRANO]: return Pitch(5, 5)
+            else: return Pitch(5, 4)
+        if self._mode == Mode.AEOLIAN:
+            if vocal_range in [VocalRange.ALTO, VocalRange.SOPRANO]: return Pitch(6, 5)
+            else: return Pitch(6, 4)
+        
+
     #returns the two pitches (separated by a fifth) that an imitative theme at the beginning of a 
     #composition should outline, in the form of scale degrees
     #note that in all cases, the pitches are natural 

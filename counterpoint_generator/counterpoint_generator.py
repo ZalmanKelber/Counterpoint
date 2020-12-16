@@ -232,11 +232,8 @@ class CounterpointGenerator (ABC):
             self._assign_highest_and_lowest()
             #now that the lowest and highest notes have been assigned, we can get all of the 
             #available pitches for each line.  Note that we're unconcerned with the order here
-            self._attempt_parameters[line]["available_pitches"] = [
-                self._attempt_parameters[line]["lowest"], 
-                self._attempt_parameters[line]["highest"]
-                ]
-            for interval in range(2, self._attempt_parameters[line]["lowest"].get_tonal_interval(self._attempt_parameters[line]["highest"])):
+            self._attempt_parameters[line]["available_pitches"] = [self._attempt_parameters[line]["highest"]]
+            for interval in range(1, self._attempt_parameters[line]["lowest"].get_tonal_interval(self._attempt_parameters[line]["highest"])):
                 self._attempt_parameters[line]["available_pitches"] += self._mode_resolver.get_pitches_from_interval(self._attempt_parameters[line]["lowest"], interval)
 
     #note that this will be overriden in every subclass
