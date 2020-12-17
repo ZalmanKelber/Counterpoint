@@ -373,7 +373,7 @@ class CounterpointGenerator (ABC):
     #runs each pitch through a list of checks that determine whether a given rhythmic value in combination with that pitch
     #can be legally placed on the stack at the specified location
     def _get_valid_durations(self, pitch: Pitch, line: int, bar: int, beat: float) -> set[int]:
-        durations = get_available_durations(line, bar, beat)
+        durations = self._get_available_durations(line, bar, beat)
         for check in self._rhythmic_insertion_filters:
             durations = check(self, pitch, line, bar, beat, durations)
             if len(durations) == 0: return durations
@@ -388,13 +388,12 @@ class CounterpointGenerator (ABC):
     #default available durations may be overridden by some subclasses
     def _get_available_durations(self, line: int, bar: int, beat: float) -> set[int]:
         if bar == self._length - 1: return { 16 }
-        if beat == 1.5: return { 1 }
-        if beat == 1: return { 1, 2 }
-        if beat == 3: return { 2 }
+        if beat % 2 == 1.5: return { 1 }
+        if beat % 2 == 1: return { 1, 2 }
         if beat == 2: return { 2, 4, 6, 8 }
         if beat == 0:
             if bar == 0: return { 2, 4, 6, 8, 12, 16 }
-        return { 2, 4, 5, 8, 12 }
+            else: return { 2, 4, 5, 8, 12 }
 
     #adds the note or rest to the stack, removes the indices that it nullifies, adds the current snapshot
     #of the attempt parameters to the stack of stored conditions and checks to see if any conditions have changed
