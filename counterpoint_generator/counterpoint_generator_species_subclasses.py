@@ -16,11 +16,12 @@ from filter_functions.melodic_insertion_checks import prevent_dissonances_from_b
 from filter_functions.melodic_insertion_checks import prevent_any_repetition_of_three_intervals
 from filter_functions.melodic_insertion_checks import last_interval_of_first_species
 from filter_functions.melodic_insertion_checks import prevent_highest_note_from_being_in_middle
-
+from filter_functions.melodic_insertion_checks import melody_cannot_change_direction_three_times_in_a_row
 
 class FirstSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
+        print("first species constructor called")
         super().__init__(length, lines, mode)
 
         #First Species has fairly strict melodic requirements in addition to the default ones
@@ -30,6 +31,7 @@ class FirstSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(prevent_any_repetition_of_three_intervals)
         self._melodic_insertion_checks.append(prevent_highest_note_from_being_in_middle)
         self._melodic_insertion_checks.append(last_interval_of_first_species)
+        self._melodic_insertion_checks.append(melody_cannot_change_direction_three_times_in_a_row)
 
     #override:
     #override the get_valid_durations, which is extremely simple in First Species
@@ -43,9 +45,10 @@ class FirstSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
 
     #override:
     #in First Species, outside of the highest and lowest notes and leading tones, we don't want any sharp notes
-    def _delineate_vocal_range(self) -> None:
-        super()._delineate_vocal_range()
-        self._attempt_parameters[line]["available_pitches"] = filter(self._remove_sharp_pitches, self._attempt_parameters[line]["available_pitches"])
+    def _delineate_vocal_ranges(self) -> None:
+        super()._delineate_vocal_ranges()
+        for line in range(self._height):
+            self._attempt_parameters[line]["available_pitches"] = list(filter(self._remove_sharp_pitches, self._attempt_parameters[line]["available_pitches"]))
 
     #helper function for the above that filters out the pitches we don't want in First Species
     def _remove_sharp_pitches(self, pitch: Pitch) -> bool:

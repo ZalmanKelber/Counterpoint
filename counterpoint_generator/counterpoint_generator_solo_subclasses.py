@@ -16,8 +16,9 @@ from filter_functions.melodic_insertion_checks import last_interval_is_descendin
 class CantusFirmusGenerator (FirstSpeciesCounterpointGenerator, SoloMelody):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
-        super().__init__(length, lines, mode)
-        SoloMelody.__init__(self, length, lines, mode)
+        FirstSpeciesCounterpointGenerator.__init__(self, length, lines, mode)
+        # print("preparing to call solo melody constructor:")
+        # SoloMelody.__init__(self, length, lines, mode)
 
         #Add the end by descending step optional function
         self._melodic_insertion_checks.append(last_interval_is_descending_step)
@@ -29,3 +30,11 @@ class CantusFirmusGenerator (FirstSpeciesCounterpointGenerator, SoloMelody):
         #or not to enforce the rule
         self._must_end_by_descending_step = must_end_by_descending_step
         super().generate_counterpoint()
+        print("number of backtracks:", self._number_of_backtracks)
+
+    #override:
+    #collect unlimited Cantus Firmus examples within 3500 backtracks
+    def _exit_backtrack_loop(self) -> bool:
+        if self._number_of_backtracks > 3500:
+            return True 
+        return False 

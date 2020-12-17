@@ -10,7 +10,7 @@ def valid_melodic_interval(self: object, pitch: Pitch, line: int, bar: int, beat
     if len(self._counterpoint_stacks[line]) > 0 and isinstance(self._counterpoint_stacks[line][-1], Pitch):
         (t_interval, c_interval) = self._counterpoint_stacks[line][-1].get_intervals(pitch)
         if t_interval not in self._legal_intervals["tonal_adjacent_melodic"]: return False 
-        if c_interval not in self._legal_intervals["chromatic_outline_melodic"]: return False
+        if c_interval not in self._legal_intervals["chromatic_adjacent_melodic"]: return False
         if (abs(t_interval) % 7, abs(c_interval) % 12) in self._legal_intervals["forbidden_combinations"]: return False
     return True 
 
@@ -67,7 +67,7 @@ def prevent_cross_relations_on_notes_separated_by_one_other_note(self: object, p
 #in descending motion, succesive "tonal intervals" must be the same or larger 
 def enforce_interval_order_strict(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
     if len(self._counterpoint_stacks[line]) > 1 and isinstance(self._counterpoint_stacks[line][-2], Pitch):
-        prev_interval = self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-2])
+        prev_interval = self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-1])
         cur_interval = self._counterpoint_stacks[line][-1].get_tonal_interval(pitch)
         if cur_interval > prev_interval and not (cur_interval > 0 and prev_interval < 0):
             return False 
@@ -85,7 +85,7 @@ def prevent_dissonances_from_being_outlined(self: object, pitch: Pitch, line: in
         is_ascending = self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) > 0
         i = len(self._counterpoint_stacks[line]) - 2
     elif len(self._counterpoint_stacks[line]) > 1 and isinstance(self._counterpoint_stacks[line][-2], Pitch):
-        prev_interval = self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-2])
+        prev_interval = self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-1])
         cur_interval = self._counterpoint_stacks[line][-1].get_tonal_interval(pitch)
         if (prev_interval > 0 and cur_interval < 0) or (prev_interval < 0 and cur_interval > 0):
             segment_end_pitch = self._counterpoint_stacks[line][-1]
@@ -102,9 +102,12 @@ def prevent_dissonances_from_being_outlined(self: object, pitch: Pitch, line: in
         #now detemine whether the segment ends form a forbidden dissonance
         if segment_start_pitch is not None:
             (t_interval, c_interval) = segment_start_pitch.get_intervals(segment_end_pitch)
+            print("testing outline")
+            print(t_interval, c_interval)
             if ( t_interval not in self._legal_intervals["tonal_outline_melodic"] or 
                 c_interval not in self._legal_intervals["chromatic_outline_melodic"] or 
-                (t_interval, c_interval) in self._legal_intervals["forbidden_combinations"] ):
+                (abs(t_interval) % 7, abs(c_interval) % 12) in self._legal_intervals["forbidden_combinations"] ):
+                print("throwing out outline")
                 return False 
 
     #now determine how many pitches are connected to the current pitch by intervals that are all 
@@ -144,6 +147,39 @@ def prevent_any_repetition_of_three_intervals(self: object, pitch: Pitch, line: 
                 if prev_interval_chain == interval_chain:
                     return False 
     return True 
+
+#prevents melody from sounding monotonous
+def pitch_cannot_appear_three_times_in_six_notes(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if len(self._counterpoint_stacks[line]) > 0 and isinstance(self._counterpoint_stacks[line][-1], Pitch):
+        pitches_to_check = [self._counterpoint_stacks[line][-1]]
+        i = len(self._counterpoint_stacks[line]) - 2
+        #collect up to five of the most recent pitches
+        while i >= max(len(self._counterpoint_stacks[line]) - 5, 0) and isinstance(self._counterpoint_stacks[line][i], Pitch):
+            pitches_to_check.append(self._counterpoint_stacks[line][i])
+            i -= 1
+        num_unisons = 0
+        if len(pitches_to_check) == 5:
+            print("checking five pitches")
+        for pitch_to_check in pitches_to_check:
+            if pitch_to_check.is_unison(pitch):
+                num_unisons += 1
+                if num_unisons == 2:
+                    print("tossing out repetition of three notes")
+                    return False 
+    return True
+
+#prevents  melody from sounding monotonous
+def melody_cannot_change_direction_three_times_in_a_row(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if len(self._counterpoint_stacks[line]) > 3 and isinstance(self._counterpoint_stacks[line][-4], Pitch):
+        interval1 = self._counterpoint_stacks[line][-4].get_tonal_interval(self._counterpoint_stacks[line][-3])
+        interval2 = self._counterpoint_stacks[line][-3].get_tonal_interval(self._counterpoint_stacks[line][-2])
+        interval3 = self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-1])
+        interval4 = self._counterpoint_stacks[line][-1].get_tonal_interval(pitch)
+        if interval1 > 0 and interval2 < 0 and interval3 > 0 and interval4 < 0:
+            return False 
+        if interval1 < 0 and interval2 > 0 and interval3 < 0 and interval4 > 0:
+            return False 
+    return True
 
 #in first species, a line must end either by step or in an ascending leap of a fourth or fifth
 def last_interval_of_first_species(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:

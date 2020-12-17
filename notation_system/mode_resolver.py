@@ -34,7 +34,7 @@ class ModeResolver:
 
     #determines whether a note is the mode's leading tone
     def is_leading_tone(self, pitch: Pitch) -> bool:
-        if pitch.get_scale_degree != self.get_mode_leading_tone(): return False 
+        if pitch.get_scale_degree() != self.get_mode_leading_tone(): return False 
         if self._mode == Mode.IONIAN: return pitch.get_accidental() == Accidental.NATURAL
         if self._mode == Mode.DORIAN: return pitch.get_accidental() == Accidental.SHARP
         if self._mode == Mode.PHRYGIAN: return pitch.get_accidental() == Accidental.NATURAL
@@ -141,4 +141,5 @@ class ModeResolver:
     #returns the "default" pitch option for a Scale Degree.  Natural unless B in Dorian or Lydian in which case Flat 
     def get_default_pitch_from_interval(self, pitch: Pitch, interval: int) -> Pitch:
         return self.get_pitches_from_interval(pitch, interval)[0]
-        
+
+

@@ -16,6 +16,11 @@ from filter_functions.melodic_insertion_checks import prevent_two_notes_from_imm
 
 from filter_functions.change_parameter_checks import check_for_lowest_and_highest
 
+from filter_functions.final_checks import ascending_intervals_are_filled_in
+
+from filter_functions.score_functions import prioritize_stepwise_motion
+from filter_functions.score_functions import ascending_leaps_followed_by_descending_steps
+
 #an instance of a CounterpointGenerator creates a set of solutions through the generate_counterpoint() 
 #method, scores and sorts the solutions through the score_solutions() method and returns the optimal solution
 #or all solutions through the get_one_solution() and get_all_solutions() methods
@@ -110,6 +115,7 @@ class CounterpointGenerator (ABC):
     }
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
+        print("base class constructor called")
         self._length = length 
         self._height = len(lines)
         self._lines = lines[:]
@@ -144,6 +150,11 @@ class CounterpointGenerator (ABC):
 
         self._change_parameters_checks.append(check_for_lowest_and_highest)
 
+        self._final_checks.append(ascending_intervals_are_filled_in)
+
+        self._score_functions.append(prioritize_stepwise_motion)
+        self._score_functions.append(ascending_leaps_followed_by_descending_steps)
+        
     ###################### public functions ############################
 
 
@@ -160,16 +171,40 @@ class CounterpointGenerator (ABC):
 
     #sorts the solutions by the scording system (note that lower scores are better)
     def score_solutions(self) -> None:
+        self._highest_score = 0
+        self._lowest_score = 10000
         self._solutions.sort(key=lambda sol: self._score_solution(sol))
+        print("highest score", self._highest_score)
+        print("lowest score", self._lowest_score)
+
 
     #retrieves the first solution.  If the solutions have been sorted, this will be the optimal solution 
     #according to the scoring system
     def get_one_solution(self) -> list[list[RhythmicValue]]:
+        self._map_solution_onto_stack(self._solutions[0])
+        self.print_counterpoint()
         return self._solutions[0] if len(self._solutions) > 0 else None 
+
 
     #retrieves all solutions
     def get_all_solutions(self) -> list[list[list[RhythmicValue]]]:
         return self._solutions
+
+    #prints the current stack
+    def print_counterpoint(self) -> None:
+        for bar in range(self._length):
+            for beat in range(4):
+                print_row = ""
+                show_bar = str(bar) + ":" if beat == 0 else " "
+                print_row += show_bar.ljust(5)
+                for line in range(self._height):
+                    entity = str(self._counterpoint_objects[line][(bar, beat)]) if (bar, beat) in self._counterpoint_objects[line] else " ".ljust(33)
+                    if (bar, beat + 1) in self._counterpoint_objects[line]:
+                        entity[-2] = "*"
+                    print_row += entity
+                print(print_row)
+                
+
 
     #the function that determines when to stop running the attempts loop.  Default is given below, but will be 
     #overridden in all subclasses
@@ -179,10 +214,12 @@ class CounterpointGenerator (ABC):
         return False 
 
     def _score_solution(self, sol: list[list[RhythmicValue]]) -> int:
-        self._map_solution_onto_stack
+        self._map_solution_onto_stack(sol)
         score = 0
         for check in self._score_functions:
-            score += check()
+            score += check(self)
+        if score > self._highest_score: self._highest_score = score 
+        if score < self._lowest_score: self._lowest_score = score
         return score 
 
     #takes a solution and maps it onto the counterpoint stack so that it can be more easily
@@ -226,6 +263,7 @@ class CounterpointGenerator (ABC):
         #for each line, determine the highest and lowest notes, determine the measures by which they
         #must appear and collect the valid pitches that can be used 
         self._delineate_vocal_ranges()
+        self._highest_bar_reached = 0
 
     def _delineate_vocal_ranges(self) -> None:
         for line in range(self._height):
@@ -237,6 +275,12 @@ class CounterpointGenerator (ABC):
             self._attempt_parameters[line]["available_pitches"] = [self._attempt_parameters[line]["highest"]]
             for interval in range(1, self._attempt_parameters[line]["lowest"].get_tonal_interval(self._attempt_parameters[line]["highest"])):
                 self._attempt_parameters[line]["available_pitches"] += self._mode_resolver.get_pitches_from_interval(self._attempt_parameters[line]["lowest"], interval)
+
+            # print(self._attempt_parameters[line]["lowest_must_appear_by"])
+            # print(self._attempt_parameters[line]["highest_must_appear_by"])
+            # print(self._attempt_parameters[line]["lowest"])
+            # print(self._attempt_parameters[line]["highest"])
+            # for note in self._attempt_parameters[line]["available_pitches"]: print(note)
 
     #note that this will be overriden in every subclass
     #this default method simply returns the lowest and highest notes of the available VocalRange object
@@ -275,14 +319,13 @@ class CounterpointGenerator (ABC):
 
         #otherwise, get the current index
         (bar, beat) = self._remaining_indices[line].pop()
-        if bar >= self._length - 2:
-            print("calling backtrack with bar, beat", bar, beat)
+        # if bar > self._highest_bar_reached:
+        #     self._highest_bar_reached = bar
+        #     print("bar, length = ", bar, self._length)
+        #     self.print_counterpoint()
 
         #make sure that the index checks are all true before preceding further
         if not self._passes_index_checks(line, bar, beat):
-            print("failed index checks on bar, beat", bar, beat)
-            print(self._attempt_parameters[line]["lowest_must_appear_by"])
-            print(self._attempt_parameters[line]["highest_must_appear_by"])
             self._remaining_indices[line].append((bar, beat))
             return
 
@@ -326,7 +369,7 @@ class CounterpointGenerator (ABC):
     def _passes_insertion_checks(self, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
         for check in self._melodic_insertion_checks:
             if not check(self, pitch, line, bar, beat): 
-                # print("failed at check", check.__name__)
+                #print("failed at check", check.__name__)
                 return False 
         return True 
 

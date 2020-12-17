@@ -19,6 +19,7 @@ def main():
     cfg.generate_counterpoint()
     cfg.score_solutions()
     optimal = cfg.get_one_solution()
+    print("number of solutions:", len(cfg.get_all_solutions()))
     if optimal is not None:
         mw = MidiWriter()
         mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
