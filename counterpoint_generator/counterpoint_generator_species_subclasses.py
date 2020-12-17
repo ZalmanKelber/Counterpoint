@@ -1,3 +1,13 @@
+import sys
+sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/notation_system")
+
+from random import randint
+
+from abc import ABC
+
+from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
+from mode_resolver import ModeResolver
+
 from counterpoint_generator import CounterpointGenerator
 
 from filter_functions.melodic_insertion_checks import prevent_cross_relations_on_notes_separated_by_one_other_note
@@ -5,12 +15,13 @@ from filter_functions.melodic_insertion_checks import enforce_interval_order_str
 from filter_functions.melodic_insertion_checks import prevent_dissonances_from_being_outlined
 from filter_functions.melodic_insertion_checks import prevent_any_repetition_of_three_intervals
 from filter_functions.melodic_insertion_checks import last_interval_of_first_species
+from filter_functions.melodic_insertion_checks import prevent_highest_note_from_being_in_middle
 
 
 class FirstSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
-        super().__init__(self, length, lines, mode)
+        super().__init__(length, lines, mode)
 
         #First Species has fairly strict melodic requirements in addition to the default ones
         self._melodic_insertion_checks.append(prevent_cross_relations_on_notes_separated_by_one_other_note)

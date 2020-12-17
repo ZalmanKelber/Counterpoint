@@ -8,10 +8,12 @@ from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accident
 from mode_resolver import ModeResolver
 
 from filter_functions.index_checks import ensure_lowest_and_highest_have_been_placed
-from filter_functions.melodic_insertion_checks import valid_melodic_interval, 
-                                                        prevent_highest_duplicates,
-                                                        ascending_minor_sixths_are_followed_by_descending_half_step,
-                                                        prevent_two_notes_from_immediately_repeating
+
+from filter_functions.melodic_insertion_checks import valid_melodic_interval
+from filter_functions.melodic_insertion_checks import prevent_highest_duplicates
+from filter_functions.melodic_insertion_checks import ascending_minor_sixths_are_followed_by_descending_half_step
+from filter_functions.melodic_insertion_checks import prevent_two_notes_from_immediately_repeating
+
 from filter_functions.change_parameter_checks import check_for_lowest_and_highest
 
 #an instance of a CounterpointGenerator creates a set of solutions through the generate_counterpoint() 
@@ -225,7 +227,7 @@ class CounterpointGenerator (ABC):
         #must appear and collect the valid pitches that can be used 
         self._delineate_vocal_ranges()
 
-    def _delineate_vocal_range(self) -> None:
+    def _delineate_vocal_ranges(self) -> None:
         for line in range(self._height):
             self._attempt_parameters[line]["lowest_has_been_placed"] = False
             self._attempt_parameters[line]["highest_has_been_placed"] = False
@@ -273,9 +275,14 @@ class CounterpointGenerator (ABC):
 
         #otherwise, get the current index
         (bar, beat) = self._remaining_indices[line].pop()
+        if bar >= self._length - 2:
+            print("calling backtrack with bar, beat", bar, beat)
 
         #make sure that the index checks are all true before preceding further
         if not self._passes_index_checks(line, bar, beat):
+            print("failed index checks on bar, beat", bar, beat)
+            print(self._attempt_parameters[line]["lowest_must_appear_by"])
+            print(self._attempt_parameters[line]["highest_must_appear_by"])
             self._remaining_indices[line].append((bar, beat))
             return
 
@@ -307,17 +314,20 @@ class CounterpointGenerator (ABC):
             return True 
         return False 
 
-    #runs a list of functions that examine the current stack to determine if it's valid
-    def _passes_final_checks(self) -> bool:
-        for check in self._final_checks:
-            if not check(self): return False 
-        return True 
+    def _passes_index_checks(self, line: int, bar: int, beat: float) -> bool:
+        for check in self._index_checks:
+            if not check(self, line, bar, beat):
+                # print("inext checks is false for line, bar, beat", line, bar, beat)
+                return False 
+        return True
 
     #runs each pitch through a list of insertion checks to determine whether the pitch may be legally 
     #added to the stack at the specified location
     def _passes_insertion_checks(self, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
         for check in self._melodic_insertion_checks:
-            if not check(self, pitch, line, bar, beat): return False 
+            if not check(self, pitch, line, bar, beat): 
+                # print("failed at check", check.__name__)
+                return False 
         return True 
 
     #runs each pitch through a list of checks that determine whether a given rhythmic value in combination with that pitch
@@ -357,7 +367,7 @@ class CounterpointGenerator (ABC):
         #calculate the indices to remove (the beats on which notes can no longer be placed in order for successsive notes not to overlap)
         indices_to_remove = []
         new_bar, new_beat = bar, beat
-        for half_beat in entity.get_duration() - 1: #we don't go to the end of the note or rest's rhythmic value, because
+        for half_beat in range(entity.get_duration() - 1): #we don't go to the end of the note or rest's rhythmic value, because
             new_beat += .5                               #the index immediately after it should remain 
             if new_beat >= 4:
                 new_beat -= 4
@@ -366,8 +376,8 @@ class CounterpointGenerator (ABC):
                 indices_to_remove.append((new_bar, new_beat))
 
         #store copies of the current indices and the current attempt parameters in the appropriate stacks
-        self._store_deleted_indices_stacks.append(indices_to_remove)
-        self._store_all_indices_stacks[line].append(self._all_indices[line][:])
+        self._store_deleted_indices_stacks[line].append(indices_to_remove)
+        self._store_all_indices_stacks[line].append(self._all_indices[line].copy())
         self._store_remaining_indices_stacks[line].append(self._remaining_indices[line][:])
         self._store_attempt_parameters_stacks[line].append(self._attempt_parameters[line].copy())
         
@@ -395,3 +405,9 @@ class CounterpointGenerator (ABC):
         #add each deleted index back to the counterpoint object 
         for index in self._store_deleted_indices_stacks[line].pop():
             self._counterpoint_objects[line][index] = None 
+
+    #runs a list of functions that examine the current stack to determine if it's valid
+    def _passes_final_checks(self) -> bool:
+        for check in self._final_checks:
+            if not check(self): return False 
+        return True 

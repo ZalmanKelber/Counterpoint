@@ -120,7 +120,7 @@ class RhythmicValue:
             raise Exception("cannot have negative value")
         self._duration = duration 
 
-    def get_duration(self) -> int: return duration 
+    def get_duration(self) -> int: return self._duration 
 
     #only durations that are valid in 16th Century Counterpoint have names
     def __str__(self) -> str:

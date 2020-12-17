@@ -1,3 +1,7 @@
+import sys
+sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/notation_system")
+
+from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
 
 ############# added to CounterpointGenerator (base class) ################
 
@@ -41,6 +45,7 @@ def begin_and_end_on_mode_final(self: object, pitch: Pitch, line: int, bar: int,
         return self._mode_resolver.is_final(pitch)
     if (bar, beat) == (self._length - 1, 0):
         return pitch.is_unison(self._counterpoint_objects[line][(0, 0)])
+    return True
 
 ################ added to subclasses that specify species ######################
 
@@ -79,7 +84,7 @@ def prevent_dissonances_from_being_outlined(self: object, pitch: Pitch, line: in
         segment_end_pitch = pitch 
         is_ascending = self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) > 0
         i = len(self._counterpoint_stacks[line]) - 2
-    elif len(self._counterpoint_stacks[list]) > 1 and isinstance(self._counterpoint_stacks[line][-2], Pitch):
+    elif len(self._counterpoint_stacks[line]) > 1 and isinstance(self._counterpoint_stacks[line][-2], Pitch):
         prev_interval = self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-2])
         cur_interval = self._counterpoint_stacks[line][-1].get_tonal_interval(pitch)
         if (prev_interval > 0 and cur_interval < 0) or (prev_interval < 0 and cur_interval > 0):
@@ -87,7 +92,7 @@ def prevent_dissonances_from_being_outlined(self: object, pitch: Pitch, line: in
             is_ascending = prev_interval > 0
             i = i = len(self._counterpoint_stacks[line]) - 3
     if segment_end_pitch is not None:
-        while i <= 0 and isintance(self._counterpoint_stacks[line][i], Pitch):
+        while i >= 0 and isinstance(self._counterpoint_stacks[line][i], Pitch):
             prev_interval = self._counterpoint_stacks[line][i].get_tonal_interval(self._counterpoint_stacks[line][i + 1])
             if ( (prev_interval < 0 and is_ascending) or (prev_interval > 0 and not is_ascending) 
                 or i == 0 or not isinstance(self._counterpoint_stacks[line][i - 1], Pitch)):
@@ -95,18 +100,19 @@ def prevent_dissonances_from_being_outlined(self: object, pitch: Pitch, line: in
                 break
             i -= 1
         #now detemine whether the segment ends form a forbidden dissonance
-        (t_interval, c_interval) = segment_start_pitch.get_intervals(segment_end_pitch)
-        if ( t_interval not in self._legal_intervals["tonal_outline_melodic"] or 
-            c_interval not in self._legal_intervals["chromatic_outline_melodic"] or 
-            (t_interval, c_interval) in self._legal_intervals["forbidden_combinations"] ):
-            return False 
+        if segment_start_pitch is not None:
+            (t_interval, c_interval) = segment_start_pitch.get_intervals(segment_end_pitch)
+            if ( t_interval not in self._legal_intervals["tonal_outline_melodic"] or 
+                c_interval not in self._legal_intervals["chromatic_outline_melodic"] or 
+                (t_interval, c_interval) in self._legal_intervals["forbidden_combinations"] ):
+                return False 
 
     #now determine how many pitches are connected to the current pitch by intervals that are all 
     #leaps and check each one
     pitches_to_check = []
     i = len(self._counterpoint_stacks[line]) - 1
-    while i <= 0 and isinstance(self._counterpoint_stacks[line][i], Pitch):
-        interval = self._counterpoint_stacks[line][i].get_tonal_interval(self._counterpoint_stacks[line][i + 1] if i < len(self._counterpoint_stacks[line] - 1 else pitch))
+    while i >= 0 and isinstance(self._counterpoint_stacks[line][i], Pitch):
+        interval = self._counterpoint_stacks[line][i].get_tonal_interval(self._counterpoint_stacks[line][i + 1] if i < len(self._counterpoint_stacks[line]) - 1 else pitch)
         if abs(interval) > 2:
             pitches_to_check.append(self._counterpoint_stacks[line][i])
         else:
@@ -141,6 +147,8 @@ def prevent_any_repetition_of_three_intervals(self: object, pitch: Pitch, line: 
 
 #in first species, a line must end either by step or in an ascending leap of a fourth or fifth
 def last_interval_of_first_species(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if bar != self._length - 1:
+        return True 
     if self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) not in [-2, 2, 4, 5]:
         return False 
     return True
