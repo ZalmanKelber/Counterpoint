@@ -15,17 +15,21 @@ from counterpoint_generator_solo_subclasses import CantusFirmusGenerator
 from midi_writer import MidiWriter
 
 def main():
-    cfg = CantusFirmusGenerator(randint(8, 11), [VocalRange.TENOR], Mode.DORIAN)
-    cfg.generate_counterpoint()
-    cfg.score_solutions()
-    optimal = cfg.get_one_solution()
-    print("number of solutions:", len(cfg.get_all_solutions()))
-    if optimal is not None:
-        mw = MidiWriter()
-        mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
-        filename = "FluidR3_GM/FluidR3_GM.sf2"
-        fs = FluidSynth("/Users/alexkelber/Development/" + filename)
-        fs.play_midi("counterpoint.mid")
+    for mode in Mode:
+        for vocal_range in VocalRange:
+            optimal = None
+            while optimal is None:
+                print(vocal_range.value, mode.value)
+                cfg = CantusFirmusGenerator(randint(8, 11), [vocal_range], mode)
+                cfg.generate_counterpoint()
+                cfg.score_solutions()
+                optimal = cfg.get_one_solution()
+                print("number of solutions:", len(cfg.get_all_solutions()))
+            if optimal is not None:
+                mw = MidiWriter()
+                mw.write_midi_from_counterpoint(optimal, "counterpoint.mid", 2.0)
+                fs = FluidSynth("/Users/alexkelber/Development/FluidR3_GM/FluidR3_GM.sf2")
+                fs.play_midi("counterpoint.mid")
 
 if __name__ == "__main__":
     main()

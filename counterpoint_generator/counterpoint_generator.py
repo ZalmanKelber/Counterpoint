@@ -115,7 +115,9 @@ class CounterpointGenerator (ABC):
     }
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
-        print("base class constructor called")
+
+        self._reset_class_variables() #ensures class variables aren't altered from other instances
+
         self._length = length 
         self._height = len(lines)
         self._lines = lines[:]
@@ -171,19 +173,16 @@ class CounterpointGenerator (ABC):
 
     #sorts the solutions by the scording system (note that lower scores are better)
     def score_solutions(self) -> None:
-        self._highest_score = 0
-        self._lowest_score = 10000
         self._solutions.sort(key=lambda sol: self._score_solution(sol))
-        print("highest score", self._highest_score)
-        print("lowest score", self._lowest_score)
 
 
     #retrieves the first solution.  If the solutions have been sorted, this will be the optimal solution 
     #according to the scoring system
     def get_one_solution(self) -> list[list[RhythmicValue]]:
-        self._map_solution_onto_stack(self._solutions[0])
-        self.print_counterpoint()
-        return self._solutions[0] if len(self._solutions) > 0 else None 
+        if len(self._solutions) > 0:
+            self._map_solution_onto_stack(self._solutions[0])
+            self.print_counterpoint()
+            return self._solutions[0]
 
 
     #retrieves all solutions
@@ -218,8 +217,6 @@ class CounterpointGenerator (ABC):
         score = 0
         for check in self._score_functions:
             score += check(self)
-        if score > self._highest_score: self._highest_score = score 
-        if score < self._lowest_score: self._lowest_score = score
         return score 
 
     #takes a solution and maps it onto the counterpoint stack so that it can be more easily
@@ -454,3 +451,44 @@ class CounterpointGenerator (ABC):
         for check in self._final_checks:
             if not check(self): return False 
         return True 
+
+    #resets class vairables whenever construction method is called
+    def _reset_class_variables(self) -> None:
+        self._counterpoint_stacks = []
+
+        self._counterpoint_objects = []
+
+        self._all_indices = []
+
+        self._remaining_indices = []
+
+        self._attempt_parameters = []
+
+        self._store_all_indices_stacks = []
+        self._store_remaining_indices_stacks = []
+        self._store_deleted_indices_stacks = []
+        self._store_attempt_parameters_stacks = []
+
+
+        self._melodic_insertion_checks = []
+
+        self._rhythmic_insertion_filters = []
+
+        self._change_parameters_checks = []
+
+        self._index_checks = []
+
+        self._final_checks = []
+
+        self._solutions = []
+
+        self._score_functions = []
+
+        self._legal_intervals = {
+            "tonal_adjacent_melodic": { -8, -5, -4, -3, -2, 2, 3, 4, 5, 6, 8 },
+            "chromatic_adjacent_melodic": { -12, -7, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 7, 8, 12 },
+            "tonal_outline_melodic": { -10, -8, -6, -5, -4, -3, -2, 1, 2, 3, 4, 5, 6, 8, 10 },
+            "chromatic_outline_melodic": { -16, -15, -12, -9, -8, -7, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 7, 8, 9, 12, 15, 16 },
+            #forbidden combinations of tonal intervals (absolute value, mod 7) and chromatic intervals (absolute value, mod 12)
+            "forbidden_combinations": { (1, 1), (2, 3), (3, 2), (4, 4), (4, 6), (5, 6), (5, 8), (6, 10) }
+        }

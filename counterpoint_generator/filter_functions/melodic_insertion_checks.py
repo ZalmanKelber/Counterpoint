@@ -36,6 +36,15 @@ def prevent_two_notes_from_immediately_repeating(self: object, pitch: Pitch, lin
             return False 
     return True 
 
+#same as above but with three notes
+def prevent_three_notes_from_immediately_repeating(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if len(self._counterpoint_stacks[line]) > 4 and isinstance(self._counterpoint_stacks[line][-5], Pitch):
+        if ( self._counterpoint_stacks[line][-5].is_unison(self._counterpoint_stacks[line][-2]) and 
+            self._counterpoint_stacks[line][-4].is_unison(self._counterpoint_stacks[line][-1]) and
+            self._counterpoint_stacks[line][-3].is_unison(pitch) ):
+            return False 
+    return True 
+
 
 ################# added to subclasses that specify number of lines ####################
 
@@ -81,9 +90,16 @@ def prevent_dissonances_from_being_outlined(self: object, pitch: Pitch, line: in
     #descending motion -- either by moving in the contrary direction or by being the end of the piece
     segment_start_pitch, segment_end_pitch, i, is_ascending = None, None, None, None
     if bar == self._length - 1: 
-        segment_end_pitch = pitch 
-        is_ascending = self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) > 0
-        i = len(self._counterpoint_stacks[line]) - 2
+        prev_interval = self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-1])
+        cur_interval = self._counterpoint_stacks[line][-1].get_tonal_interval(pitch)
+        if (prev_interval > 0 and cur_interval > 0) or (prev_interval < 0 and cur_interval < 0):
+            segment_end_pitch = pitch 
+            is_ascending = cur_interval > 0
+            i = len(self._counterpoint_stacks[line]) - 2
+        else:
+            segment_end_pitch = self._counterpoint_stacks[line][-1]
+            is_ascending = prev_interval > 0
+            i = i = len(self._counterpoint_stacks[line]) - 3
     elif len(self._counterpoint_stacks[line]) > 1 and isinstance(self._counterpoint_stacks[line][-2], Pitch):
         prev_interval = self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-1])
         cur_interval = self._counterpoint_stacks[line][-1].get_tonal_interval(pitch)
@@ -102,12 +118,9 @@ def prevent_dissonances_from_being_outlined(self: object, pitch: Pitch, line: in
         #now detemine whether the segment ends form a forbidden dissonance
         if segment_start_pitch is not None:
             (t_interval, c_interval) = segment_start_pitch.get_intervals(segment_end_pitch)
-            print("testing outline")
-            print(t_interval, c_interval)
             if ( t_interval not in self._legal_intervals["tonal_outline_melodic"] or 
                 c_interval not in self._legal_intervals["chromatic_outline_melodic"] or 
                 (abs(t_interval) % 7, abs(c_interval) % 12) in self._legal_intervals["forbidden_combinations"] ):
-                print("throwing out outline")
                 return False 
 
     #now determine how many pitches are connected to the current pitch by intervals that are all 

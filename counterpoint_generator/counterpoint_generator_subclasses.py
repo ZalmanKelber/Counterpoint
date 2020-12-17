@@ -13,7 +13,6 @@ from filter_functions.rhythmic_insertion_filters import end_on_breve
 class SoloMelody (CounterpointGenerator, ABC):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
-        print("solo melody constructor called")
         super().__init__(length, lines, mode)
         self._melodic_insertion_checks.append(begin_and_end_on_mode_final)
 
@@ -68,11 +67,6 @@ class TwoPartCounterpoint (MultiPartCounterpoint, ABC):
         super().__init__(self, length, lines, mode)
 
         self._rhythmic_insertion_filters.append(end_on_breve)
-
-class FirstSpecies (CounterpointGenerator, ABC):
-
-    def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
-        super().__init__(self, length, lines, mode)
 
         
     

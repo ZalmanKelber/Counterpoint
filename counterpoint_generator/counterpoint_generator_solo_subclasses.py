@@ -16,9 +16,7 @@ from filter_functions.melodic_insertion_checks import last_interval_is_descendin
 class CantusFirmusGenerator (FirstSpeciesCounterpointGenerator, SoloMelody):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
-        FirstSpeciesCounterpointGenerator.__init__(self, length, lines, mode)
-        # print("preparing to call solo melody constructor:")
-        # SoloMelody.__init__(self, length, lines, mode)
+        super().__init__(length, lines, mode)
 
         #Add the end by descending step optional function
         self._melodic_insertion_checks.append(last_interval_is_descending_step)
