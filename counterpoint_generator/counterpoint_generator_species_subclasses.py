@@ -18,6 +18,7 @@ from filter_functions.melodic_insertion_checks import last_interval_of_first_spe
 from filter_functions.melodic_insertion_checks import prevent_highest_note_from_being_in_middle
 from filter_functions.melodic_insertion_checks import melody_cannot_change_direction_three_times_in_a_row
 from filter_functions.melodic_insertion_checks import prevent_three_notes_from_immediately_repeating
+from filter_functions.melodic_insertion_checks import pitch_cannot_appear_three_times_in_six_notes
 
 class FirstSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
 
@@ -33,6 +34,7 @@ class FirstSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(last_interval_of_first_species)
         self._melodic_insertion_checks.append(melody_cannot_change_direction_three_times_in_a_row)
         self._melodic_insertion_checks.append(prevent_three_notes_from_immediately_repeating)
+        self._melodic_insertion_checks.append(pitch_cannot_appear_three_times_in_six_notes)
 
     #override:
     #override the get_valid_durations, which is extremely simple in First Species

@@ -171,13 +171,10 @@ def pitch_cannot_appear_three_times_in_six_notes(self: object, pitch: Pitch, lin
             pitches_to_check.append(self._counterpoint_stacks[line][i])
             i -= 1
         num_unisons = 0
-        if len(pitches_to_check) == 5:
-            print("checking five pitches")
         for pitch_to_check in pitches_to_check:
             if pitch_to_check.is_unison(pitch):
                 num_unisons += 1
                 if num_unisons == 2:
-                    print("tossing out repetition of three notes")
                     return False 
     return True
 
