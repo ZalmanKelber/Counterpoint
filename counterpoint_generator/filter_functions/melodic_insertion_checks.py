@@ -12,6 +12,11 @@ def valid_melodic_interval(self: object, pitch: Pitch, line: int, bar: int, beat
         if t_interval not in self._legal_intervals["tonal_adjacent_melodic"]: return False 
         if c_interval not in self._legal_intervals["chromatic_adjacent_melodic"]: return False
         if (abs(t_interval) % 7, abs(c_interval) % 12) in self._legal_intervals["forbidden_combinations"]: return False
+        #in addition, leaps are not allowed between notes that are either sharp or leading tones
+        if abs(t_interval) > 2:
+            if ( (self._mode_resolver.is_sharp(self._counterpoint_stacks[line][-1]) or self._mode_resolver.is_leading_tone(self._counterpoint_stacks[line][-1])) 
+                and (self._mode_resolver.is_sharp(pitch) or self._mode_resolver.is_leading_tone(pitch)) ):
+                return False
     return True 
 
 #ensures that any melodic ascending leap of a minor sixth is followed by a descending half-step
@@ -212,6 +217,9 @@ def handles_interval_order_loosest(self: object, pitch: Pitch, line: int, bar: i
     if len(self._counterpoint_stacks[line]) > 1 and isinstance(self._counterpoint_stacks[line][-2], Pitch):
         potential_interval = self._counterpoint_stacks[line][-1].get_tonal_interval(pitch)
         if potential_interval >= 3:
+            if self._counterpoint_stacks[line][-1].get_duration() == 2:
+                if self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-1]) > 0:
+                    return False
             for i in range(len(self._counterpoint_stacks[line]) - 2, -1, -1):
                 if i <= 0 or not isinstance(self._counterpoint_stacks[line][i], Pitch): break
                 interval = self._counterpoint_stacks[line][i].get_tonal_interval(self._counterpoint_stacks[line][i + 1])
@@ -220,20 +228,20 @@ def handles_interval_order_loosest(self: object, pitch: Pitch, line: int, bar: i
         if potential_interval == 2:
             segment_has_leap = False
             for i in range(len(self._counterpoint_stacks[line]) - 2, -1, -1):
-                interval = self._counterpoint_stacks[line][i].get_stonal_interval(self._counterpoint_stacks[line][i + 1])
+                interval = self._counterpoint_stacks[line][i].get_tonal_interval(self._counterpoint_stacks[line][i + 1])
                 if interval < 0: break
                 if segment_has_leap: return False 
                 segment_has_leap = interval > 2
         if potential_interval == -2:
             segment_has_leap = False
             for i in range(len(self._counterpoint_stacks[line]) - 2, -1, -1):
-                interval = self._counterpoint_stacks[line][i].get_stonal_interval(self._counterpoint_stacks[line][i + 1])
+                interval = self._counterpoint_stacks[line][i].get_tonal_interval(self._counterpoint_stacks[line][i + 1])
                 if interval > 0: break
                 if segment_has_leap or interval == -8: return False 
                 segment_has_leap = interval < -2
         if potential_interval <= -3:
             for i in range(len(self._counterpoint_stacks[line]) - 2, -1, -1):
-                interval = self._counterpoint_stacks[line][i].get_stonal_interval(self._counterpoint_stacks[line][i + 1])
+                interval = self._counterpoint_stacks[line][i].get_tonal_interval(self._counterpoint_stacks[line][i + 1])
                 if interval > 0: break
                 if interval < -2: return False 
     return True 
@@ -242,9 +250,9 @@ def handles_interval_order_loosest(self: object, pitch: Pitch, line: int, bar: i
 #the specific scenarios are outlined in the logic below 
 def handles_other_nearby_augs_and_dims(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
     if len(self._counterpoint_stacks[line]) > 1 and isinstance(self._counterpoint_stacks[line][-2], Pitch):
-        if self._counterpoint_stacks[line][-2].is_cross_relation(pitch) and self._counterpoint_stacks[line][-1].get_duration() <= 2: 
+        if self._counterpoint_stacks[line][-2].is_cross_relation(pitch): 
             return False 
-        if self._counterpoint_stacks[line][-2].get_duration() != 2 and self._counterpoint_stacks[line][-1].get_duration() != 2: 
+        if self._counterpoint_stacks[line][-2].get_duration() != 2: 
             return True 
         (t_interval, c_interval) = self._counterpoint_stacks[line][-2].get_intervals(pitch)
         if (abs(t_interval) != 2 or abs(c_interval) != 3) and (abs(t_interval) != 3 or abs(c_interval) != 2):
@@ -311,6 +319,7 @@ def enforce_max_melodic_octaves(self: object, pitch: Pitch, line: int, bar: int,
         if ( abs(self._counterpoint_stacks[line][-1].get_tonal_interval(pitch)) == 8 and 
             self._attempt_parameters[line]["melodic_octaves_placed"] == self._attempt_parameters[line]["max_melodic_octaves"] ):
             return False 
+    return True
 
 #places further restrictions on quarters between two leaps
 def handles_quarter_between_two_leaps(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
@@ -338,9 +347,54 @@ def octaves_surrounded_by_contrary_motion(self: object, pitch: Pitch, line: int,
             return False 
     return True
 
-#ensures eighth notes are followed by stepwise motion
+#ensures Eighth Notes are followed by stepwise motion
 def eighths_move_stepwise(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
     if len(self._counterpoint_stacks[line]) > 0 and isinstance(self._counterpoint_stacks[line][-1], Pitch):
         if self._counterpoint_stacks[line][-1].get_duration() == 1 and abs(self._counterpoint_stacks[line][-1].get_tonal_interval(pitch)) != 2:
             return False 
     return True
+
+#further Eighth Notes restriction
+def eighths_leading_to_downbeat_must_be_lower_neighbor(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if len(self._counterpoint_stacks[line]) > 0 and isinstance(self._counterpoint_stacks[line][-1], Pitch):
+        if beat == 0 and self._counterpoint_stacks[line][-1].get_duration() == 1 and self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) != 2:
+            return False 
+        elif beat == 3.5 and self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) != -2:
+            return False
+    return True
+
+#further Eighth Notes restriction
+def eighths_in_same_direction_must_be_followed_by_motion_in_opposite_direction(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if len(self._counterpoint_stacks[line]) > 3 and isinstance(self._counterpoint_stacks[line][-4], Pitch):
+        if self._counterpoint_stacks[line][-3].get_duration() == 1 and self._counterpoint_stacks[line][-2].get_duration() == 1:
+            if ( self._counterpoint_stacks[line][-4].get_tonal_interval(self._counterpoint_stacks[line][-3]) == self._counterpoint_stacks[line][-3].get_tonal_interval(self._counterpoint_stacks[line][-2]) 
+                and self._counterpoint_stacks[line][-4].get_tonal_interval(self._counterpoint_stacks[line][-3]) == self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-1]) ):
+                if ( (self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-1]) > 0 and self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) > 0) or 
+                    (self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-1]) < 0 and self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) < 0) ):
+                    return False 
+    return True 
+
+
+#for almost all case scenarios for highest voice
+def end_stepwise(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if bar == self._length - 1 and abs(self._counterpoint_stacks[line][-1].get_tonal_interval(pitch)) != 2:
+        return False 
+    return True 
+
+#does not include anticipations.  C -> D -> C -> B -> C is illegal but D -> C -> C -> B -> C is legal
+#for use in Fifth Species
+def prevent_note_from_repeating_three_times_in_five_notes(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if len(self._counterpoint_stacks[line]) > 3 and isinstance(self._counterpoint_stacks[line][-4], Pitch):
+        if self._counterpoint_stacks[line][-4].is_unison(pitch) and self._counterpoint_stacks[line][-2].is_unison(pitch):
+            return False 
+    return True
+
+#prevents figures of the form F# -> E -> G
+def prevents_fifteenth_century_sharp_resolution(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if len(self._counterpoint_stacks[line]) > 1 and isinstance(self._counterpoint_stacks[line][-2], Pitch):
+        if ( self._mode_resolver.is_sharp(self._counterpoint_stacks[line][-2]) and 
+            self._counterpoint_stacks[line][-2].get_chromatic_interval(pitch) == 1 and 
+            self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-1]) == -2 ):
+            return False 
+    return True
+

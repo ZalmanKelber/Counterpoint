@@ -11,7 +11,7 @@ import math
 from random import random, randint, shuffle
 
 from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
-from counterpoint_generator_solo_subclasses import CantusFirmusGenerator
+from counterpoint_generator_solo_subclasses import FreeMelodyGenerator
 from midi_writer import MidiWriter
 
 def main():
@@ -19,15 +19,14 @@ def main():
         for vocal_range in VocalRange:
             optimal = None
             while optimal is None:
-                print(vocal_range.value, mode.value)
-                cfg = CantusFirmusGenerator(randint(8, 11), [vocal_range], mode)
-                cfg.generate_counterpoint()
-                cfg.score_solutions()
-                optimal = cfg.get_one_solution()
-                print("number of solutions:", len(cfg.get_all_solutions()))
+                # print(vocal_range.value, mode.value)
+                fmg = FreeMelodyGenerator(randint(11, 16), [vocal_range], mode)
+                fmg.generate_counterpoint()
+                fmg.score_solutions()
+                optimal = fmg.get_one_solution()
             if optimal is not None:
                 mw = MidiWriter()
-                mw.write_midi_from_counterpoint(optimal, "counterpoint.mid", 2.0)
+                mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
                 fs = FluidSynth("/Users/alexkelber/Development/FluidR3_GM/FluidR3_GM.sf2")
                 fs.play_midi("counterpoint.mid")
 

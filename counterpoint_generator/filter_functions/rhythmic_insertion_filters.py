@@ -23,7 +23,7 @@ def upper_neighbor_cannot_occur_between_two_longer_notes(self: object, pitch: Pi
         self._counterpoint_stacks[line][-2].get_duration() != 2 and self._counterpoint_stacks[line][-1].get_duration() == 2
         and self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-1]) == 2 and 
         self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) == -2 ):
-        returns { 2 } if 2 in durations else set()
+        return { 2 } if 2 in durations else set()
     return durations
 
 #prevents long notes for extending over final measure
@@ -44,11 +44,23 @@ def handles_first_eighth(self: object, pitch: Pitch, line: int, bar: int, beat: 
     return durations
 
 #further restriction on Eighth Note figures
-def eighths_on_beat_one_preceded_by_quarter_are_followed_by_quarter(self: object, pitch: Pitch, line: int, bar: int, beat: float, durations: set[int]) -> set[int]:
+def eighths_on_beat_one_preceded_by_quarter_or_in_same_direction_are_followed_by_quarter(self: object, pitch: Pitch, line: int, bar: int, beat: float, durations: set[int]) -> set[int]:
     if len(self._counterpoint_stacks[line]) > 2 and isinstance(self._counterpoint_stacks[line][-3], Pitch):
-        if self._counterpoint_stacks[line][-3].get_duration() == 2 and self._counterpoint_stacks[line][-2].get_duration() == 1:
-            return { 2 } if 2 in durations else set()
+        if beat == 2:
+            if self._counterpoint_stacks[line][-3].get_duration() == 2 and self._counterpoint_stacks[line][-2].get_duration() == 1:
+                return { 2 } if 2 in durations else set()
+            if ( self._counterpoint_stacks[line][-3].get_tonal_interval(self._counterpoint_stacks[line][-2]) == self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-1])
+                and self._counterpoint_stacks[line][-3].get_tonal_interval(self._counterpoint_stacks[line][-2]) == self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) ):
+                return { 2 } if 2 in durations else set()
     return durations
+
+#enforces the rule that Eighth Notes on beat "3" must be Lower Neighbors
+def eighths_on_beat_three_must_be_a_step_down_from_previous_note(self: object, pitch: Pitch, line: int, bar: int, beat: float, durations: set[int]) -> set[int]:
+    if len(self._counterpoint_stacks[line]) > 0 and isinstance(self._counterpoint_stacks[line][-1], Pitch):
+        if beat == 3 and self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) != -2:
+            durations.discard(1)
+    return durations
+
 
 #Anticipations must be followed by a Quarter Note, Half Note or Dotted Half Note
 def handles_second_note_of_anticipation(self: object, pitch: Pitch, line: int, bar: int, beat: float, durations: set[int]) -> set[int]:
@@ -144,17 +156,27 @@ def handles_rhythm_of_penultimate_measure(self: object, pitch: Pitch, line: int,
 #makes melody less monotonous
 def prevents_lack_of_syncopation(self: object, pitch: Pitch, line: int, bar: int, beat: float, durations: set[int]) -> set[int]:
     if beat == 0 and all([(bar - i, 0) in self._counterpoint_objects[line] for i in range(1, 4)]):
-        if all([self._counterpoint_objects[line][(bar - i, 0)] >= 4 for i in range(1, 4)]):
+        if all([self._counterpoint_objects[line][(bar - i, 0)].get_duration() >= 4 for i in range(1, 4)]):
             durations.discard(8)
             durations.discard(6)
             durations.discard(4)
     return durations
 
+#the same syncopated pitch should not occur two measures in a row
 def prevents_repeated_syncopated_pitches(self: object, pitch: Pitch, line: int, bar: int, beat: float, durations: set[int]) -> set[int]:
     if ( beat == 2 and (bar, 0) not in self._counterpoint_objects[line] and (bar - 1, 2) in self._counterpoint_objects[line] and 
         self._counterpoint_objects[line][(bar - 1, 2)].is_unison(pitch) ):
         durations.discard(8)
         durations.discard(6)
+    return durations
+
+#prevent more than the max number of downbeat long notes from being placed (not including the final measure)
+def enforce_max_long_notes_on_downbeats(self: object, pitch: Pitch, line: int, bar: int, beat: float, durations: set[int]) -> set[int]:
+    if ( bar != self._length - 1 and beat == 0 and 
+        self._attempt_parameters[line]["downbeat_long_notes_placed"] == self._attempt_parameters[line]["max_downbeat_long_notes"] ):
+        durations.discard(16)
+        durations.discard(12)
+        durations.discard(8)
     return durations
 
 

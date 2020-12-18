@@ -169,6 +169,7 @@ class CounterpointGenerator (ABC):
             self._number_of_attempts += 1
             self._initialize()
             self._backtrack()
+            print("number of solutions:", len(self._solutions), "number of backtracks:", self._number_of_backtracks)
         return 
 
     #sorts the solutions by the scording system (note that lower scores are better)
@@ -190,6 +191,7 @@ class CounterpointGenerator (ABC):
         return self._solutions
 
     #prints the current stack
+    #note that entities print out with 33 characters
     def print_counterpoint(self) -> None:
         for bar in range(self._length):
             for beat in range(4):
@@ -198,8 +200,9 @@ class CounterpointGenerator (ABC):
                 print_row += show_bar.ljust(5)
                 for line in range(self._height):
                     entity = str(self._counterpoint_objects[line][(bar, beat)]) if (bar, beat) in self._counterpoint_objects[line] else " ".ljust(33)
-                    if (bar, beat + 1) in self._counterpoint_objects[line]:
-                        entity[-2] = "*"
+                    if (bar, beat + .5) in self._counterpoint_objects[line]:
+                        entity = entity[:33] + " / " + str(self._counterpoint_objects[line][(bar, beat + .5)])[:33]
+                        entity = entity.ljust(64)
                     print_row += entity
                 print(print_row)
                 
@@ -248,7 +251,7 @@ class CounterpointGenerator (ABC):
         #for each line, set up all of the indices and remaining indices 
         for line in range(self._height):
             for bar in range(self._length - 1):
-                for beat in [0, 1, 1.5, 2, 3]:
+                for beat in [0, 1, 1.5, 2, 3, 3.5]:
                     self._all_indices[line].add((bar, beat))
                     self._remaining_indices[line].append((bar, beat))
                     self._counterpoint_objects[line][(bar, beat)] = None
@@ -311,6 +314,8 @@ class CounterpointGenerator (ABC):
         #if so, see if the current stack passes the final checks, and if it does, add it to the solutions
         if line == self._height:
             if self._passes_final_checks():
+                if len(self._solutions) == 0:
+                    print("found first solution at backtrack number", self._number_of_backtracks)
                 self._solutions.append([self._counterpoint_stacks[line][:] for line in range(self._height)])
             return 
 
@@ -366,7 +371,7 @@ class CounterpointGenerator (ABC):
     def _passes_insertion_checks(self, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
         for check in self._melodic_insertion_checks:
             if not check(self, pitch, line, bar, beat): 
-                #print("failed at check", check.__name__)
+                # print("failed at check", check.__name__)
                 return False 
         return True 
 
@@ -376,7 +381,9 @@ class CounterpointGenerator (ABC):
         durations = self._get_available_durations(line, bar, beat)
         for check in self._rhythmic_insertion_filters:
             durations = check(self, pitch, line, bar, beat, durations)
-            if len(durations) == 0: return durations
+            if len(durations) == 0: 
+                # print("failed at check", check.__name__)
+                return durations
         return durations
 
     #default method, which will be applicable to some subclasses
@@ -393,7 +400,7 @@ class CounterpointGenerator (ABC):
         if beat == 2: return { 2, 4, 6, 8 }
         if beat == 0:
             if bar == 0: return { 2, 4, 6, 8, 12, 16 }
-            else: return { 2, 4, 5, 8, 12 }
+            else: return { 2, 4, 6, 8, 12 }
 
     #adds the note or rest to the stack, removes the indices that it nullifies, adds the current snapshot
     #of the attempt parameters to the stack of stored conditions and checks to see if any conditions have changed

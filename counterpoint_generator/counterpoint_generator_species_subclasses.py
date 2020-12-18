@@ -31,11 +31,16 @@ from filter_functions.melodic_insertion_checks import enforce_max_melodic_octave
 from filter_functions.melodic_insertion_checks import handles_quarter_between_two_leaps
 from filter_functions.melodic_insertion_checks import octaves_surrounded_by_contrary_motion
 from filter_functions.melodic_insertion_checks import eighths_move_stepwise
+from filter_functions.melodic_insertion_checks import eighths_leading_to_downbeat_must_be_lower_neighbor
+from filter_functions.melodic_insertion_checks import eighths_in_same_direction_must_be_followed_by_motion_in_opposite_direction
+from filter_functions.melodic_insertion_checks import prevent_note_from_repeating_three_times_in_five_notes
+from filter_functions.melodic_insertion_checks import prevents_fifteenth_century_sharp_resolution
 
 from filter_functions.rhythmic_insertion_filters import enforce_max_pairs_of_eighths
 from filter_functions.rhythmic_insertion_filters import upper_neighbor_cannot_occur_between_two_longer_notes
 from filter_functions.rhythmic_insertion_filters import handles_first_eighth
-from filter_functions.rhythmic_insertion_filters import eighths_on_beat_one_preceded_by_quarter_are_followed_by_quarter
+from filter_functions.rhythmic_insertion_filters import eighths_on_beat_one_preceded_by_quarter_or_in_same_direction_are_followed_by_quarter
+from filter_functions.rhythmic_insertion_filters import eighths_on_beat_three_must_be_a_step_down_from_previous_note
 from filter_functions.rhythmic_insertion_filters import handles_second_note_of_anticipation
 from filter_functions.rhythmic_insertion_filters import anticipation_followed_by_quarter_must_be_followed_by_eighths
 from filter_functions.rhythmic_insertion_filters import regulates_quarter_runs
@@ -50,6 +55,10 @@ from filter_functions.rhythmic_insertion_filters import prevents_repeated_syncop
 
 from filter_functions.change_parameter_checks import check_for_added_eigth_note_pair
 from filter_functions.change_parameter_checks import check_for_added_melodic_octave
+
+from filter_functions.score_functions import prioritize_long_quarter_note_runs
+from filter_functions.score_functions import penalize_two_note_quarter_runs
+from filter_functions.score_functions import select_ideal_ties
 
 class FirstSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
 
@@ -153,6 +162,10 @@ class FifthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(handles_quarter_between_two_leaps)
         self._melodic_insertion_checks.append(octaves_surrounded_by_contrary_motion)
         self._melodic_insertion_checks.append(eighths_move_stepwise)
+        self._melodic_insertion_checks.append(eighths_leading_to_downbeat_must_be_lower_neighbor)
+        self._melodic_insertion_checks.append(eighths_in_same_direction_must_be_followed_by_motion_in_opposite_direction)
+        self._melodic_insertion_checks.append(prevent_note_from_repeating_three_times_in_five_notes)
+        self._melodic_insertion_checks.append(prevents_fifteenth_century_sharp_resolution)
 
             #inherited from base class:
             #(none)
@@ -160,7 +173,8 @@ class FifthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._rhythmic_insertion_filters.append(enforce_max_pairs_of_eighths)
         self._rhythmic_insertion_filters.append(upper_neighbor_cannot_occur_between_two_longer_notes)
         self._rhythmic_insertion_filters.append(handles_first_eighth)
-        self._rhythmic_insertion_filters.append(eighths_on_beat_one_preceded_by_quarter_are_followed_by_quarter)
+        self._rhythmic_insertion_filters.append(eighths_on_beat_one_preceded_by_quarter_or_in_same_direction_are_followed_by_quarter)
+        self._rhythmic_insertion_filters.append(eighths_on_beat_three_must_be_a_step_down_from_previous_note)
         self._rhythmic_insertion_filters.append(handles_second_note_of_anticipation)
         self._rhythmic_insertion_filters.append(anticipation_followed_by_quarter_must_be_followed_by_eighths)
         self._rhythmic_insertion_filters.append(regulates_quarter_runs)
@@ -176,8 +190,16 @@ class FifthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
             #inherited from base class:
             #check_for_lowest_and_highest
 
-        self._change_parameter_checks.append(check_for_added_eigth_note_pair)
-        self._change_parameter_checks.append(check_for_added_melodic_octave)
+        self._change_parameters_checks.append(check_for_added_eigth_note_pair)
+        self._change_parameters_checks.append(check_for_added_melodic_octave)
+
+            #inherited from base class:
+            #prioritize_stepwise_motion
+            #ascending_leaps_followed_by_descending_steps
+
+        self._score_functions.append(prioritize_long_quarter_note_runs)
+        self._score_functions.append(penalize_two_note_quarter_runs)
+        self._score_functions.append(select_ideal_ties)
         
         #melodic unisons are available in the Fifth Species
         self._legal_intervals["tonal_adjacent_melodic"].add(1)
@@ -186,30 +208,29 @@ class FifthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         #in the Fifth Species, the rules for which intervals we may outline are laxer
         self._legal_intervals["tonal_outline_melodic"] = { -12, -11, -10, -9. -8, -7, -6, -5, -4, -3, -2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }
         self._legal_intervals["chromatic_outline_melodic"] = { -19, -17, -16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19 }
-    }
 
     #override:
     #override the initialize function so that we can assign the number of eighth notes and number of melodic octaves we deem permissible beforehand
     def _initialize(self) -> None:
         super()._initialize()
-        self._assign_max_eighths()
+        self._assign_max_pairs_of_eighths()
         self._assign_max_melodic_octaves()
 
     def _assign_max_pairs_of_eighths(self) -> None:
         for line in range(self._height):
-            chance = randint()
+            chance = random()
             if chance < .05:
-                self._attempt_parameters[line]["max_paris_of_eighths"] = 2
+                self._attempt_parameters[line]["max_pairs_of_eighths"] = 2
             elif chance < .3:
-                self._attempt_parameters[line]["max_paris_of_eighths"] = 1
+                self._attempt_parameters[line]["max_pairs_of_eighths"] = 1
             else:
-                self._attempt_parameters[line]["max_paris_of_eighths"] = 0
+                self._attempt_parameters[line]["max_pairs_of_eighths"] = 0
         self._attempt_parameters[line]["pairs_of_eighths_placed"] = 0
 
     #limit prevents melody from becoming too choppy
     def _assign_max_melodic_octaves(self) -> None:
         for line in range(self._height):
-            self._attempt_parameters[line]["max_melodic_octaves"] = 1 if randint() < .6 else 2
+            self._attempt_parameters[line]["max_melodic_octaves"] = 1 if random() < .6 else 2
             self._attempt_parameters[line]["melodic_octaves_placed"] = 0
 
 

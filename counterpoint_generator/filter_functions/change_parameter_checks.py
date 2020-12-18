@@ -23,3 +23,8 @@ def check_for_added_melodic_octave(self, entity: RhythmicValue, line: int, bar: 
         isinstance(self._counterpoint_stacks[line][-2], Pitch) and 
         abs(self._counterpoint_stacks[line][-2].get_tonal_interval(entity)) == 8 ):
         self._attempt_parameters[line]["melodic_octaves_placed"] += 1
+
+#register when we add a downbeat note longer or equal to a Whole Note
+def check_for_added_downbeat_long_note(self, entity: RhythmicValue, line: int, bar: int, beat: float) -> None:
+    if bar != self._length - 1 and beat == 0 and isinstance(entity, Pitch) and entity.get_duration() >= 8:
+        self._attempt_parameters[line]["downbeat_long_notes_placed"] += 1
