@@ -13,6 +13,8 @@ from filter_functions.rhythmic_insertion_filters import end_on_breve
 class SoloMelody (CounterpointGenerator, ABC):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
+        if len(lines) != 1:
+            raise Exception("Solo Melody must only have one line")
         super().__init__(length, lines, mode)
         self._melodic_insertion_checks.append(begin_and_end_on_mode_final)
 
@@ -34,11 +36,15 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
     _harmonic_rhythmic_filters = []
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
+        if len(lines) < 2:
+            raise Exception("Multi-part Counterpoint must have at least two lines")
         super().__init__(self, length, lines, mode)
         self._legal_intervals["tonal_harmonic_consonant"] = { 1, 3, 5, 6 } #note that these are all mod 7 and absolute values 
         self._legal_intervals["tonal_chromatic_consonant"] = { 0, 3, 4, 7, 8, 9 } #mod 12, absolute value
         #tonal intervals that can be resolved via suspension:
         self._legal_intervals["resolvable_dissonance"] = { -9, -2, 4, 7, 11, 14, 18, 21 } 
+        self._harmonic_insertion_checks = []
+        self._harmonic_rhythmic_filters = []
 
     ##################### override methods #######################
 
@@ -61,9 +67,23 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
             if len(durations) == 0: return durations
         return durations
 
+    #retrieves the note currently beginning on or sustaining through the specified index on the specified line
+    def _get_counterpoint_pitch(self, line: int, bar: int, beat: int) -> Pitch:
+        while (bar, beat) not in self._counterpoint_objects[line]: 
+            beat -= 0.5
+            if beat < 0:
+                beat += 4
+                bar -= 1
+        return self._counterpoint_objects[line][(bar, beat)] if isinstance(self._counterpoint_objects[line][(bar, beat)], Pitch) else None 
+
+        
+
+
 class TwoPartCounterpoint (MultiPartCounterpoint, ABC):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
+        if len(lines) != 2:
+            raise Exception("Two-part Counterpoint must have two lines")
         super().__init__(self, length, lines, mode)
 
         self._rhythmic_insertion_filters.append(end_on_breve)
