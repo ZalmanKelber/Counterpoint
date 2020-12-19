@@ -8,7 +8,12 @@ from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accident
 from mode_resolver import ModeResolver
 
 from filter_functions.melodic_insertion_checks import begin_and_end_on_mode_final
+
 from filter_functions.rhythmic_insertion_filters import end_on_breve
+
+from filter_functions.harmonic_insertion_checks import prevents_hidden_fifths_and_octaves_two_part
+from filter_functions.harmonic_insertion_checks import no_dissonant_onsets_on_downbeats
+from filter_functions.harmonic_insertion_checks import start_and_end_intervals_two_part
 
 class SoloMelody (CounterpointGenerator, ABC):
 
@@ -38,9 +43,9 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
         if len(lines) < 2:
             raise Exception("Multi-part Counterpoint must have at least two lines")
-        super().__init__(self, length, lines, mode)
+        super().__init__(length, lines, mode)
         self._legal_intervals["tonal_harmonic_consonant"] = { 1, 3, 5, 6 } #note that these are all mod 7 and absolute values 
-        self._legal_intervals["tonal_chromatic_consonant"] = { 0, 3, 4, 7, 8, 9 } #mod 12, absolute value
+        self._legal_intervals["chromatic_harmonic_consonant"] = { 0, 3, 4, 7, 8, 9 } #mod 12, absolute value
         #tonal intervals that can be resolved via suspension:
         self._legal_intervals["resolvable_dissonance"] = { -9, -2, 4, 7, 11, 14, 18, 21 } 
         self._harmonic_insertion_checks = []
@@ -51,19 +56,19 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
     #to pass the insertion checks, pitches must pass the melodic and harmonic insertion checks
     def _passes_insertion_checks(self, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
         for check in self._melodic_insertion_checks:
-            if not check(pitch, line, bar, beat): return False 
+            if not check(self, pitch, line, bar, beat): return False 
         for check in self._harmonic_insertion_checks:
-            if not check(pitch, line, bar, beat): return False
+            if not check(self, pitch, line, bar, beat): return False
         return True 
 
     #likewise, durations must be filtered through harmonic checks as well
     def _get_valid_durations(self, pitch: Pitch, line: int, bar: int, beat: float) -> set[int]:
         durations = get_available_durations(line, bar, beat)
         for check in self._rhythmic_insertion_filters:
-            durations = check(pitch, line, bar, beat, durations)
+            durations = check(self, pitch, line, bar, beat, durations)
             if len(durations) == 0: return durations
         for check in self._harmonic_rhythmic_filters:
-            durations = check(pitch, line, bar, beat, durations)
+            durations = check(self, pitch, line, bar, beat, durations)
             if len(durations) == 0: return durations
         return durations
 
@@ -76,17 +81,53 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
                 bar -= 1
         return self._counterpoint_objects[line][(bar, beat)] if isinstance(self._counterpoint_objects[line][(bar, beat)], Pitch) else None 
 
-        
+    #public function: adds melody or Cantus Firmus to the counterpoint structure
+    def assign_melody_to_line(self, melody: list[RhythmicValue], line: int) -> None:
+        bar, beat = 0, 0
+        for entity in melody:
+            self._remaining_indices[line].pop()
+            self._counterpoint_stacks[line].append(entity)
+            self._counterpoint_objects[line][(bar, beat)] = entity
+            for half_beat in range(entity.get_duration()):
+                beat += .5
+                if beat >= 4:
+                    beat -= 4
+                    bar += 1
+                #note that this step isn't done on the last iteration
+                if (bar, beat) in self._counterpoint_objects[line] and half_beat != entity.get_duration() - 1:
+                    del self._counterpoint_objects[line][(bar, beat)]
+                    self._all_indices[line].remove((bar, beat))
+                    self._remaining_indices[line].pop()
 
+    #follows same procedure but adds existing Cantus Firmus to lines
+    def gnerate_counterpoint_from_cantus_firmus(self, cantus_firmus: list[RhythmicValue], line: int) -> None:
+        self._number_of_attempts = 0
+        while not self._exit_attempt_loop():
+            self._number_of_attempts += 1
+            self._initialize(cantus_firmus, line)
+            self._backtrack()
+            print("number of solutions:", len(self._solutions), "number of backtracks:", self._number_of_backtracks)
+        return 
+            
+    #override:
+    #if a Cantus Firmus or line is given, assign it to the Counterpoint stack and object
+    def _initialize(self, cantus_firmus: list[RhythmicValue] = None, line: int = None) -> None:
+        super()._initialize()
+        if cantus_firmus is not None and line is not None:
+            self.assign_melody_to_line(cantus_firmus, line)
 
 class TwoPartCounterpoint (MultiPartCounterpoint, ABC):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
         if len(lines) != 2:
             raise Exception("Two-part Counterpoint must have two lines")
-        super().__init__(self, length, lines, mode)
+        super().__init__(length, lines, mode)
 
         self._rhythmic_insertion_filters.append(end_on_breve)
+
+        self._harmonic_insertion_checks.append(prevents_hidden_fifths_and_octaves_two_part)
+        self._harmonic_insertion_checks.append(no_dissonant_onsets_on_downbeats)
+        self._harmonic_insertion_checks.append(start_and_end_intervals_two_part)
 
         
     
