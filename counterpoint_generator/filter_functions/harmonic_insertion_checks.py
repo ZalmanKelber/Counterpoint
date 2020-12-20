@@ -106,5 +106,15 @@ def adjacent_voices_stay_within_twelth(self: object, pitch: Pitch, line: int, ba
             if c_note is not None and abs(c_note.get_tonal_interval(pitch)) > 12:
                 return False 
     return True
+
+#used in all multi-part examples
+def sharp_notes_and_leading_tones_not_doubled(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if self._mode_resolver.is_sharp(pitch) or self._mode_resolver.is_leading_tone(pitch):
+        for other_line in range(self._height):
+            if other_line != line:
+                c_note = self._get_counterpoint_pitch(other_line, bar, beat)
+                if c_note is not None and abs(c_note.get_chromatic_interval(pitch)) % 12 == 0:
+                    return False 
+    return True
                 
 

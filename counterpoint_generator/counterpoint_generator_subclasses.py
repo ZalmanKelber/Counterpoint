@@ -10,6 +10,9 @@ from mode_resolver import ModeResolver
 from filter_functions.melodic_insertion_checks import begin_and_end_on_mode_final
 
 from filter_functions.rhythmic_insertion_filters import end_on_breve
+from filter_functions.rhythmic_insertion_filters import pentultimate_note_is_leading_tone
+
+from filter_functions.harmonic_insertion_checks import sharp_notes_and_leading_tones_not_doubled
 
 from filter_functions.harmonic_insertion_checks import prevents_hidden_fifths_and_octaves_two_part
 from filter_functions.harmonic_insertion_checks import no_dissonant_onsets_on_downbeats
@@ -56,6 +59,10 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
         self._legal_intervals["resolvable_dissonance"] = { -9, -2, 4, 7, 11, 14, 18, 21 } 
         self._harmonic_insertion_checks = []
         self._harmonic_rhythmic_filters = []
+
+        self._rhythmic_insertion_filters.append(pentultimate_note_is_leading_tone)
+
+        self._harmonic_insertion_checks.append(sharp_notes_and_leading_tones_not_doubled)
 
     ##################### override methods #######################
 
