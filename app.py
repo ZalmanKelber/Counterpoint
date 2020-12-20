@@ -15,9 +15,9 @@ from two_part_first_species import TwoPartFirstSpeciesGenerator
 from midi_writer import MidiWriter
 
 def main():
-    for mode in Mode:
+    for mode in [Mode.AEOLIAN]:
         optimal = None
-        while optimal is None:
+        if optimal is None:
             tp1s = TwoPartFirstSpeciesGenerator(randint(8, 12), [VocalRange.TENOR, VocalRange.SOPRANO], mode)
             tp1s.generate_counterpoint()
             tp1s.score_solutions()

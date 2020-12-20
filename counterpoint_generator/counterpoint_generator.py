@@ -116,6 +116,8 @@ class CounterpointGenerator (ABC):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
 
+        print("BASE CLASS CONSTRUCTOR CALLED")
+
         self._reset_class_variables() #ensures class variables aren't altered from other instances
 
         self._length = length 

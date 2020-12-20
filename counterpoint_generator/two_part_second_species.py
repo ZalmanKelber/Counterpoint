@@ -7,27 +7,24 @@ from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accident
 from mode_resolver import ModeResolver
 
 from counterpoint_generator_subclasses import TwoPartCounterpoint
-from counterpoint_generator_species_subclasses import FirstSpeciesCounterpointGenerator
+from counterpoint_generator_species_subclasses import SecondSpeciesCounterpointGenerator
 from counterpoint_generator_solo_subclasses import CantusFirmusGenerator
 
-from filter_functions.melodic_insertion_checks import end_stepwise
 
-from filter_functions.harmonic_insertion_checks import prevents_parallel_fifths_and_octaves_simple
 from filter_functions.harmonic_insertion_checks import unison_not_allowed_on_downbeat_outside_first_and_last_measure
-from filter_functions.harmonic_insertion_checks import no_more_than_four_consecutive_repeated_vertical_intervals
 from filter_functions.harmonic_insertion_checks import adjacent_voices_stay_within_tenth
+from filter_functions.harmonic_insertion_checks import regulates_passing_tones_second_speices
+from filter_functions.harmonic_insertion_checks import prevents_parallel_fifths_and_octaves_simple
 
-class TwoPartFirstSpeciesGenerator (FirstSpeciesCounterpointGenerator, TwoPartCounterpoint):
+class TwoPartSecondSpeciesGenerator (SecondSpeciesCounterpointGenerator, TwoPartCounterpoint):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
         super().__init__(length, lines, mode)
 
-        self._melodic_insertion_checks.append(end_stepwise)
-
-        self._harmonic_insertion_checks.append(prevents_parallel_fifths_and_octaves_simple)
         self._harmonic_insertion_checks.append(unison_not_allowed_on_downbeat_outside_first_and_last_measure)
-        self._harmonic_insertion_checks.append(no_more_than_four_consecutive_repeated_vertical_intervals)
         self._harmonic_insertion_checks.append(adjacent_voices_stay_within_tenth)
+        self._harmonic_insertion_checks.append(regulates_passing_tones_second_speices)
+        self._harmonic_insertion_checks.append(prevents_parallel_fifths_and_octaves_simple)
 
         #create the cantus firmus we'll use
         self._cantus_firmus_index = 0 if random() < .5 else 1

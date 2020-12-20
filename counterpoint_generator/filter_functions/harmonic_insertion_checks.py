@@ -3,8 +3,8 @@ sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/notation_system"
 
 from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
 
-#in First Species, we only need to worry about parallels on successive downbeats
-def prevents_parallel_fifths_and_octaves_first_species(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+#in First Species through Fourth Species, we only need to worry about parallels leading into downbeats
+def prevents_parallel_fifths_and_octaves_simple(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
     if bar != 0:
         prev_note = self._counterpoint_stacks[line][-1]
         for other_line in range(self._height):
@@ -64,7 +64,10 @@ def start_and_end_intervals_two_part(self: object, pitch: Pitch, line: int, bar:
     if bar == self._length - 1:
         c_note = self._counterpoint_objects[other_line][(self._length - 1, 0)]
     if c_note is not None:
-        if abs(c_note.get_chromatic_interval(pitch)) not in [0, 7, 12]:
+        interval = c_note.get_chromatic_interval(pitch)
+        if interval > 0 and interval % 12 not in [0, 7]:
+            return False 
+        if interval < 0 and interval % 12 != 0:
             return False 
     return True
     
@@ -116,5 +119,61 @@ def sharp_notes_and_leading_tones_not_doubled(self: object, pitch: Pitch, line: 
                 if c_note is not None and abs(c_note.get_chromatic_interval(pitch)) % 12 == 0:
                     return False 
     return True
-                
+
+#in the Second Species, we only need to worry about placing the Passing Tones themselves against the Cantus Firmus
+def regulates_passing_tones_second_speices(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    other_line = (line + 1) % 2
+    note_to_check, c_note = None
+    if beat == 2:
+        note_to_check = pitch
+        c_note = self._counterpoint_objects[other_line][(bar, 0)]
+    elif beat == 0 and bar != 0:
+        note_to_check = self._counterpoint_stacks[line][(bar - 1, 2)]
+        c_note = self._counterpoint_objects[other_line][(bar - 1, 0)]
+    if c_note is not None:
+        (t_interval, c_interval) = c_note.get_intervals(pitch)
+        if ( abs(t_interval) % 7 not in self._legal_intervals["tonal_harmonic_consonant"] or 
+            abs(c_interval) % 12 not in self._legal_intervals["chromatic_harmonic_consonant"] or 
+            (abs(t_interval) % 7, abs(c_interval) % 12) in self._legal_intervals["forbidden_combinations"] ):
+            #check that the dissonant note is a properly handled Passing Tone
+            note_before_note_to_check = note_to_check = self._counterpoint_stacks[line][(bar - 1 if beat == 0 else bar, 0)]
+            if abs(note_before_note_to_check.get_tonal_interval(note_to_check)) != 2:
+                return False 
+            if beat == 0:
+                if note_before_note_to_check.get_tonal_interval(note_to_check) != note_to_check.get_tonal_interval(pitch):
+                    return False
+    return True
+
+#used in all Two-part examples
+#if both voices move in the same direction by a third or move, neither voice van move by a fifth or more
+def prevents_large_leaps_in_same_direction(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    other_line = (line + 1) % 2    
+    if len(self._counterpoint_stacks[line]) > 0 and isinstance(self._counterpoint_stacks[line][-1], Pitch) and (bar, beat) in self._counterpoint_objects[other_line]:
+        c_note = self._counterpoint_objects[other_line][(bar, beat)]
+        if c_note is not None:
+            prev_beat = beat - 0.5 if beat > 0 else 3
+            prev_bar = bar if beat > 0 else bar - 1
+            prev_c_note = self._get_counterpoint_pitch(other_line, prev_bar, prev_beat)   
+            interval, c_interval = self._counterpoint_stacks[line][-1].get_tonal_interval(pitch), prev_c_note.get_tonal_interval(c_note)
+            if (interval > 2 and c_interval > 2) or (interval < 2 and c_interval < 2):
+                if abs(interval) > 4 or abs(c_interval) > 4:
+                    return False 
+    return True   
+
+#used in all Two-part examples
+#a Note in one voice cannot immediately be followed by a Cross Relation of that Note in the other voice
+def prevents_diagonal_cross_relations(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    other_line = (line + 1) % 2    
+    if (bar, beat) != (0, 0) and (bar, beat) in self._counterpoint_objects[other_line]:
+        c_note = self._counterpoint_objects[other_line][(bar, beat)]
+        if c_note is not None:
+            prev_beat = beat - 0.5 if beat > 0 else 3
+            prev_bar = bar if beat > 0 else bar - 1
+            prev_c_note = self._get_counterpoint_pitch(other_line, prev_bar, prev_beat)   
+            prev_note = self._counterpoint_stacks[line][-1]
+            if prev_c_note is not None and prev_c_note.is_cross_relation(pitch):
+                return False 
+            if isinstance(prev_note, Pitch) and prev_note.is_cross_relation(c_note):
+                return False
+    return True         
 
