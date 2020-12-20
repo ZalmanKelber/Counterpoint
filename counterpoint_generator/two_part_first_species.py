@@ -15,6 +15,7 @@ from filter_functions.melodic_insertion_checks import end_stepwise
 from filter_functions.harmonic_insertion_checks import prevents_parallel_fifths_and_octaves_first_species
 from filter_functions.harmonic_insertion_checks import unison_not_allowed_on_downbeat_outside_first_and_last_measure
 from filter_functions.harmonic_insertion_checks import no_more_than_four_consecutive_repeated_vertical_intervals
+from filter_functions.harmonic_insertion_checks import adjacent_voices_stay_within_tenth
 
 class TwoPartFirstSpeciesGenerator (FirstSpeciesCounterpointGenerator, TwoPartCounterpoint):
 
@@ -26,6 +27,7 @@ class TwoPartFirstSpeciesGenerator (FirstSpeciesCounterpointGenerator, TwoPartCo
         self._harmonic_insertion_checks.append(prevents_parallel_fifths_and_octaves_first_species)
         self._harmonic_insertion_checks.append(unison_not_allowed_on_downbeat_outside_first_and_last_measure)
         self._harmonic_insertion_checks.append(no_more_than_four_consecutive_repeated_vertical_intervals)
+        self._harmonic_insertion_checks.append(adjacent_voices_stay_within_tenth)
 
         #create the cantus firmus we'll use
         self._cantus_firmus_index = 0 if random() < .5 else 1
@@ -40,7 +42,7 @@ class TwoPartFirstSpeciesGenerator (FirstSpeciesCounterpointGenerator, TwoPartCo
     #override:
     #we should try ten attempts before we generate another Cantus Firmus
     def _exit_attempt_loop(self) -> bool:
-        if len(self._solutions) > 0 or self._number_of_attempts > 9: 
+        if len(self._solutions) > 10 or self._number_of_attempts > 50: 
             return True 
         return False 
 
@@ -53,9 +55,10 @@ class TwoPartFirstSpeciesGenerator (FirstSpeciesCounterpointGenerator, TwoPartCo
             line = self._cantus_firmus_index
         super()._initialize(cantus_firmus=cantus_firmus, line=line)
 
+
     #override:
     #collect unlimited Cantus Firmus examples within 3500 backtracks
     def _exit_backtrack_loop(self) -> bool:
-        if self._number_of_backtracks > 3500:
+        if self._number_of_backtracks > 3500 or (len(self._solutions) == 0 and self._number_of_backtracks > 100):
             return True 
         return False 

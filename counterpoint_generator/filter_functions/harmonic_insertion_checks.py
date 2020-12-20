@@ -89,5 +89,22 @@ def no_more_than_four_consecutive_repeated_vertical_intervals(self: object, pitc
                         return False
     return True
 
+#prevents adjacent voices from mobing further than a tenth from each other
+def adjacent_voices_stay_within_tenth(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    for other_line in [line - 1, line + 1]:
+        if other_line >= 0 and other_line < self._height:
+            c_note = self._get_counterpoint_pitch(other_line, bar, beat)
+            if c_note is not None and abs(c_note.get_tonal_interval(pitch)) > 10:
+                return False 
+    return True
+
+#prevents adjacent voices from mobing further than a twelth from each other
+def adjacent_voices_stay_within_twelth(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    for other_line in [line - 1, line + 1]:
+        if other_line >= 0 and other_line < self._height:
+            c_note = self._get_counterpoint_pitch(other_line, bar, beat)
+            if c_note is not None and abs(c_note.get_tonal_interval(pitch)) > 12:
+                return False 
+    return True
                 
 

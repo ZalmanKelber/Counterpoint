@@ -15,6 +15,8 @@ from filter_functions.harmonic_insertion_checks import prevents_hidden_fifths_an
 from filter_functions.harmonic_insertion_checks import no_dissonant_onsets_on_downbeats
 from filter_functions.harmonic_insertion_checks import start_and_end_intervals_two_part
 
+from filter_functions.score_functions import penalize_perfect_intervals_on_downbeats
+
 class SoloMelody (CounterpointGenerator, ABC):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
@@ -128,6 +130,8 @@ class TwoPartCounterpoint (MultiPartCounterpoint, ABC):
         self._harmonic_insertion_checks.append(prevents_hidden_fifths_and_octaves_two_part)
         self._harmonic_insertion_checks.append(no_dissonant_onsets_on_downbeats)
         self._harmonic_insertion_checks.append(start_and_end_intervals_two_part)
+
+        self._score_functions.append(penalize_perfect_intervals_on_downbeats)
 
         
     

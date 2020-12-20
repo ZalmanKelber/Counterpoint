@@ -67,7 +67,8 @@ def penalize_two_note_quarter_runs(self: object) -> int:
                 and self._counterpoint_stacks[line][i].get_duration() > 2 ):
                 score_add_on += 15
     return score_add_on
-            
+
+#a good Fifth Species example should have the right number of syncopated Whole Notes and Dotted Half Notes           
 def select_ideal_ties(self: object) -> int:
     score_add_on = 0
     for line in range(self._height):
@@ -94,6 +95,16 @@ def select_ideal_ties(self: object) -> int:
         if has_isolated_tie: 
             score_add_on += 12
     return score_add_on
-        
+
+#for use in all Two Part examples
+def penalize_perfect_intervals_on_downbeats(self: object) -> int:   
+    num_perfect_intervals = 0
+    for bar in range(1, self._length - 1): #note that we don't include the first and last bars   
+        if (bar, 0) in self._counterpoint_objects[0] and (bar, 0) in self._counterpoint_objects[1]:
+            c_interval = self._counterpoint_objects[0][(bar, 0)].get_chromatic_interval(self._counterpoint_objects[1][(bar, 0)])
+            if abs(c_interval) % 12 in [0, 7]:
+                num_perfect_intervals += 1
+    return 12 * (num_perfect_intervals - 1)
+
 
 

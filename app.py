@@ -19,7 +19,7 @@ def main():
         optimal = None
         while optimal is None:
             # print(vocal_range.value, mode.value)
-            tp1s = TwoPartFirstSpeciesGenerator(randint(8, 12), [VocalRange.TENOR, VocalRange.SOPRANO], mode)
+            tp1s = TwoPartFirstSpeciesGenerator(randint(8, 12), [VocalRange.BASS, VocalRange.SOPRANO], mode)
             tp1s.generate_counterpoint()
             tp1s.score_solutions()
             optimal = tp1s.get_one_solution()

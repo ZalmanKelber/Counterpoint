@@ -124,24 +124,6 @@ class CounterpointGenerator (ABC):
         self._mode = mode 
         self._mode_resolver = ModeResolver(mode)
 
-        for line in range(self._height):
-            self._counterpoint_stacks.append([])
-            self._counterpoint_objects.append({})
-            self._all_indices.append(set())
-            self._remaining_indices.append([])
-            self._attempt_parameters.append({ 
-                "lowest": None, 
-                "highest": None,
-                "lowest_must_appear_by": None,
-                "highest_must_appear_by": None,
-                "highest_has_been_placed": None,
-                "available_pitches": []
-                })
-            self._store_all_indices_stacks.append([])
-            self._store_remaining_indices_stacks.append([])
-            self._store_deleted_indices_stacks.append([])
-            self._store_attempt_parameters_stacks.append([])
-
         #the following are the small number of default functions added to the checks
         self._index_checks.append(ensure_lowest_and_highest_have_been_placed)
 
@@ -169,7 +151,7 @@ class CounterpointGenerator (ABC):
             self._number_of_attempts += 1
             self._initialize()
             self._backtrack()
-            print("number of solutions:", len(self._solutions), "number of backtracks:", self._number_of_backtracks)
+        print("number of solutions:", len(self._solutions),"number of attempts:", self._number_of_attempts, "number of backtracks:", self._number_of_backtracks)
         return 
 
     #sorts the solutions by the scording system (note that lower scores are better)
@@ -248,6 +230,35 @@ class CounterpointGenerator (ABC):
         #reset the number of times the backtracking function has been called to zero
         self._number_of_backtracks = 0 
 
+        #reset all of the stacks
+        self._counterpoint_stacks = []
+        self._counterpoint_objects = []
+        self._all_indices = []
+        self._remaining_indices = []
+        self._attempt_parameters = []
+        self._store_all_indices_stacks = []
+        self._store_remaining_indices_stacks = []
+        self._store_deleted_indices_stacks = []
+        self._store_attempt_parameters_stacks = []
+
+        for line in range(self._height):
+            self._counterpoint_stacks.append([])
+            self._counterpoint_objects.append({})
+            self._all_indices.append(set())
+            self._remaining_indices.append([])
+            self._attempt_parameters.append({ 
+                "lowest": None, 
+                "highest": None,
+                "lowest_must_appear_by": None,
+                "highest_must_appear_by": None,
+                "highest_has_been_placed": None,
+                "available_pitches": []
+                })
+            self._store_all_indices_stacks.append([])
+            self._store_remaining_indices_stacks.append([])
+            self._store_deleted_indices_stacks.append([])
+            self._store_attempt_parameters_stacks.append([])
+
         #for each line, set up all of the indices and remaining indices 
         for line in range(self._height):
             for bar in range(self._length - 1):
@@ -315,7 +326,7 @@ class CounterpointGenerator (ABC):
         if line == self._height:
             if self._passes_final_checks():
                 if len(self._solutions) == 0:
-                    print("found first solution at backtrack number", self._number_of_backtracks)
+                    print("found first solution at backtrack number", self._number_of_backtracks, "attempt number", self._number_of_attempts)
                 self._solutions.append([self._counterpoint_stacks[line][:] for line in range(self._height)])
             return 
 
