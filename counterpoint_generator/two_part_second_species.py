@@ -13,25 +13,29 @@ from counterpoint_generator_solo_subclasses import CantusFirmusGenerator
 
 from filter_functions.harmonic_insertion_checks import unison_not_allowed_on_downbeat_outside_first_and_last_measure
 from filter_functions.harmonic_insertion_checks import adjacent_voices_stay_within_tenth
-from filter_functions.harmonic_insertion_checks import regulates_passing_tones_second_speices
+from filter_functions.harmonic_insertion_checks import forms_passing_tone_second_species
+from filter_functions.harmonic_insertion_checks import resolves_passing_tone_second_species
 from filter_functions.harmonic_insertion_checks import prevents_parallel_fifths_and_octaves_simple
 
 class TwoPartSecondSpeciesGenerator (SecondSpeciesCounterpointGenerator, TwoPartCounterpoint):
 
-    def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
+    def __init__(self, length: int, lines: list[VocalRange], mode: Mode, cantus_firmus_index: int = 0):
         super().__init__(length, lines, mode)
+        if cantus_firmus_index not in [0, 1]:
+            raise Exception("invalid cantus firmus index")
 
         self._harmonic_insertion_checks.append(unison_not_allowed_on_downbeat_outside_first_and_last_measure)
         self._harmonic_insertion_checks.append(adjacent_voices_stay_within_tenth)
-        self._harmonic_insertion_checks.append(regulates_passing_tones_second_speices)
+        self._harmonic_insertion_checks.append(forms_passing_tone_second_species)
+        self._harmonic_insertion_checks.append(resolves_passing_tone_second_species)
         self._harmonic_insertion_checks.append(prevents_parallel_fifths_and_octaves_simple)
 
         #create the cantus firmus we'll use
-        self._cantus_firmus_index = 0 if random() < .5 else 1
+        self._cantus_firmus_index = cantus_firmus_index
         self._cantus_firmus = None
         while self._cantus_firmus is None:
             cantus_firmus_generator = CantusFirmusGenerator(self._length, [self._lines[self._cantus_firmus_index]], self._mode)
-            cantus_firmus_generator.generate_counterpoint(must_end_by_descending_step=True)
+            cantus_firmus_generator.generate_counterpoint(must_end_by_descending_step=True if self._cantus_firmus_index == 1 else False)
             cantus_firmus_generator.score_solutions()
             solution = cantus_firmus_generator.get_one_solution()
             self._cantus_firmus = solution[0] if solution is not None else None
@@ -39,7 +43,7 @@ class TwoPartSecondSpeciesGenerator (SecondSpeciesCounterpointGenerator, TwoPart
     #override:
     #we should try ten attempts before we generate another Cantus Firmus
     def _exit_attempt_loop(self) -> bool:
-        if len(self._solutions) > 10 or self._number_of_attempts > 50: 
+        if len(self._solutions) >= 10 or self._number_of_attempts >= 50: 
             return True 
         return False 
 

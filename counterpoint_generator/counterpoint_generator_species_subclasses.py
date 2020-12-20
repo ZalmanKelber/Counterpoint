@@ -21,6 +21,7 @@ from filter_functions.melodic_insertion_checks import prevent_three_notes_from_i
 from filter_functions.melodic_insertion_checks import pitch_cannot_appear_three_times_in_six_notes
 
 from filter_functions.melodic_insertion_checks import end_stepwise
+from filter_functions.melodic_insertion_checks import prevents_repetition_second_species
 
 from filter_functions.melodic_insertion_checks import handles_interval_order_loosest
 from filter_functions.melodic_insertion_checks import handles_other_nearby_augs_and_dims
@@ -79,8 +80,8 @@ class FirstSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(pitch_cannot_appear_three_times_in_six_notes)
 
     #override:
-    #override the get_valid_durations, which is extremely simple in First Species
-    def _get_valid_durations(self, pitch: Pitch, line: int, bar: int, beat: float) -> set[int]:
+    #override the get_available_durations, which is extremely simple in First Species
+    def _get_available_durations(self, line: int, bar: int, beat: float) -> set[int]:
         return { 16 } if bar == self._length - 1 else { 8 }
 
     #override:
@@ -142,7 +143,6 @@ class SecondSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
         super().__init__(length, lines, mode)
-        print("SECOND SPECIES CONSTRUCTOR CALLED.  SUPER COMPLETE")
 
         #First Species has fairly strict melodic requirements in addition to the default ones
         self._melodic_insertion_checks.append(prevent_cross_relations_on_notes_separated_by_one_other_note)
@@ -151,14 +151,16 @@ class SecondSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(prevent_any_repetition_of_three_intervals)
         self._melodic_insertion_checks.append(prevent_highest_note_from_being_in_middle)
         self._melodic_insertion_checks.append(end_stepwise)
+        self._melodic_insertion_checks.append(sharp_notes_resolve_upwards)
         # self._melodic_insertion_checks.append(melody_cannot_change_direction_three_times_in_a_row)
         self._melodic_insertion_checks.append(prevent_three_notes_from_immediately_repeating)
         self._melodic_insertion_checks.append(pitch_cannot_appear_three_times_in_six_notes)
+        self._melodic_insertion_checks.append(prevents_repetition_second_species)
 
     #override:
-    #override the get_valid_durations, which consists entirely of Half Notes in the Second Speices except the penultimate measure
+    #override the get_available_durations, which consists entirely of Half Notes in the Second Speices except the penultimate measure
     #note that we rely on the base class for the _get_valid_rests method
-    def _get_valid_durations(self, pitch: Pitch, line: int, bar: int, beat: float) -> set[int]:
+    def _get_available_durations(self, line: int, bar: int, beat: float) -> set[int]:
         if bar == self._length - 1:
             return { 16 }
         elif (bar, beat) == (self._length - 2, 0):

@@ -54,7 +54,6 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
         if not self._lines_are_valid(lines):
             raise Exception("Invalid vocal ranges entered.  Either ranges were not in order or Soprano and Bass were adjacent")
         super().__init__(length, lines, mode)
-        print("MULTI COUNTERPOINT CONSTRUCTOR CALLED.  SUPER COMPLETE")
 
         self._legal_intervals["tonal_harmonic_consonant"] = { 1, 3, 5, 6 } #note that these are all mod 7 and absolute values 
         self._legal_intervals["chromatic_harmonic_consonant"] = { 0, 3, 4, 7, 8, 9 } #mod 12, absolute value
@@ -66,9 +65,8 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
         self._rhythmic_insertion_filters.append(pentultimate_note_is_leading_tone)
 
         self._harmonic_insertion_checks.append(sharp_notes_and_leading_tones_not_doubled)
-
-    ##################### override methods #######################
-
+    
+    #override:
     #to pass the insertion checks, pitches must pass the melodic and harmonic insertion checks
     def _passes_insertion_checks(self, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
         for check in self._melodic_insertion_checks:
@@ -77,9 +75,10 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
             if not check(self, pitch, line, bar, beat): return False
         return True 
 
+    #override:
     #likewise, durations must be filtered through harmonic checks as well
     def _get_valid_durations(self, pitch: Pitch, line: int, bar: int, beat: float) -> set[int]:
-        durations = get_available_durations(line, bar, beat)
+        durations = self._get_available_durations(line, bar, beat)
         for check in self._rhythmic_insertion_filters:
             durations = check(self, pitch, line, bar, beat, durations)
             if len(durations) == 0: return durations
@@ -150,11 +149,8 @@ class TwoPartCounterpoint (MultiPartCounterpoint, ABC):
         if len(lines) != 2:
             raise Exception("Two-part Counterpoint must have two lines")
         super().__init__(length, lines, mode)
-        print("TWO PART COUNTERPOINT CONSTRUCTOR CALLED.  SUPER COMPLETE")
 
         self._rhythmic_insertion_filters.append(end_on_breve)
-        for check in self._rhythmic_insertion_filters:
-            print(check.__name__)
 
         self._harmonic_insertion_checks.append(prevents_hidden_fifths_and_octaves_two_part)
         self._harmonic_insertion_checks.append(no_dissonant_onsets_on_downbeats)

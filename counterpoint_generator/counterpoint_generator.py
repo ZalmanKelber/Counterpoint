@@ -78,31 +78,31 @@ class CounterpointGenerator (ABC):
 
     #the list of functions that pitches will be passed through to deterine if they are eligible to be placed on
     #the stack at a given location in a line of counterpoint 
-    _melodic_insertion_checks = []
+    _melodic_insertion_checks = None
 
     #each eligible pitch will then send a list of available rhythmic durations through these filters
     #to determine which pitch/rhythm combinations may be legally placed on the counterpoint stack
-    _rhythmic_insertion_filters = []
+    _rhythmic_insertion_filters = None
 
     #every time a note or rest is added onto the counterpoint stack, these checks determine if adding the 
     #note changes any of the attempt parameters (for example, "highest_has_been_placed")
-    _change_parameters_checks = []
+    _change_parameters_checks = None
 
     #index checks are run when a certain index (of the form (bar, beat)) is reached on the stack, in order
     #to determine whether or not certain conditions (specified in the attempt parameters) have been met
-    _index_checks = []
+    _index_checks = None
 
     #final checks are run when the backtracking algorithm reaches the end of the remaining indices to determine
     #if a solution is legal, and thus whether it should be added to the list of solutions
-    _final_checks = []
+    _final_checks = None
 
     #a list of solutions collected by the algorithm.  Each one is in the form of a list of lines of counterpoint,
     #each of which is a list of successive RhythmicValue objects (that is, Notes and Rests)
-    _solutions = []
+    _solutions = None
 
     #a list of scoring functions that add to the score of a solution -- used when selecting the optimal
     #solution from the ones added
-    _score_functions = []
+    _score_functions = None
 
     #default list of valid intervals.  This will be changed or overriden in some but not all subclasses
     _legal_intervals = {
@@ -115,8 +115,6 @@ class CounterpointGenerator (ABC):
     }
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
-
-        print("BASE CLASS CONSTRUCTOR CALLED")
 
         self._reset_class_variables() #ensures class variables aren't altered from other instances
 
@@ -140,6 +138,8 @@ class CounterpointGenerator (ABC):
 
         self._score_functions.append(prioritize_stepwise_motion)
         self._score_functions.append(ascending_leaps_followed_by_descending_steps)
+
+        self._highest_bar_reached = 0
         
     ###################### public functions ############################
 
@@ -334,10 +334,10 @@ class CounterpointGenerator (ABC):
 
         #otherwise, get the current index
         (bar, beat) = self._remaining_indices[line].pop()
-        # if bar > self._highest_bar_reached:
-        #     self._highest_bar_reached = bar
-        #     print("bar, length = ", bar, self._length)
-        #     self.print_counterpoint()
+        if bar > self._highest_bar_reached:
+            self._highest_bar_reached = bar
+            # print("bar, length = ", bar, self._length)
+            # self.print_counterpoint()
 
         #make sure that the index checks are all true before preceding further
         if not self._passes_index_checks(line, bar, beat):

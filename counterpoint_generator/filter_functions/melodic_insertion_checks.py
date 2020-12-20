@@ -398,3 +398,15 @@ def prevents_fifteenth_century_sharp_resolution(self: object, pitch: Pitch, line
             return False 
     return True
 
+#in the Second Species, we need to check notes on successive downbeats
+def prevents_repetition_second_species(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if beat == 0:
+        if (bar - 1, 0) in self._counterpoint_objects[line] and isinstance(self._counterpoint_objects[line][(bar - 1, 0)], Pitch):
+            if self._counterpoint_objects[line][(bar - 1, 0)].is_unison(pitch):
+                return False 
+        if (bar - 3, 0) in self._counterpoint_objects[line] and isinstance(self._counterpoint_objects[line][(bar - 3, 0)], Pitch):
+            if ( self._counterpoint_objects[line][(bar - 2, 0)].is_unison(pitch) and 
+                self._counterpoint_objects[line][(bar - 3, 0)].is_unison(self._counterpoint_objects[line][(bar - 1, 0)]) ):
+                return False 
+    return True 
+

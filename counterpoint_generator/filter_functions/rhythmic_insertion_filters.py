@@ -182,17 +182,7 @@ def enforce_max_long_notes_on_downbeats(self: object, pitch: Pitch, line: int, b
 #only in multi-part examples: prevents penultimate notes that are same Scale Degree as Leading Tone but not Leading Tone
 def pentultimate_note_is_leading_tone(self: object, pitch: Pitch, line: int, bar: int, beat: float, durations: set[int]) -> set[int]:
     if bar == self._length - 2:
-        legal = True
-        scale_degree, accidental = pitch.get_scale_degree(), pitch.get_accidental()
-        if self._mode == Mode.DORIAN and scale_degree == 1 and accidental == Accidental.NATURAL:
-            legal = False
-        elif self._mode == Mode.PHRYGIAN and scale_degree == 4 and accidental == Accidental.SHARP:
-            legal = False
-        elif self._mode == Mode.MIXOLYDIAN and scale_degree == 4 and accidental == Accidental.NATURAL:
-            legal = False
-        elif self._mode == Mode.AEOLIAN and scale_degree == 5 and accidental == Accidental.NATURAL:
-            legal = False
-        if not legal:
+        if pitch.get_scale_degree() == self._mode_resolver.get_mode_leading_tone() and not self._mode_resolver.is_leading_tone(pitch):
             if beat == 0:
                 durations.discard(8)
             if beat == 2:

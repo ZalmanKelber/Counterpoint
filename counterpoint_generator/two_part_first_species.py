@@ -19,8 +19,10 @@ from filter_functions.harmonic_insertion_checks import adjacent_voices_stay_with
 
 class TwoPartFirstSpeciesGenerator (FirstSpeciesCounterpointGenerator, TwoPartCounterpoint):
 
-    def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
+    def __init__(self, length: int, lines: list[VocalRange], mode: Mode, cantus_firmus_index: int = 0):
         super().__init__(length, lines, mode)
+        if cantus_firmus_index not in [0, 1]:
+            raise Exception("invalid cantus firmus index")
 
         self._melodic_insertion_checks.append(end_stepwise)
 
@@ -30,7 +32,7 @@ class TwoPartFirstSpeciesGenerator (FirstSpeciesCounterpointGenerator, TwoPartCo
         self._harmonic_insertion_checks.append(adjacent_voices_stay_within_tenth)
 
         #create the cantus firmus we'll use
-        self._cantus_firmus_index = 0 if random() < .5 else 1
+        self._cantus_firmus_index = cantus_firmus_index
         self._cantus_firmus = None
         while self._cantus_firmus is None:
             cantus_firmus_generator = CantusFirmusGenerator(self._length, [self._lines[self._cantus_firmus_index]], self._mode)
@@ -42,7 +44,7 @@ class TwoPartFirstSpeciesGenerator (FirstSpeciesCounterpointGenerator, TwoPartCo
     #override:
     #we should try ten attempts before we generate another Cantus Firmus
     def _exit_attempt_loop(self) -> bool:
-        if len(self._solutions) > 10 or self._number_of_attempts > 50: 
+        if len(self._solutions) >= 10 or self._number_of_attempts >= 50: 
             return True 
         return False 
 

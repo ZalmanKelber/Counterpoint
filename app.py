@@ -11,20 +11,20 @@ import math
 from random import random, randint, shuffle
 
 from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
-from two_part_first_species import TwoPartFirstSpeciesGenerator
+from two_part_second_species import TwoPartSecondSpeciesGenerator
 from midi_writer import MidiWriter
 
 def main():
-    for mode in [Mode.AEOLIAN]:
+    for mode in Mode:
         optimal = None
-        if optimal is None:
-            tp1s = TwoPartFirstSpeciesGenerator(randint(8, 12), [VocalRange.TENOR, VocalRange.SOPRANO], mode)
-            tp1s.generate_counterpoint()
-            tp1s.score_solutions()
-            optimal = tp1s.get_one_solution()
+        while optimal is None:
+            two_part_second_species_generator = TwoPartSecondSpeciesGenerator(randint(8, 12), [VocalRange.TENOR, VocalRange.SOPRANO], mode)
+            two_part_second_species_generator.generate_counterpoint()
+            two_part_second_species_generator.score_solutions()
+            optimal = two_part_second_species_generator.get_one_solution()
         if optimal is not None:
             mw = MidiWriter()
-            mw.write_midi_from_counterpoint(optimal, "counterpoint.mid")
+            mw.write_midi_from_counterpoint(optimal, "counterpoint.mid", speed_up=1.5)
             fs = FluidSynth("/Users/alexkelber/Development/FluidR3_GM/FluidR3_GM.sf2")
             fs.play_midi("counterpoint.mid")
 
