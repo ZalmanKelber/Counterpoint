@@ -106,5 +106,23 @@ def penalize_perfect_intervals_on_downbeats(self: object) -> int:
                 num_perfect_intervals += 1
     return 12 * (num_perfect_intervals - 1)
 
+#for use in Second and Third Species
+def find_longest_sequence_of_steps(self: object) -> int:
+    score_add_on = 0
+    for line in range(self._height):
+        if line != self._cantus_firmus_index:
+            intervals = [self._counterpoint_stacks[line][i].get_tonal_interval(self._counterpoint_stacks[line][i + 1]) if isinstance(self._counterpoint_stacks[line][i], Pitch) else 0 for i in range(len(self._counterpoint_stacks[line]) - 1)]
+            max_num_steps, num_steps = 0, 0
+            for i in range(len(intervals)):
+                if abs(intervals[i]) == 2:
+                    if i > 0 and abs(intervals[i - 1]) == 2:
+                        num_steps += 1
+                    else:
+                        num_steps = 1
+                    if num_steps > max_num_steps:
+                        max_num_steps = num_steps
+            score_add_on += max_num_steps * 40
+    return score_add_on
+        
 
 

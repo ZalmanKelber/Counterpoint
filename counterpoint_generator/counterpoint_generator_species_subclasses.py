@@ -152,10 +152,11 @@ class SecondSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(prevent_highest_note_from_being_in_middle)
         self._melodic_insertion_checks.append(end_stepwise)
         self._melodic_insertion_checks.append(sharp_notes_resolve_upwards)
-        # self._melodic_insertion_checks.append(melody_cannot_change_direction_three_times_in_a_row)
+        self._melodic_insertion_checks.append(melody_cannot_change_direction_three_times_in_a_row)
         self._melodic_insertion_checks.append(prevent_three_notes_from_immediately_repeating)
         self._melodic_insertion_checks.append(pitch_cannot_appear_three_times_in_six_notes)
         self._melodic_insertion_checks.append(prevents_repetition_second_species)
+        self._melodic_insertion_checks.append(prevents_fifteenth_century_sharp_resolution)
 
     #override:
     #override the get_available_durations, which consists entirely of Half Notes in the Second Speices except the penultimate measure
@@ -292,7 +293,6 @@ class FifthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
     def _assign_highest_and_lowest(self) -> None:
         for line in range(self._height):
             vocal_range = self._lines[line]
-            final = self._mode_resolver.get_default_mode_final(vocal_range)
             #choose a range interval between an octave and tenth that is within each voice range
             range_size = randint(8, 10)
             leeway = 13 - range_size #this is the interval that we can add to the range_size interval to get the interval from the lowest to highest note available in the vocal range

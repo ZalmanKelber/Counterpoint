@@ -17,6 +17,8 @@ from filter_functions.harmonic_insertion_checks import forms_passing_tone_second
 from filter_functions.harmonic_insertion_checks import resolves_passing_tone_second_species
 from filter_functions.harmonic_insertion_checks import prevents_parallel_fifths_and_octaves_simple
 
+from filter_functions.score_functions import find_longest_sequence_of_steps
+
 class TwoPartSecondSpeciesGenerator (SecondSpeciesCounterpointGenerator, TwoPartCounterpoint):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode, cantus_firmus_index: int = 0):
@@ -29,6 +31,8 @@ class TwoPartSecondSpeciesGenerator (SecondSpeciesCounterpointGenerator, TwoPart
         self._harmonic_insertion_checks.append(forms_passing_tone_second_species)
         self._harmonic_insertion_checks.append(resolves_passing_tone_second_species)
         self._harmonic_insertion_checks.append(prevents_parallel_fifths_and_octaves_simple)
+
+        self._score_functions.append(find_longest_sequence_of_steps)
 
         #create the cantus firmus we'll use
         self._cantus_firmus_index = cantus_firmus_index
@@ -43,9 +47,7 @@ class TwoPartSecondSpeciesGenerator (SecondSpeciesCounterpointGenerator, TwoPart
     #override:
     #we should try ten attempts before we generate another Cantus Firmus
     def _exit_attempt_loop(self) -> bool:
-        if len(self._solutions) >= 10 or self._number_of_attempts >= 50: 
-            return True 
-        return False 
+        return len(self._solutions) >= 10 or self._number_of_attempts >= 50
 
     
     #override:
@@ -55,6 +57,59 @@ class TwoPartSecondSpeciesGenerator (SecondSpeciesCounterpointGenerator, TwoPart
             cantus_firmus = self._cantus_firmus
             line = self._cantus_firmus_index
         super()._initialize(cantus_firmus=cantus_firmus, line=line)
+
+    #override:
+    #assign the highest and lowest notes based on the range of the Cantus Firmus
+    def _assign_highest_and_lowest(self) -> None:
+
+        #first get the highest and lowest notes of the Cantus Firmus
+        c_highest, c_lowest = self._cantus_firmus[0], self._cantus_firmus[0]
+        for note in self._cantus_firmus:
+            if c_highest.get_chromatic_interval(note) > 0:
+                c_highest = note 
+            if c_lowest.get_chromatic_interval(note) < 0:
+                c_lowest = note
+
+        for line in range(self._height):
+            if line != self._cantus_firmus_index:
+
+                vocal_range = self._lines[line]
+                #choose a range interval between an octave and tenth that is within each voice range
+                range_size = randint(8, 10)
+                leeway = 13 - range_size #this is the interval that we can add to the range_size interval to get the interval from the lowest to highest note available in the vocal range
+                
+                #if the Cantus Firmus is on top, we want to calculate our highest note in relation to the Cantus Firmus lowest note
+                if line == 0:
+                    high_vocal_highest = self._mode_resolver.get_highest_of_range(vocal_range)
+                    low_vocal_highest = self._mode_resolver.get_default_pitch_from_interval(high_vocal_highest, leeway * -1)
+                    high_possible_highest = high_vocal_highest if high_vocal_highest.get_tonal_interval(c_lowest) > -3 else self._mode_resolver.get_default_pitch_from_interval(c_lowest, 3)
+                    low_possible_highest = low_vocal_highest if low_vocal_highest.get_tonal_interval(c_lowest) < 3 else self._mode_resolver.get_default_pitch_from_interval(c_lowest, -3)
+                    tighter_leeway = low_possible_highest.get_tonal_interval(high_possible_highest)
+                    if tighter_leeway < 0:
+                        self._attempt_parameters[line]["highest"] = high_vocal_highest if low_vocal_highest.get_tonal_interval(c_lowest) > 0 else low_vocal_highest
+                    else:
+                        self._attempt_parameters[line]["highest"] = self._mode_resolver.get_default_pitch_from_interval(low_possible_highest, randint(1, tighter_leeway))
+                    self._attempt_parameters[line]["lowest"] = self._mode_resolver.get_default_pitch_from_interval(self._attempt_parameters[line]["highest"], range_size * -1)
+                else:
+                    low_vocal_lowest = self._mode_resolver.get_lowest_of_range(vocal_range)
+                    high_vocal_lowest = self._mode_resolver.get_default_pitch_from_interval(low_vocal_lowest, leeway)
+                    low_possible_lowest = low_vocal_lowest if low_vocal_lowest.get_tonal_interval(c_highest) < 3 else self._mode_resolver.get_default_pitch_from_interval(c_highest, -3)
+                    high_possible_lowest = high_vocal_lowest if high_vocal_lowest.get_tonal_interval(c_highest) > -3 else self._mode_resolver.get_default_pitch_from_interval(c_highest, 3)
+                    tighter_leeway = low_possible_lowest.get_tonal_interval(high_possible_lowest)
+                    if tighter_leeway < 0:
+                        self._attempt_parameters[line]["lowest"] = low_vocal_lowest if high_vocal_lowest.get_tonal_interval(c_highest) < 0 else high_vocal_lowest
+                    else:
+                        self._attempt_parameters[line]["lowest"] = self._mode_resolver.get_default_pitch_from_interval(low_possible_lowest, randint(1, tighter_leeway))
+                    self._attempt_parameters[line]["highest"] = self._mode_resolver.get_default_pitch_from_interval(self._attempt_parameters[line]["lowest"], range_size)
+
+
+            else:
+                self._attempt_parameters[line]["lowest"] = c_lowest
+                self._attempt_parameters[line]["highest"] = c_highest
+            
+            self._attempt_parameters[line]["lowest_must_appear_by"] = randint(3, self._length - 1)
+            self._attempt_parameters[line]["highest_must_appear_by"] = randint(3, self._length - 1)
+
 
 
     #override:
