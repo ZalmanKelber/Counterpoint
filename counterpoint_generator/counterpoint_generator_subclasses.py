@@ -45,6 +45,10 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
         if len(lines) < 2:
             raise Exception("Multi-part Counterpoint must have at least two lines")
+
+        if not self._lines_are_valid(lines):
+            raise Exception("Invalid vocal ranges entered.  Either ranges were not in order or Soprano and Bass were adjacent")
+
         super().__init__(length, lines, mode)
         self._legal_intervals["tonal_harmonic_consonant"] = { 1, 3, 5, 6 } #note that these are all mod 7 and absolute values 
         self._legal_intervals["chromatic_harmonic_consonant"] = { 0, 3, 4, 7, 8, 9 } #mod 12, absolute value
@@ -117,6 +121,18 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
         super()._initialize()
         if cantus_firmus is not None and line is not None:
             self.assign_melody_to_line(cantus_firmus, line)
+
+    #Vocal Ranges must be given in ascending order, and Soprano and Bass may not be adjacent
+    def _lines_are_valid(self, lines: list[VocalRange]) -> bool:
+        for i in range(len(lines) - 1):
+            lower, higher = lines[i], lines[i + 1]
+            if (lower, higher) == (VocalRange.BASS, VocalRange.SOPRANO):
+                return False 
+            if lower.value > higher.value:
+                return False 
+        return True
+            
+
 
 class TwoPartCounterpoint (MultiPartCounterpoint, ABC):
 
