@@ -201,7 +201,7 @@ def resolves_cambiata_tail(self: object, pitch: Pitch, line: int, bar: int, beat
     if beat == 0:
         (camb_bar, cam_beat) = (bar - 1, 1)
         (res_bar, res_beat) = (bar - 1, 2)
-    else:
+    if beat == 3:
         (camb_bar, cam_beat) = (bar, 1)
         (res_bar, res_beat) = (bar, 2)
     if (camb_bar, cam_beat) in self._counterpoint_objects[line] and (res_bar, res_beat) in self._counterpoint_objects[line]:
@@ -292,3 +292,35 @@ def resolve_suspension(self: object, pitch: Pitch, line: int, bar: int, beat: fl
             sus_note.get_tonal_interval(pitch) != -2 ):
             return False 
     return True
+
+#handles Passing Tones on middle beat of Measure
+def handles_weak_half_note_dissonance_fifth_species(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    other_line = (line + 1) % 2 
+    if beat == 2:
+        c_note = self._get_counterpoint_pitch(other_line, bar, beat)
+        if c_note is not None:
+            (t_interval, c_interval) = c_note.get_intervals(pitch)
+            if ( abs(t_interval) % 7 not in self._legal_intervals["tonal_harmonic_consonant"] 
+                or abs(c_interval) % 12 not in self._legal_intervals["chromatic_harmonic_consonant"] 
+                or (abs(t_interval) % 7, abs(c_interval) % 12) in self._legal_intervals["forbidden_combinations"] ):
+                prev = self._counterpoint_stacks[line][-1]
+                if isinstance(prev, Pitch) and abs(prev.get_tonal_interval(pitch)) != 2:
+                    return False 
+    return True
+
+#must resolve by step in same direction as previous interval
+def resolves_weak_half_note_dissonance_fifth_species(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    other_line = (line + 1) % 2 
+    if len(self._counterpoint_stacks[line]) > 1 and isinstance(self._counterpoint_stacks[line][-2], Pitch):
+        if (beat == 3 and self._counterpoint_stacks[line][-1].get_duration() == 2) or (beat == 0 and self._counterpoint_stacks[line][-1].get_duration() == 4):
+            (prev_bar, prev_beat) = (bar - 1, 2) if beat == 0 else (bar, 2)
+            c_note = self._get_counterpoint_pitch(other_line, prev_bar, prev_beat)
+            if c_note is not None:
+                (t_interval, c_interval) = c_note.get_intervals(self._counterpoint_stacks[line][-1])
+                if ( abs(t_interval) % 7 not in self._legal_intervals["tonal_harmonic_consonant"] 
+                    or abs(c_interval) % 12 not in self._legal_intervals["chromatic_harmonic_consonant"] 
+                    or (abs(t_interval) % 7, abs(c_interval) % 12) in self._legal_intervals["forbidden_combinations"] ):
+                    if self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) != self._counterpoint_stacks[line][-2].get_tonal_interval(self._counterpoint_stacks[line][-1]):
+                        return False 
+    return True
+

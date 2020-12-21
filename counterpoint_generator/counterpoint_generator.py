@@ -189,7 +189,7 @@ class CounterpointGenerator (ABC):
                 for line in range(self._height):
                     entity = str(self._counterpoint_objects[line][(bar, beat)]) if (bar, beat) in self._counterpoint_objects[line] else " ".ljust(33)
                     if (bar, beat + .5) in self._counterpoint_objects[line]:
-                        entity = entity[:33] + " / " + str(self._counterpoint_objects[line][(bar, beat + .5)])[:33]
+                        entity = entity[:9] + " / " + str(self._counterpoint_objects[line][(bar, beat + .5)])[:9]
                         entity = entity.ljust(64)
                     print_row += entity
                 print(print_row)

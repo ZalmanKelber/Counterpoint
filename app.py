@@ -19,7 +19,7 @@ def main():
         for i in range(2):
             optimal = None
             while optimal is None:
-                two_part_fifth_species_generator = TwoPartFifthSpeciesGenerator(randint(8, 12), [VocalRange.ALTO, VocalRange.SOPRANO], mode, cantus_firmus_index=i)
+                two_part_fifth_species_generator = TwoPartFifthSpeciesGenerator(randint(12, 16), [VocalRange.ALTO, VocalRange.SOPRANO], mode, cantus_firmus_index=i)
                 two_part_fifth_species_generator.generate_counterpoint()
                 two_part_fifth_species_generator.score_solutions()
                 optimal = two_part_fifth_species_generator.get_one_solution()

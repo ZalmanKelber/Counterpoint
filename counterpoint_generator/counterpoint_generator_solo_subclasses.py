@@ -15,7 +15,6 @@ from counterpoint_generator_species_subclasses import FifthSpeciesCounterpointGe
 from counterpoint_generator_subclasses import SoloMelody
 
 from filter_functions.melodic_insertion_checks import last_interval_is_descending_step
-from filter_functions.melodic_insertion_checks import end_stepwise
 
 from filter_functions.rhythmic_insertion_filters import enforce_max_long_notes_on_downbeats
 

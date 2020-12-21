@@ -309,6 +309,7 @@ class FifthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(eighths_in_same_direction_must_be_followed_by_motion_in_opposite_direction)
         self._melodic_insertion_checks.append(prevent_note_from_repeating_three_times_in_five_notes)
         self._melodic_insertion_checks.append(prevents_fifteenth_century_sharp_resolution)
+        self._melodic_insertion_checks.append(end_stepwise)
 
             #inherited from base class:
             #(none)
@@ -360,7 +361,6 @@ class FifthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._assign_max_melodic_octaves()
 
     def _assign_max_pairs_of_eighths(self) -> None:
-        print("assign max pairs of eighths called")
         for line in range(self._height):
             chance = random()
             if chance < .05:
@@ -369,7 +369,7 @@ class FifthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
                 self._attempt_parameters[line]["max_pairs_of_eighths"] = 1
             else:
                 self._attempt_parameters[line]["max_pairs_of_eighths"] = 0
-        self._attempt_parameters[line]["pairs_of_eighths_placed"] = 0
+            self._attempt_parameters[line]["pairs_of_eighths_placed"] = 0
 
     #limit prevents melody from becoming too choppy
     def _assign_max_melodic_octaves(self) -> None:
