@@ -20,7 +20,7 @@ from filter_functions.harmonic_insertion_checks import resolve_suspension
 
 from filter_functions.harmonic_rhythmic_filters import form_suspension_fourth_species
 
-from filter_functions.score_functions import find_longest_sequence_of_steps
+from filter_functions.score_functions import find_as_many_suspensions_as_possible
 
 class TwoPartFourthSpeciesGenerator (FourthSpeciesCounterpointGenerator, TwoPartCounterpoint):
 
@@ -38,7 +38,7 @@ class TwoPartFourthSpeciesGenerator (FourthSpeciesCounterpointGenerator, TwoPart
 
         self._harmonic_rhythmic_filters.append(form_suspension_fourth_species)
 
-        self._score_functions.append(find_longest_sequence_of_steps)
+        self._score_functions.append(find_as_many_suspensions_as_possible)
 
         #create the cantus firmus we'll use
         self._cantus_firmus_index = cantus_firmus_index
@@ -53,7 +53,7 @@ class TwoPartFourthSpeciesGenerator (FourthSpeciesCounterpointGenerator, TwoPart
     #override:
     #we should try ten attempts before we generate another Cantus Firmus
     def _exit_attempt_loop(self) -> bool:
-        return len(self._solutions) >= 10 or self._number_of_attempts >= 50
+        return len(self._solutions) >= 500 or self._number_of_attempts >= 5
 
     
     #override:
@@ -121,6 +121,6 @@ class TwoPartFourthSpeciesGenerator (FourthSpeciesCounterpointGenerator, TwoPart
     #override:
     #collect unlimited Cantus Firmus examples within 3500 backtracks
     def _exit_backtrack_loop(self) -> bool:
-        if self._number_of_backtracks > 3500 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 150):
+        if self._number_of_backtracks > 20000 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 150):
             return True 
         return False 

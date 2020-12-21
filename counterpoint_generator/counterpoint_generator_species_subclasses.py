@@ -271,7 +271,7 @@ class FourthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         for line in range(self._height):
             vocal_range = self._lines[line]
             #choose a range interval between a seventh and tenth and choose a highest and lowest note
-            range_size = randint(7, 10)
+            range_size = randint(5, 10)
             range_bottom = self._mode_resolver.get_lowest_of_range(vocal_range)
 
             self._attempt_parameters[line]["lowest"] = self._mode_resolver.get_default_pitch_from_interval(range_bottom, randint(1, 13 - range_size))

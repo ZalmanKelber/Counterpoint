@@ -144,4 +144,15 @@ def penalize_whole_note_in_penultimate_bar(self: object) -> int:
     return score_add_on
         
 
-
+#for use in Two-part Fourth Species
+#this is the most important criteria in the Fourth Species so the score is weighted heavily
+def find_as_many_suspensions_as_possible(self: object) -> int:
+    score_add_on = 0
+    c_line = self._cantus_firmus_index
+    counterpoint_line = (c_line + 1) % 2
+    for bar in range(1, self._length - 1):
+        c_note = self._counterpoint_objects[c_line][(bar, 0)]
+        counterpoint_note = self._get_counterpoint_pitch(counterpoint_line, bar, 0)
+        if c_note.get_tonal_interval(counterpoint_note) not in self._legal_intervals["resolvable_dissonance"]:
+            score_add_on += 1000
+    return score_add_on

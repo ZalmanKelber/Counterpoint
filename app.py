@@ -15,7 +15,7 @@ from two_part_fourth_species import TwoPartFourthSpeciesGenerator
 from midi_writer import MidiWriter
 
 def main():
-    for mode in [Mode.IONIAN]:
+    for mode in Mode :
         for i in range(2):
             optimal = None
             while optimal is None:
