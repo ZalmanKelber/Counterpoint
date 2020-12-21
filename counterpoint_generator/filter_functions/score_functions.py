@@ -140,7 +140,7 @@ def penalize_whole_note_in_penultimate_bar(self: object) -> int:
     for line in range(self._height):
         if line != self._cantus_firmus_index:
             if self._counterpoint_stacks[line][-2].get_duration() == 8:
-                score_add_on += 400
+                score_add_on += 40
     return score_add_on
         
 

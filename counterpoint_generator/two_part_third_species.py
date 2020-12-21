@@ -12,7 +12,7 @@ from counterpoint_generator_solo_subclasses import CantusFirmusGenerator
 
 
 from filter_functions.harmonic_insertion_checks import unison_not_allowed_on_downbeat_outside_first_and_last_measure
-from filter_functions.harmonic_insertion_checks import adjacent_voices_stay_within_tenth
+from filter_functions.harmonic_insertion_checks import adjacent_voices_stay_within_twelth
 from filter_functions.harmonic_insertion_checks import forms_passing_tone_second_species
 from filter_functions.harmonic_insertion_checks import resolves_passing_tone_second_species
 from filter_functions.harmonic_insertion_checks import prevents_parallel_fifths_and_octaves_simple
@@ -32,7 +32,7 @@ class TwoPartThirdSpeciesGenerator (ThirdSpeciesCounterpointGenerator, TwoPartCo
             raise Exception("invalid cantus firmus index")
 
         self._harmonic_insertion_checks.append(unison_not_allowed_on_downbeat_outside_first_and_last_measure)
-        self._harmonic_insertion_checks.append(adjacent_voices_stay_within_tenth)
+        self._harmonic_insertion_checks.append(adjacent_voices_stay_within_twelth)
         self._harmonic_insertion_checks.append(prevents_parallel_fifths_and_octaves_simple)
         self._harmonic_insertion_checks.append(forms_weak_quarter_beat_dissonance)
         self._harmonic_insertion_checks.append(resolves_weak_quarter_beat_dissonance_third_species)

@@ -194,7 +194,6 @@ class ThirdSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(prevent_cross_relations_on_notes_separated_by_one_other_note)
         self._melodic_insertion_checks.append(enforce_interval_order_strict)
         self._melodic_insertion_checks.append(prevent_dissonances_from_being_outlined)
-        self._melodic_insertion_checks.append(prevent_any_repetition_of_three_intervals)
         self._melodic_insertion_checks.append(prevent_highest_note_from_being_in_middle)
         self._melodic_insertion_checks.append(end_stepwise)
         self._melodic_insertion_checks.append(sharp_notes_resolve_upwards)
