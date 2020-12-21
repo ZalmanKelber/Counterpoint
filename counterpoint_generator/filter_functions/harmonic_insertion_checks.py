@@ -194,10 +194,21 @@ def resolves_weak_quarter_beat_dissonance_fifth_species(self: object, pitch: Pit
 #resolves fourth and potential fifth note of Cambiata, in both Third and Fifth Species
 def resolves_cambiata_tail(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
     other_line = (line + 1) % 2    
-    (camb_bar, cam_beat) = (bar - 1, 3) if beat in [1, 2] else (bar, 1) if beat == 3 else (bar - 1, 1)
-    (res_bar, res_beat) = (bar - 1, 2) if beat == 0 else (bar, 0) if beat in [1, 2] else (bar, 2)
+    camb_bar, cam_beat, res_bar, res_beat = None, None, None, None
+    if beat in [1, 2]:
+        (camb_bar, cam_beat) = (bar - 1, 3)
+        (res_bar, res_beat) = (bar, 0)
+    if beat == 0:
+        (camb_bar, cam_beat) = (bar - 1, 1)
+        (res_bar, res_beat) = (bar - 1, 2)
+    else:
+        (camb_bar, cam_beat) = (bar, 1)
+        (res_bar, res_beat) = (bar, 2)
     if (camb_bar, cam_beat) in self._counterpoint_objects[line] and (res_bar, res_beat) in self._counterpoint_objects[line]:
         camb_note, res_note = self._counterpoint_objects[line][(camb_bar, cam_beat)], self._counterpoint_objects[line][(res_bar, res_beat)]
+        if camb_note is None or res_note is None:
+            print("camb_bar, camb_beat, res_bar, res_beat", camb_bar, cam_beat, res_bar, res_beat)
+            self.print_counterpoint()
         if camb_note.get_tonal_interval(res_note) == -3:
             c_note = self._get_counterpoint_pitch(other_line, camb_bar, cam_beat)
             if c_note is not None:

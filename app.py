@@ -11,7 +11,7 @@ import math
 from random import random, randint, shuffle
 
 from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
-from two_part_fourth_species import TwoPartFourthSpeciesGenerator
+from two_part_fifth_species import TwoPartFifthSpeciesGenerator
 from midi_writer import MidiWriter
 
 def main():
@@ -19,10 +19,10 @@ def main():
         for i in range(2):
             optimal = None
             while optimal is None:
-                two_part_fourth_species_generator = TwoPartFourthSpeciesGenerator(randint(8, 12), [VocalRange.ALTO, VocalRange.SOPRANO], mode, cantus_firmus_index=i)
-                two_part_fourth_species_generator.generate_counterpoint()
-                two_part_fourth_species_generator.score_solutions()
-                optimal = two_part_fourth_species_generator.get_one_solution()
+                two_part_fifth_species_generator = TwoPartFifthSpeciesGenerator(randint(8, 12), [VocalRange.ALTO, VocalRange.SOPRANO], mode, cantus_firmus_index=i)
+                two_part_fifth_species_generator.generate_counterpoint()
+                two_part_fifth_species_generator.score_solutions()
+                optimal = two_part_fifth_species_generator.get_one_solution()
             if optimal is not None:
                 mw = MidiWriter()
                 mw.write_midi_from_counterpoint(optimal, "counterpoint.mid", speed_up=1)

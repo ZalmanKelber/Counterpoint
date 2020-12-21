@@ -244,7 +244,6 @@ class FourthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(prevent_highest_note_from_being_in_middle)
         self._melodic_insertion_checks.append(end_stepwise)
         self._melodic_insertion_checks.append(sharp_notes_resolve_upwards)
-        # self._melodic_insertion_checks.append(melody_cannot_change_direction_three_times_in_a_row)
         self._melodic_insertion_checks.append(prevent_three_notes_from_immediately_repeating)
         self._melodic_insertion_checks.append(pitch_cannot_appear_three_times_in_six_notes)
         self._melodic_insertion_checks.append(prevents_fifteenth_century_sharp_resolution)
@@ -355,12 +354,13 @@ class FifthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
 
     #override:
     #override the initialize function so that we can assign the number of eighth notes and number of melodic octaves we deem permissible beforehand
-    def _initialize(self) -> None:
-        super()._initialize()
+    def _initialize(self, cantus_firmus: list[RhythmicValue] = None, line: int = None) -> None:
+        super()._initialize(cantus_firmus, line)
         self._assign_max_pairs_of_eighths()
         self._assign_max_melodic_octaves()
 
     def _assign_max_pairs_of_eighths(self) -> None:
+        print("assign max pairs of eighths called")
         for line in range(self._height):
             chance = random()
             if chance < .05:
