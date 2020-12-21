@@ -67,7 +67,6 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
 
         self._harmonic_insertion_checks.append(sharp_notes_and_leading_tones_not_doubled)
 
-        self._harmonic_insertion_check_log = {}
     
     #override:
     #to pass the insertion checks, pitches must pass the melodic and harmonic insertion checks

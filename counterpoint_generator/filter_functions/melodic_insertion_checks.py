@@ -228,6 +228,7 @@ def handles_interval_order_loosest(self: object, pitch: Pitch, line: int, bar: i
         if potential_interval == 2:
             segment_has_leap = False
             for i in range(len(self._counterpoint_stacks[line]) - 2, -1, -1):
+                if not isinstance(self._counterpoint_stacks[line][i], Pitch): break
                 interval = self._counterpoint_stacks[line][i].get_tonal_interval(self._counterpoint_stacks[line][i + 1])
                 if interval < 0: break
                 if segment_has_leap: return False 
@@ -235,12 +236,14 @@ def handles_interval_order_loosest(self: object, pitch: Pitch, line: int, bar: i
         if potential_interval == -2:
             segment_has_leap = False
             for i in range(len(self._counterpoint_stacks[line]) - 2, -1, -1):
+                if not isinstance(self._counterpoint_stacks[line][i], Pitch): break
                 interval = self._counterpoint_stacks[line][i].get_tonal_interval(self._counterpoint_stacks[line][i + 1])
                 if interval > 0: break
                 if segment_has_leap or interval == -8: return False 
                 segment_has_leap = interval < -2
         if potential_interval <= -3:
             for i in range(len(self._counterpoint_stacks[line]) - 2, -1, -1):
+                if not isinstance(self._counterpoint_stacks[line][i], Pitch): break
                 interval = self._counterpoint_stacks[line][i].get_tonal_interval(self._counterpoint_stacks[line][i + 1])
                 if interval > 0: break
                 if interval < -2: return False 

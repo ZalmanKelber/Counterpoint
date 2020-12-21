@@ -272,3 +272,12 @@ def prevents_landini(self: object, pitch: Pitch, line: int, bar: int, beat: floa
                 return False 
     return True 
 
+#used in all Two-part examples
+def resolve_suspension(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    other_line = (line + 1) % 2  
+    if beat in [1, 2] and (bar, 0) not in self._counterpoint_objects[line]:
+        c_note, sus_note = self._get_counterpoint_pitch(other_line, bar, 0), self._get_counterpoint_pitch(line, bar, 0)
+        if ( c_note.get_tonal_interval(sus_note) in self._legal_intervals["resolvable_dissonance"] and 
+            sus_note.get_tonal_interval(pitch) != -2 ):
+            return False 
+    return True
