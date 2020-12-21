@@ -19,6 +19,7 @@ from filter_functions.harmonic_insertion_checks import no_dissonant_onsets_on_do
 from filter_functions.harmonic_insertion_checks import start_and_end_intervals_two_part
 from filter_functions.harmonic_insertion_checks import prevents_large_leaps_in_same_direction
 from filter_functions.harmonic_insertion_checks import prevents_diagonal_cross_relations
+from filter_functions.harmonic_insertion_checks import prevents_landini
 
 from filter_functions.score_functions import penalize_perfect_intervals_on_downbeats
 
@@ -65,14 +66,18 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
         self._rhythmic_insertion_filters.append(pentultimate_note_is_leading_tone)
 
         self._harmonic_insertion_checks.append(sharp_notes_and_leading_tones_not_doubled)
+
+        self._harmonic_insertion_check_log = {}
     
     #override:
     #to pass the insertion checks, pitches must pass the melodic and harmonic insertion checks
     def _passes_insertion_checks(self, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
         for check in self._melodic_insertion_checks:
-            if not check(self, pitch, line, bar, beat): return False 
+            if not check(self, pitch, line, bar, beat): 
+                return False 
         for check in self._harmonic_insertion_checks:
-            if not check(self, pitch, line, bar, beat): return False
+            if not check(self, pitch, line, bar, beat): 
+                return False
         return True 
 
     #override:
@@ -157,6 +162,7 @@ class TwoPartCounterpoint (MultiPartCounterpoint, ABC):
         self._harmonic_insertion_checks.append(start_and_end_intervals_two_part)
         self._harmonic_insertion_checks.append(prevents_large_leaps_in_same_direction)
         self._harmonic_insertion_checks.append(prevents_diagonal_cross_relations)
+        self._harmonic_insertion_checks.append(prevents_landini)
 
         self._score_functions.append(penalize_perfect_intervals_on_downbeats)
 

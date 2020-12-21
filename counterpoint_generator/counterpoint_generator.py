@@ -20,6 +20,7 @@ from filter_functions.final_checks import ascending_intervals_are_filled_in
 
 from filter_functions.score_functions import prioritize_stepwise_motion
 from filter_functions.score_functions import ascending_leaps_followed_by_descending_steps
+from filter_functions.score_functions import penalize_frequent_change_of_direction
 
 #an instance of a CounterpointGenerator creates a set of solutions through the generate_counterpoint() 
 #method, scores and sorts the solutions through the score_solutions() method and returns the optimal solution
@@ -138,6 +139,7 @@ class CounterpointGenerator (ABC):
 
         self._score_functions.append(prioritize_stepwise_motion)
         self._score_functions.append(ascending_leaps_followed_by_descending_steps)
+        self._score_functions.append(penalize_frequent_change_of_direction)
 
         self._highest_bar_reached = 0
         
@@ -153,7 +155,8 @@ class CounterpointGenerator (ABC):
             self._number_of_attempts += 1
             self._initialize()
             self._backtrack()
-        print("number of solutions:", len(self._solutions),"number of attempts:", self._number_of_attempts, "number of backtracks:", self._number_of_backtracks)
+        if self._height > 1:
+            print("number of solutions:", len(self._solutions),"number of attempts:", self._number_of_attempts, "number of backtracks:", self._number_of_backtracks)
         return 
 
     #sorts the solutions by the scording system (note that lower scores are better)
@@ -166,7 +169,8 @@ class CounterpointGenerator (ABC):
     def get_one_solution(self) -> list[list[RhythmicValue]]:
         if len(self._solutions) > 0:
             self._map_solution_onto_stack(self._solutions[0])
-            self.print_counterpoint()
+            if self._height > 1:
+                self.print_counterpoint()
             return self._solutions[0]
 
 
@@ -231,6 +235,7 @@ class CounterpointGenerator (ABC):
     def _initialize(self) -> None:
         #reset the number of times the backtracking function has been called to zero
         self._number_of_backtracks = 0 
+        self._number_of_solutions_found_this_attempt = 0
 
         #reset all of the stacks
         self._counterpoint_stacks = []
@@ -327,9 +332,10 @@ class CounterpointGenerator (ABC):
         #if so, see if the current stack passes the final checks, and if it does, add it to the solutions
         if line == self._height:
             if self._passes_final_checks():
-                if len(self._solutions) == 0:
+                if len(self._solutions) == 0 and self._height > 1:
                     print("found first solution at backtrack number", self._number_of_backtracks, "attempt number", self._number_of_attempts)
                 self._solutions.append([self._counterpoint_stacks[line][:] for line in range(self._height)])
+                self._number_of_solutions_found_this_attempt += 1
             return 
 
         #otherwise, get the current index

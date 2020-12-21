@@ -123,6 +123,25 @@ def find_longest_sequence_of_steps(self: object) -> int:
                         max_num_steps = num_steps
             score_add_on += max_num_steps * 40
     return score_add_on
+
+#broadens melodic gestures
+def penalize_frequent_change_of_direction(self: object) -> int:
+    score_add_on = 0
+    for line in range(self._height):
+        intervals = [self._counterpoint_stacks[line][i].get_tonal_interval(self._counterpoint_stacks[line][i + 1]) if isinstance(self._counterpoint_stacks[line][i], Pitch) else 0 for i in range(len(self._counterpoint_stacks[line]) - 1)]
+        for i in range(1, len(intervals)):
+            if (intervals[i] > 0 and intervals[i - 1] < 0) or (intervals[i] < 0 and intervals[i - 1] > 0):
+                score_add_on += 10
+    return score_add_on
+
+#for use in Third Species
+def penalize_whole_note_in_penultimate_bar(self: object) -> int:
+    score_add_on = 0
+    for line in range(self._height):
+        if line != self._cantus_firmus_index:
+            if self._counterpoint_stacks[line][-2].get_duration() == 8:
+                score_add_on += 400
+    return score_add_on
         
 
 

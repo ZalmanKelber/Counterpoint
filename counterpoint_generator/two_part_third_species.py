@@ -7,7 +7,7 @@ from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accident
 from mode_resolver import ModeResolver
 
 from counterpoint_generator_subclasses import TwoPartCounterpoint
-from counterpoint_generator_species_subclasses import SecondSpeciesCounterpointGenerator
+from counterpoint_generator_species_subclasses import ThirdSpeciesCounterpointGenerator
 from counterpoint_generator_solo_subclasses import CantusFirmusGenerator
 
 
@@ -16,10 +16,15 @@ from filter_functions.harmonic_insertion_checks import adjacent_voices_stay_with
 from filter_functions.harmonic_insertion_checks import forms_passing_tone_second_species
 from filter_functions.harmonic_insertion_checks import resolves_passing_tone_second_species
 from filter_functions.harmonic_insertion_checks import prevents_parallel_fifths_and_octaves_simple
+from filter_functions.harmonic_insertion_checks import forms_weak_quarter_beat_dissonance
+from filter_functions.harmonic_insertion_checks import resolves_weak_quarter_beat_dissonance_third_species
+from filter_functions.harmonic_insertion_checks import resolves_cambiata_tail
+from filter_functions.harmonic_insertion_checks import strong_quarter_beats_are_consonant
 
 from filter_functions.score_functions import find_longest_sequence_of_steps
+from filter_functions.score_functions import penalize_whole_note_in_penultimate_bar
 
-class TwoPartSecondSpeciesGenerator (SecondSpeciesCounterpointGenerator, TwoPartCounterpoint):
+class TwoPartThirdSpeciesGenerator (ThirdSpeciesCounterpointGenerator, TwoPartCounterpoint):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode, cantus_firmus_index: int = 0):
         super().__init__(length, lines, mode)
@@ -28,11 +33,14 @@ class TwoPartSecondSpeciesGenerator (SecondSpeciesCounterpointGenerator, TwoPart
 
         self._harmonic_insertion_checks.append(unison_not_allowed_on_downbeat_outside_first_and_last_measure)
         self._harmonic_insertion_checks.append(adjacent_voices_stay_within_tenth)
-        self._harmonic_insertion_checks.append(forms_passing_tone_second_species)
-        self._harmonic_insertion_checks.append(resolves_passing_tone_second_species)
         self._harmonic_insertion_checks.append(prevents_parallel_fifths_and_octaves_simple)
+        self._harmonic_insertion_checks.append(forms_weak_quarter_beat_dissonance)
+        self._harmonic_insertion_checks.append(resolves_weak_quarter_beat_dissonance_third_species)
+        self._harmonic_insertion_checks.append(resolves_cambiata_tail)
+        self._harmonic_insertion_checks.append(strong_quarter_beats_are_consonant)
 
         self._score_functions.append(find_longest_sequence_of_steps)
+        self._score_functions.append(penalize_whole_note_in_penultimate_bar)
 
         #create the cantus firmus we'll use
         self._cantus_firmus_index = cantus_firmus_index
@@ -47,7 +55,7 @@ class TwoPartSecondSpeciesGenerator (SecondSpeciesCounterpointGenerator, TwoPart
     #override:
     #we should try ten attempts before we generate another Cantus Firmus
     def _exit_attempt_loop(self) -> bool:
-        return len(self._solutions) >= 10 or self._number_of_attempts >= 50
+        return len(self._solutions) >= 10 or self._number_of_attempts >= 50 or (self._number_of_attempts >= 10 and len(self._solutions) == 0)
 
     
     #override:
@@ -115,6 +123,6 @@ class TwoPartSecondSpeciesGenerator (SecondSpeciesCounterpointGenerator, TwoPart
     #override:
     #collect unlimited Cantus Firmus examples within 3500 backtracks
     def _exit_backtrack_loop(self) -> bool:
-        if self._number_of_backtracks > 3500 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 150):
+        if self._number_of_backtracks > 3500 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 1500):
             return True 
         return False 
