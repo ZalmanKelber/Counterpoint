@@ -10,6 +10,9 @@ from counterpoint_generator_subclasses import TwoPartCounterpoint
 from counterpoint_generator_species_subclasses import FifthSpeciesCounterpointGenerator
 from counterpoint_generator_solo_subclasses import CantusFirmusGenerator
 
+from filter_functions.melodic_insertion_checks import begin_and_end_two_part_counterpoint
+from filter_functions.melodic_insertion_checks import penultimate_bar_two_part_counterpoint
+
 
 from filter_functions.harmonic_insertion_checks import unison_not_allowed_on_downbeat_outside_first_and_last_measure
 from filter_functions.harmonic_insertion_checks import adjacent_voices_stay_within_twelth
@@ -23,9 +26,12 @@ from filter_functions.harmonic_insertion_checks import no_dissonant_onsets_on_do
 from filter_functions.harmonic_insertion_checks import resolve_suspension
 from filter_functions.harmonic_insertion_checks import handles_weak_half_note_dissonance_fifth_species
 from filter_functions.harmonic_insertion_checks import resolves_weak_half_note_dissonance_fifth_species
+from filter_functions.harmonic_insertion_checks import resolves_predetermined_suspensions
 
 from filter_functions.harmonic_rhythmic_filters import prepares_suspensions_fifth_species
 from filter_functions.harmonic_rhythmic_filters import only_quarter_or_half_on_weak_half_note_dissonance
+from filter_functions.harmonic_rhythmic_filters import prevents_simultaneous_syncopation
+from filter_functions.harmonic_rhythmic_filters import handles_predetermined_suspensions
 
 
 class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCounterpoint):
@@ -33,7 +39,9 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
         super().__init__(length, lines, mode)
 
-        # self._harmonic_insertion_checks.append(unison_not_allowed_on_downbeat_outside_first_and_last_measure)
+        self._melodic_insertion_checks.append(begin_and_end_two_part_counterpoint)
+        self._melodic_insertion_checks.append(penultimate_bar_two_part_counterpoint)
+
         self._harmonic_insertion_checks.append(adjacent_voices_stay_within_twelth)
         self._harmonic_insertion_checks.append(prevents_parallel_fifths_and_octaves_simple)
         self._harmonic_insertion_checks.append(forms_weak_quarter_beat_dissonance)
@@ -43,9 +51,12 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
         self._harmonic_insertion_checks.append(resolve_suspension)
         self._harmonic_insertion_checks.append(handles_weak_half_note_dissonance_fifth_species)
         self._harmonic_insertion_checks.append(resolves_weak_half_note_dissonance_fifth_species)
+        self._harmonic_insertion_checks.append(resolves_predetermined_suspensions)
         
         self._harmonic_rhythmic_filters.append(prepares_suspensions_fifth_species)
         self._harmonic_rhythmic_filters.append(only_quarter_or_half_on_weak_half_note_dissonance)
+        self._harmonic_rhythmic_filters.append(prevents_simultaneous_syncopation)
+        self._harmonic_rhythmic_filters.append(handles_predetermined_suspensions)
 
 
     #override:
@@ -92,7 +103,24 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
             self._attempt_parameters[line]["lowest_must_appear_by"] = randint(3, self._length - 1)
             self._attempt_parameters[line]["highest_must_appear_by"] = randint(3, self._length - 1)
 
-
+    #override:
+    #decide the number of Suspensions in advance
+    def _initialize(self) -> None:
+        super()._initialize()
+        min_num_suspensions = randint(1, 3) if self._length < 12 else randint(2, 4)
+        suspension_bars = [self._length - 2]
+        for i in range(min_num_suspensions - 1):
+            suspension_bar = randint(3, self._length - 2)
+            while suspension_bar in suspension_bars:
+                suspension_bar = randint(3, self._length - 2)
+            suspension_bars.append(suspension_bar)
+        for line in range(2):
+            self._attempt_parameters[line]["suspension_bars"] = []
+        for suspension_bar in suspension_bars:
+            if random() < .33:
+                self._attempt_parameters[0]["suspension_bars"].append(suspension_bar)
+            else:
+                self._attempt_parameters[1]["suspension_bars"].append(suspension_bar)
 
     #override:
     #collect unlimited Cantus Firmus examples within 3500 backtracks

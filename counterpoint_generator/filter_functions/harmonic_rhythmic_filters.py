@@ -76,3 +76,31 @@ def only_quarter_or_half_on_weak_half_note_dissonance(self: object, pitch: Pitch
                 if self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) != -2:
                     durations.discard(2)
     return durations
+
+#used in Two-part polyphony 
+def prevents_simultaneous_syncopation(self: object, pitch: Pitch, line: int, bar: int, beat: float, durations: set[int]) -> set[int]:
+    other_line = (line + 1) % 2
+    if beat == 0 and bar < self._length - 1 and (bar + 1, 0) not in self._counterpoint_objects[other_line]:
+        durations.discard(12)
+    elif beat == 2 and bar < self._length - 1 and (bar + 1, 0) not in self._counterpoint_objects[other_line]:
+        durations.discard(8)
+        durations.discard(6)
+    return durations
+
+#ensure that the correct voices are forming Suspensions where specified in the Attempt Parameters
+def handles_predetermined_suspensions(self: object, pitch: Pitch, line: int, bar: int, beat: float, durations: set[int]) -> set[int]:
+    other_line = (line + 1) % 2
+    if beat == 0 and bar + 1 in self._attempt_parameters[line]["suspension_bars"]:
+        durations.discard(8)
+        durations.discard(6)
+    if beat == 2 and bar + 1 in self._attempt_parameters[line]["suspension_bars"]:
+        c_note = self._get_counterpoint_pitch(other_line, bar + 1, 0)
+        if c_note is not None and c_note.get_tonal_interval(pitch) not in self._legal_intervals["resolvable_dissonance"]:
+            return set()
+        durations.discard(4)
+        durations.discard(2)
+    if beat == 2 and bar + 1 in self._attempt_parameters[other_line]["suspension_bars"]:
+        durations.discard(8)
+        durations.discard(6)
+    return durations
+

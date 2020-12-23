@@ -155,6 +155,10 @@ class CounterpointGenerator (ABC):
             self._number_of_attempts += 1
             self._initialize()
             self._backtrack()
+            print("highest index reached:", self._highest_index_reached)
+            print("suspension bars:")
+            print(self._attempt_parameters[0]["suspension_bars"])
+            print(self._attempt_parameters[1]["suspension_bars"])
         if self._height > 1:
             print("number of solutions:", len(self._solutions),"number of attempts:", self._number_of_attempts, "number of backtracks:", self._number_of_backtracks)
         return 
@@ -236,6 +240,8 @@ class CounterpointGenerator (ABC):
         #reset the number of times the backtracking function has been called to zero
         self._number_of_backtracks = 0 
         self._number_of_solutions_found_this_attempt = 0
+
+        self._highest_index_reached = (0, 0, 0)
 
         #reset all of the stacks
         self._counterpoint_stacks = []
@@ -341,12 +347,8 @@ class CounterpointGenerator (ABC):
 
         #otherwise, get the current index
         (bar, beat) = self._remaining_indices[line].pop()
-        if bar > self._highest_bar_reached:
-            self._highest_bar_reached = bar
-            # print("bar, length = ", bar, self._length)
-            # self.print_counterpoint()
-
-        self._previous_index = (line, bar, beat)
+        if (line, bar, beat) > self._highest_index_reached:
+            self._highest_index_reached = (line, bar, beat)
 
         #make sure that the index checks are all true before preceding further
         if not self._passes_index_checks(line, bar, beat):
@@ -368,7 +370,6 @@ class CounterpointGenerator (ABC):
 
         for entity in valid_notes_and_rests:
             self._add_entity_to_stack(entity, line, bar, beat)
-            self._previous_note_log = entity
             #now that the entity is added to the stack, we can call the recursive backtracking function again
             self._backtrack()
             #now that the backtracking function has completed its course up to this point, remove the entity from the stack

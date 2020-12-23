@@ -331,3 +331,15 @@ def resolves_weak_half_note_dissonance_fifth_species(self: object, pitch: Pitch,
                         return False 
     return True
 
+#ensures that all predetermined Suspensions are resolvable Dissonances
+def resolves_predetermined_suspensions(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    other_line = (line + 1) % 2 
+    if beat in [1, 2] and bar in self._attempt_parameters[line]["suspension_bars"]:
+        if self._counterpoint_objects[line][(bar - 1, 2)].get_tonal_interval(pitch) != -2:
+            return False 
+    # if beat == 0 and bar in self._attempt_parameters[other_line]["suspension_bars"]:
+    #     c_note = self._counterpoint_objects[other_line][(bar - 1, 2)]
+    #     if c_note is not None and c_note.get_tonal_interval(pitch) not in self._legal_intervals["resolvable_dissonance"]:
+    #         return False
+    return True
+

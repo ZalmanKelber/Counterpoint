@@ -25,7 +25,7 @@ def ascending_minor_sixths_are_followed_by_descending_half_step(self: object, pi
         if self._counterpoint_stacks[line][-2].get_chromatic_interval(self._counterpoint_stacks[line][-1]) == 8:
             if self._counterpoint_stacks[line][-1].get_chromatic_interval(pitch) != -1:
                 return False
-    return True
+    return True 
 
 #ensures that the highest note appears only once 
 def prevent_highest_duplicates(self, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
@@ -413,3 +413,25 @@ def prevents_repetition_second_species(self: object, pitch: Pitch, line: int, ba
                 return False 
     return True 
 
+#in Two-part polyphony, we want to end on a cadence
+def begin_and_end_two_part_counterpoint(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    other_line = (line + 1) % 2
+    if bar == self._length - 1:
+        return self._mode_resolver.is_final(pitch)
+    if len(self._counterpoint_stacks[line]) == 0 or not isinstance(self._counterpoint_stacks[line][-1], Pitch):
+        c_note = self._counterpoint_objects[other_line][(0, 0)]
+        if c_note is not None and isinstance(c_note, Pitch):
+            return self._mode_resolver.is_final(pitch) or self._mode_resolver.is_final(self._mode_resolver.get_default_pitch_from_interval(pitch, 4))
+        else:
+            return self._mode_resolver.is_final(pitch)
+    return True
+
+#in Two-part polyphony, we want to end on a cadence
+def penultimate_bar_two_part_counterpoint(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if (bar, beat) == (self._length - 2, 0):
+        if ( self._mode_resolver.is_final(self._mode_resolver.get_default_pitch_from_interval(pitch, -2)) 
+            or (self._mode_resolver.is_final(self._mode_resolver.get_default_pitch_from_interval(pitch, 4)) and 
+            self._mode != Mode.PHRYGIAN) ):
+            return True 
+        return False 
+    return True
