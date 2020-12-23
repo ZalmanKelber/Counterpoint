@@ -25,10 +25,7 @@ from filter_functions.harmonic_insertion_checks import handles_weak_half_note_di
 from filter_functions.harmonic_insertion_checks import resolves_weak_half_note_dissonance_fifth_species
 
 from filter_functions.harmonic_rhythmic_filters import prepares_suspensions_fifth_species
-from filter_functions.harmonic_rhythmic_filters import handle_antipenultimate_bar_of_fifth_species_against_cantus_firmus
 from filter_functions.harmonic_rhythmic_filters import only_quarter_or_half_on_weak_half_note_dissonance
-
-from filter_functions.score_functions import find_as_many_suspensions_as_possible
 
 
 class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCounterpoint):
@@ -48,10 +45,7 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
         self._harmonic_insertion_checks.append(resolves_weak_half_note_dissonance_fifth_species)
         
         self._harmonic_rhythmic_filters.append(prepares_suspensions_fifth_species)
-        self._harmonic_rhythmic_filters.append(handle_antipenultimate_bar_of_fifth_species_against_cantus_firmus)
         self._harmonic_rhythmic_filters.append(only_quarter_or_half_on_weak_half_note_dissonance)
-
-        self._score_functions.append(find_as_many_suspensions_as_possible)
 
 
     #override:
@@ -106,3 +100,14 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
         if self._number_of_backtracks > 3500 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 1000):
             return True 
         return False 
+
+    #override:
+    #prevent Breves and Whole Notes from appearing in the middle of the line
+    def _get_available_durations(self, line: int, bar: int, beat: float) -> set[int]:
+        if bar == self._length - 1: return { 16 }
+        if beat % 2 == 1.5: return { 1 }
+        if beat % 2 == 1: return { 1, 2 }
+        if beat == 2: return { 2, 4, 6, 8 }
+        if beat == 0:
+            if bar == 0: return { 2, 4, 6, 8, 12, 16 }
+            else: return { 2, 4, 6, 8 }

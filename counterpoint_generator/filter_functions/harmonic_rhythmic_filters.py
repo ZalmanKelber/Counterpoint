@@ -30,17 +30,18 @@ def prepares_suspensions_fifth_species(self: object, pitch: Pitch, line: int, ba
     other_line = (line + 1) % 2
     if beat % 2 == 0 and bar < self._length - 1:
         c_note = self._get_counterpoint_pitch(other_line, bar + 1, 0)
-        (t_interval, c_interval) = c_note.get_intervals(pitch)
-        if ( abs(t_interval) % 7 not in self._legal_intervals["tonal_harmonic_consonant"] 
-            or abs(c_interval) % 12 not in self._legal_intervals["chromatic_harmonic_consonant"] 
-            or (abs(t_interval) % 7, abs(c_interval) % 12) in self._legal_intervals["forbidden_combinations"] ):
-            durations.discard(16)
-            if t_interval not in self._legal_intervals["resolvable_dissonance"]:
-                if beat == 0:
-                    durations.discard(12)
-                if beat == 2:
-                    durations.discard(8)
-                    durations.discard(6)
+        if c_note is not None:
+            (t_interval, c_interval) = c_note.get_intervals(pitch)
+            if ( abs(t_interval) % 7 not in self._legal_intervals["tonal_harmonic_consonant"] 
+                or abs(c_interval) % 12 not in self._legal_intervals["chromatic_harmonic_consonant"] 
+                or (abs(t_interval) % 7, abs(c_interval) % 12) in self._legal_intervals["forbidden_combinations"] ):
+                durations.discard(16)
+                if t_interval not in self._legal_intervals["resolvable_dissonance"]:
+                    if beat == 0:
+                        durations.discard(12)
+                    if beat == 2:
+                        durations.discard(8)
+                        durations.discard(6)
     return durations
 
 #we must end on a cadence

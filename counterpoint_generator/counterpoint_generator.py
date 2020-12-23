@@ -273,10 +273,11 @@ class CounterpointGenerator (ABC):
                     self._all_indices[line].add((bar, beat))
                     self._remaining_indices[line].append((bar, beat))
                     self._counterpoint_objects[line][(bar, beat)] = None
+
             self._all_indices[line].add((self._length - 1, 0))
             self._remaining_indices[line].append((self._length - 1, 0))
             self._remaining_indices[line].reverse()
-            self._counterpoint_objects[line][(bar, beat)] = None 
+            self._counterpoint_objects[line][(self._length - 1, 0)] = None 
 
         #for each line, determine the highest and lowest notes, determine the measures by which they
         #must appear and collect the valid pitches that can be used 
@@ -327,7 +328,7 @@ class CounterpointGenerator (ABC):
         line = 0
         while line < self._height and len(self._remaining_indices[line]) == 0:
             line += 1
-        
+
         #see if we've reached the end of the stack.
         #if so, see if the current stack passes the final checks, and if it does, add it to the solutions
         if line == self._height:
@@ -344,6 +345,8 @@ class CounterpointGenerator (ABC):
             self._highest_bar_reached = bar
             # print("bar, length = ", bar, self._length)
             # self.print_counterpoint()
+
+        self._previous_index = (line, bar, beat)
 
         #make sure that the index checks are all true before preceding further
         if not self._passes_index_checks(line, bar, beat):
@@ -365,12 +368,13 @@ class CounterpointGenerator (ABC):
 
         for entity in valid_notes_and_rests:
             self._add_entity_to_stack(entity, line, bar, beat)
+            self._previous_note_log = entity
             #now that the entity is added to the stack, we can call the recursive backtracking function again
             self._backtrack()
             #now that the backtracking function has completed its course up to this point, remove the entity from the stack
             self._remove_entity_from_stack(line, bar, beat)
 
-        self._remaining_indices.append((bar, beat))
+        self._remaining_indices[line].append((bar, beat))
 
     #the default is given below, but this should be overriden in every subclass
     def _exit_backtrack_loop(self) -> bool:
