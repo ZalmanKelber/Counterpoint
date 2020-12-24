@@ -337,3 +337,19 @@ def prevents_cross_relation_on_simultaneous_onsets(self: object, pitch: Pitch, l
             return False 
     return True
 
+def handle_downbeats_two_part_counterpoint(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    other_line = (line + 1) % 2 
+    if beat == 0:
+        c_note = self._get_counterpoint_pitch(other_line, bar, beat)
+        if c_note is not None and not self._is_consonant(c_note, pitch):
+            if (bar, 0) in self._counterpoint_objects[other_line] or (bar, 2) not in self._counterpoint_objects[other_line]:
+                return False 
+            susp_resolve = self._counterpoint_objects[other_line][(bar, 2)]
+            if ( pitch.get_tonal_interval(c_note) not in self._legal_intervals["resolvable_dissonance"] or 
+                c_note.get_tonal_interval(susp_resolve) != -2 ):
+                return False 
+            if ( (bar, 1) in self._counterpoint_objects[other_line] and 
+                c_note.get_tonal_interval(self._counterpoint_objects[other_line][(bar, 1)]) != -2 ):
+                return False 
+    return True
+

@@ -99,17 +99,23 @@ def handles_weak_half_note_dissonance_in_other_line(self: object, pitch: Pitch, 
         if c_note is not None:
             if not self._is_consonant(c_note, pitch):
                 if c_note.get_duration() not in [2, 4]:
+                    durations.discard(16)
+                    durations.discard(12)
                     durations.discard(8)
                     durations.discard(6)
                     return durations
                 prev_interval = self._get_counterpoint_pitch(other_line, bar, 1).get_tonal_interval(c_note)
                 if abs(prev_interval) != 2 or (prev_interval == 2 and c_note.get_duration() == 2):
+                    durations.discard(16)
+                    durations.discard(12)
                     durations.discard(8)
                     durations.discard(6)
                     return durations
                 next_index = (bar, 3) if (bar, 3) in self._counterpoint_objects[other_line] else (bar + 1, 0)
                 next_interval = c_note.get_tonal_interval(self._counterpoint_objects[other_line][next_index])
                 if next_interval != prev_interval:
+                    durations.discard(16)
+                    durations.discard(12)
                     durations.discard(8)
                     durations.discard(6)
                     return durations
@@ -117,6 +123,9 @@ def handles_weak_half_note_dissonance_in_other_line(self: object, pitch: Pitch, 
                     if not self._is_consonant(self._counterpoint_objects[other_line][next_index], pitch):
                         durations.discard(8)
     return durations
+
+
+############ helper functions ##############
 
 def handles_weak_quarter_note_dissonance_in_other_line(self: object, pitch: Pitch, line: int, bar: int, beat: float, durations: set[int]) -> set[int]:
     other_line = (line + 1) % 2

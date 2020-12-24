@@ -166,6 +166,9 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
             or abs(c_interval) % 12 not in self._legal_intervals["chromatic_harmonic_consonant"] 
             or (abs(t_interval) % 7, abs(c_interval) % 12) in self._legal_intervals["forbidden_combinations"] ):
             return False 
+        if ( (self._mode_resolver.is_sharp(pitch1) or self._mode_resolver.is_leading_tone(pitch1)) 
+            and (self._mode_resolver.is_sharp(pitch2) or self._mode_resolver.is_leading_tone(pitch2)) ):
+            return False
         return True
             
 

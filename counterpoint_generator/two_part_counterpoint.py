@@ -28,6 +28,7 @@ from filter_functions.harmonic_insertion_checks import handles_weak_half_note_di
 from filter_functions.harmonic_insertion_checks import resolves_weak_half_note_dissonance_fifth_species
 from filter_functions.harmonic_insertion_checks import resolves_predetermined_suspensions
 from filter_functions.harmonic_insertion_checks import prevents_cross_relation_on_simultaneous_onsets
+from filter_functions.harmonic_insertion_checks import handle_downbeats_two_part_counterpoint
 
 from filter_functions.harmonic_rhythmic_filters import prepares_suspensions_fifth_species
 from filter_functions.harmonic_rhythmic_filters import only_quarter_or_half_on_weak_half_note_dissonance
@@ -56,6 +57,7 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
         self._harmonic_insertion_checks.append(resolves_weak_half_note_dissonance_fifth_species)
         self._harmonic_insertion_checks.append(resolves_predetermined_suspensions)
         self._harmonic_insertion_checks.append(prevents_cross_relation_on_simultaneous_onsets)
+        self._harmonic_insertion_checks.append(handle_downbeats_two_part_counterpoint)
 
         self._harmonic_rhythmic_filters.append(prepares_suspensions_fifth_species)
         self._harmonic_rhythmic_filters.append(only_quarter_or_half_on_weak_half_note_dissonance)
@@ -68,7 +70,7 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
     #override:
     #we should try ten attempts before we generate another Cantus Firmus
     def _exit_attempt_loop(self) -> bool:
-        return len(self._solutions) >= 1 or self._number_of_attempts >= 50 or (self._number_of_attempts >= 40 and len(self._solutions) == 0)
+        return len(self._solutions) >= 1 or (self._number_of_attempts >= 200 and len(self._solutions) == 0)
 
     
     # #override:
@@ -113,7 +115,7 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
     #decide the number of Suspensions in advance
     def _initialize(self) -> None:
         super()._initialize()
-        min_num_suspensions = randint(1, 3) if self._length < 12 else randint(2, 4)
+        min_num_suspensions = randint(1, 2) if self._length < 12 else randint(2, 3)
         suspension_bars = [self._length - 2]
         for i in range(min_num_suspensions - 1):
             suspension_bar = randint(3, self._length - 2)
@@ -131,7 +133,7 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
     #override:
     #collect unlimited Cantus Firmus examples within 3500 backtracks
     def _exit_backtrack_loop(self) -> bool:
-        if self._number_of_backtracks > 3500 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 1000):
+        if self._number_of_backtracks > 3500 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 300):
             return True 
         return False 
 

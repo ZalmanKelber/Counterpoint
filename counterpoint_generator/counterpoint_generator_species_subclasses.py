@@ -59,6 +59,8 @@ from filter_functions.rhythmic_insertion_filters import prevents_repeated_syncop
 from filter_functions.change_parameter_checks import check_for_added_eigth_note_pair
 from filter_functions.change_parameter_checks import check_for_added_melodic_octave
 
+from filter_functions.final_checks import ascending_intervals_are_filled_in
+
 from filter_functions.score_functions import prioritize_long_quarter_note_runs
 from filter_functions.score_functions import penalize_two_note_quarter_runs
 from filter_functions.score_functions import select_ideal_ties
@@ -78,6 +80,8 @@ class FirstSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(melody_cannot_change_direction_three_times_in_a_row)
         self._melodic_insertion_checks.append(prevent_three_notes_from_immediately_repeating)
         self._melodic_insertion_checks.append(pitch_cannot_appear_three_times_in_six_notes)
+
+        self._final_checks.append(ascending_intervals_are_filled_in)
 
     #override:
     #override the get_available_durations, which is extremely simple in First Species
@@ -157,6 +161,8 @@ class SecondSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(prevents_repetition_second_species)
         self._melodic_insertion_checks.append(prevents_fifteenth_century_sharp_resolution)
 
+        self._final_checks.append(ascending_intervals_are_filled_in)
+
     #override:
     #override the get_available_durations, which consists entirely of Half Notes in the Second Speices except the penultimate measure
     #note that we rely on the base class for the _get_valid_rests method
@@ -204,6 +210,8 @@ class ThirdSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(prevents_ascending_leaps_to_weak_quarters)
         self._melodic_insertion_checks.append(octaves_surrounded_by_contrary_motion)
 
+        self._final_checks.append(ascending_intervals_are_filled_in)
+
     #override:
     #override the get_available_durations, which consists entirely of Quarter Notes in the Third Speices except the penultimate measure
     #note that we rely on the base class for the _get_valid_rests method
@@ -247,6 +255,8 @@ class FourthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(prevent_three_notes_from_immediately_repeating)
         self._melodic_insertion_checks.append(pitch_cannot_appear_three_times_in_six_notes)
         self._melodic_insertion_checks.append(prevents_fifteenth_century_sharp_resolution)
+
+        self._final_checks.append(ascending_intervals_are_filled_in)
 
     #override:
     #override the get_available_durations, which consists of Half Notes and tied Whole Notes

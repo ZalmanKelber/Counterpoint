@@ -135,8 +135,6 @@ class CounterpointGenerator (ABC):
 
         self._change_parameters_checks.append(check_for_lowest_and_highest)
 
-        # self._final_checks.append(ascending_intervals_are_filled_in)
-
         self._score_functions.append(prioritize_stepwise_motion)
         self._score_functions.append(ascending_leaps_followed_by_descending_steps)
         self._score_functions.append(penalize_frequent_change_of_direction)
@@ -156,13 +154,6 @@ class CounterpointGenerator (ABC):
             self._initialize()
             self._backtrack()
             print("highest index reached:", self._highest_index_reached)
-            print("suspension bars:")
-            print(self._attempt_parameters[0]["suspension_bars"])
-            print(self._attempt_parameters[1]["suspension_bars"])
-            # if self._most_advanced_progress == (1, self._length - 1, 0):
-            #     for i in range(min(200, len(self._log))): print(self._log[i])
-            #     self._map_solution_onto_stack(self._most_advanced_progress)
-            #     self.print_counterpoint()
         if self._height > 1:
             print("number of solutions:", len(self._solutions),"number of attempts:", self._number_of_attempts, "number of backtracks:", self._number_of_backtracks)
         return 
