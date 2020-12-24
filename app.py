@@ -19,7 +19,7 @@ def main():
         for i in range(1):
             optimal = None
             if optimal is None:
-                two_part_counterpoint_generator = TwoPartCounterpointGenerator(randint(12, 16), [VocalRange.ALTO, VocalRange.SOPRANO], mode)
+                two_part_counterpoint_generator = TwoPartCounterpointGenerator(randint(12, 16), [VocalRange.TENOR, VocalRange.SOPRANO], mode)
                 two_part_counterpoint_generator.generate_counterpoint()
                 two_part_counterpoint_generator.score_solutions()
                 optimal = two_part_counterpoint_generator.get_one_solution()

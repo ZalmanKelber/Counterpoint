@@ -33,6 +33,8 @@ from filter_functions.harmonic_rhythmic_filters import prepares_suspensions_fift
 from filter_functions.harmonic_rhythmic_filters import only_quarter_or_half_on_weak_half_note_dissonance
 from filter_functions.harmonic_rhythmic_filters import prevents_simultaneous_syncopation
 from filter_functions.harmonic_rhythmic_filters import handles_predetermined_suspensions
+from filter_functions.harmonic_rhythmic_filters import handles_weak_half_note_dissonance_in_other_line
+from filter_functions.harmonic_rhythmic_filters import handles_weak_quarter_note_dissonance_in_other_line
 
 
 class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCounterpoint):
@@ -54,11 +56,13 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
         self._harmonic_insertion_checks.append(resolves_weak_half_note_dissonance_fifth_species)
         self._harmonic_insertion_checks.append(resolves_predetermined_suspensions)
         self._harmonic_insertion_checks.append(prevents_cross_relation_on_simultaneous_onsets)
-        
+
         self._harmonic_rhythmic_filters.append(prepares_suspensions_fifth_species)
         self._harmonic_rhythmic_filters.append(only_quarter_or_half_on_weak_half_note_dissonance)
         self._harmonic_rhythmic_filters.append(prevents_simultaneous_syncopation)
         self._harmonic_rhythmic_filters.append(handles_predetermined_suspensions)
+        self._harmonic_rhythmic_filters.append(handles_weak_half_note_dissonance_in_other_line)
+        self._harmonic_rhythmic_filters.append(handles_weak_quarter_note_dissonance_in_other_line)
 
 
     #override:
@@ -127,7 +131,7 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
     #override:
     #collect unlimited Cantus Firmus examples within 3500 backtracks
     def _exit_backtrack_loop(self) -> bool:
-        if self._number_of_backtracks > 1000 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 1000):
+        if self._number_of_backtracks > 3500 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 1000):
             return True 
         return False 
 

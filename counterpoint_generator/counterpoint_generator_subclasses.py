@@ -158,6 +158,15 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
             if lower.value > higher.value:
                 return False 
         return True
+
+    #helper function used in many of the filter functions
+    def _is_consonant(self, pitch1: Pitch, pitch2: Pitch) -> bool:
+        (t_interval, c_interval) = pitch1.get_intervals(pitch2)
+        if ( abs(t_interval) % 7 not in self._legal_intervals["tonal_harmonic_consonant"] 
+            or abs(c_interval) % 12 not in self._legal_intervals["chromatic_harmonic_consonant"] 
+            or (abs(t_interval) % 7, abs(c_interval) % 12) in self._legal_intervals["forbidden_combinations"] ):
+            return False 
+        return True
             
 
 
