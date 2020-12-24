@@ -361,3 +361,11 @@ def resolves_predetermined_suspensions(self: object, pitch: Pitch, line: int, ba
                     return False
     return True
 
+def prevents_cross_relation_on_simultaneous_onsets(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    other_line = (line + 1) % 2 
+    if (bar, beat) in self._counterpoint_objects[other_line]:
+        c_note = self._counterpoint_objects[other_line][(bar, beat)]
+        if c_note is not None and c_note.is_cross_relation(pitch):
+            return False 
+    return True
+

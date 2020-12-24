@@ -27,6 +27,7 @@ from filter_functions.harmonic_insertion_checks import resolve_suspension
 from filter_functions.harmonic_insertion_checks import handles_weak_half_note_dissonance_fifth_species
 from filter_functions.harmonic_insertion_checks import resolves_weak_half_note_dissonance_fifth_species
 from filter_functions.harmonic_insertion_checks import resolves_predetermined_suspensions
+from filter_functions.harmonic_insertion_checks import prevents_cross_relation_on_simultaneous_onsets
 
 from filter_functions.harmonic_rhythmic_filters import prepares_suspensions_fifth_species
 from filter_functions.harmonic_rhythmic_filters import only_quarter_or_half_on_weak_half_note_dissonance
@@ -52,6 +53,7 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
         self._harmonic_insertion_checks.append(handles_weak_half_note_dissonance_fifth_species)
         self._harmonic_insertion_checks.append(resolves_weak_half_note_dissonance_fifth_species)
         self._harmonic_insertion_checks.append(resolves_predetermined_suspensions)
+        self._harmonic_insertion_checks.append(prevents_cross_relation_on_simultaneous_onsets)
         
         self._harmonic_rhythmic_filters.append(prepares_suspensions_fifth_species)
         self._harmonic_rhythmic_filters.append(only_quarter_or_half_on_weak_half_note_dissonance)

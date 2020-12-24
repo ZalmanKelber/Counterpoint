@@ -126,7 +126,7 @@ class CounterpointGenerator (ABC):
         self._mode_resolver = ModeResolver(mode)
 
         #the following are the small number of default functions added to the checks
-        # self._index_checks.append(ensure_lowest_and_highest_have_been_placed)
+        self._index_checks.append(ensure_lowest_and_highest_have_been_placed)
 
         self._melodic_insertion_checks.append(valid_melodic_interval)
         self._melodic_insertion_checks.append(ascending_minor_sixths_are_followed_by_descending_half_step)
@@ -135,7 +135,7 @@ class CounterpointGenerator (ABC):
 
         self._change_parameters_checks.append(check_for_lowest_and_highest)
 
-        self._final_checks.append(ascending_intervals_are_filled_in)
+        # self._final_checks.append(ascending_intervals_are_filled_in)
 
         self._score_functions.append(prioritize_stepwise_motion)
         self._score_functions.append(ascending_leaps_followed_by_descending_steps)
