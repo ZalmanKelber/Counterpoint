@@ -62,7 +62,7 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
     #override:
     #we should try ten attempts before we generate another Cantus Firmus
     def _exit_attempt_loop(self) -> bool:
-        return len(self._solutions) >= 40 or self._number_of_attempts >= 50 or (self._number_of_attempts >= 40 and len(self._solutions) == 0)
+        return len(self._solutions) >= 1 or self._number_of_attempts >= 50 or (self._number_of_attempts >= 40 and len(self._solutions) == 0)
 
     
     # #override:
@@ -125,7 +125,7 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
     #override:
     #collect unlimited Cantus Firmus examples within 3500 backtracks
     def _exit_backtrack_loop(self) -> bool:
-        if self._number_of_backtracks > 3500 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 1000):
+        if self._number_of_backtracks > 1000 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 1000):
             return True 
         return False 
 

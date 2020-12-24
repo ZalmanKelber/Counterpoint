@@ -38,7 +38,9 @@ def prevent_two_notes_from_immediately_repeating(self: object, pitch: Pitch, lin
     if len(self._counterpoint_stacks[line]) > 2 and isinstance(self._counterpoint_stacks[line][-3], Pitch):
         if ( self._counterpoint_stacks[line][-3].is_unison(self._counterpoint_stacks[line][-1]) and 
             self._counterpoint_stacks[line][-2].is_unison(pitch) ):
-            return False 
+            if ( self._counterpoint_stacks[line][-3].get_duration() == self._counterpoint_stacks[line][-2].get_duration()
+                and self._counterpoint_stacks[line][-2].get_duration() == self._counterpoint_stacks[line][-1].get_duration() ):
+                return False 
     return True 
 
 #same as above but with three notes
@@ -387,9 +389,10 @@ def end_stepwise(self: object, pitch: Pitch, line: int, bar: int, beat: float) -
 #does not include anticipations.  C -> D -> C -> B -> C is illegal but D -> C -> C -> B -> C is legal
 #for use in Fifth Species
 def prevent_note_from_repeating_three_times_in_five_notes(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
-    if len(self._counterpoint_stacks[line]) > 3 and isinstance(self._counterpoint_stacks[line][-4], Pitch):
-        if self._counterpoint_stacks[line][-4].is_unison(pitch) and self._counterpoint_stacks[line][-2].is_unison(pitch):
-            return False 
+    if bar != self._length - 1:
+        if len(self._counterpoint_stacks[line]) > 3 and isinstance(self._counterpoint_stacks[line][-4], Pitch):
+            if self._counterpoint_stacks[line][-4].is_unison(pitch) and self._counterpoint_stacks[line][-2].is_unison(pitch):
+                return False 
     return True
 
 #prevents figures of the form F# -> E -> G
@@ -426,12 +429,15 @@ def begin_and_end_two_part_counterpoint(self: object, pitch: Pitch, line: int, b
             return self._mode_resolver.is_final(pitch)
     return True
 
-#in Two-part polyphony, we want to end on a cadence
+#in Two-part polyphony, we want to end on a cadence (and this must be through contrary motion)
 def penultimate_bar_two_part_counterpoint(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
     if (bar, beat) == (self._length - 2, 0):
         if ( self._mode_resolver.is_final(self._mode_resolver.get_default_pitch_from_interval(pitch, -2)) 
             or (self._mode_resolver.is_final(self._mode_resolver.get_default_pitch_from_interval(pitch, 4)) and 
             self._mode != Mode.PHRYGIAN) ):
-            return True 
+            return True
         return False 
+    if (bar, beat) == (self._length - 1, 0) and self._counterpoint_stacks[line][-1].get_duration() == 8:
+        if self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) > 0:
+            return False 
     return True

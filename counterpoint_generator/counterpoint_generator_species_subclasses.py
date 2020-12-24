@@ -309,7 +309,6 @@ class FifthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
         self._melodic_insertion_checks.append(eighths_in_same_direction_must_be_followed_by_motion_in_opposite_direction)
         self._melodic_insertion_checks.append(prevent_note_from_repeating_three_times_in_five_notes)
         self._melodic_insertion_checks.append(prevents_fifteenth_century_sharp_resolution)
-        self._melodic_insertion_checks.append(end_stepwise)
 
             #inherited from base class:
             #(none)

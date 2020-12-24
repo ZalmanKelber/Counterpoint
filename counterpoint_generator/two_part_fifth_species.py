@@ -10,6 +10,7 @@ from counterpoint_generator_subclasses import TwoPartCounterpoint
 from counterpoint_generator_species_subclasses import FifthSpeciesCounterpointGenerator
 from counterpoint_generator_solo_subclasses import CantusFirmusGenerator
 
+from filter_functions.melodic_insertion_checks import end_stepwise
 
 from filter_functions.harmonic_insertion_checks import unison_not_allowed_on_downbeat_outside_first_and_last_measure
 from filter_functions.harmonic_insertion_checks import adjacent_voices_stay_within_twelth
@@ -37,6 +38,8 @@ class TwoPartFifthSpeciesGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
         super().__init__(length, lines, mode)
         if cantus_firmus_index not in [0, 1]:
             raise Exception("invalid cantus firmus index")
+
+        self._melodic_insertion_checks.append(end_stepwise)
 
         # self._harmonic_insertion_checks.append(unison_not_allowed_on_downbeat_outside_first_and_last_measure)
         self._harmonic_insertion_checks.append(adjacent_voices_stay_within_twelth)

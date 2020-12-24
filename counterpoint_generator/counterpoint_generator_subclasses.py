@@ -73,9 +73,15 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
     def _passes_insertion_checks(self, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
         for check in self._melodic_insertion_checks:
             if not check(self, pitch, line, bar, beat): 
+                if self._highest_index_reached == (line, bar, beat):
+                    self._log.append(str(pitch) + " " + str((line, bar, beat)))
+                    self._log.append(check.__name__)
                 return False 
         for check in self._harmonic_insertion_checks:
             if not check(self, pitch, line, bar, beat): 
+                if self._highest_index_reached == (line, bar, beat):
+                    self._log.append(str(pitch) + " " + str((line, bar, beat)))
+                    self._log.append(check.__name__)
                 return False
         return True 
 
@@ -85,10 +91,18 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
         durations = self._get_available_durations(line, bar, beat)
         for check in self._rhythmic_insertion_filters:
             durations = check(self, pitch, line, bar, beat, durations)
-            if len(durations) == 0: return durations
+            if len(durations) == 0: 
+                if self._highest_index_reached == (line, bar, beat):
+                    self._log.append(str(pitch) + " " + str((line, bar, beat)))
+                    self._log.append(check.__name__)
+                return durations
         for check in self._harmonic_rhythmic_filters:
             durations = check(self, pitch, line, bar, beat, durations)
-            if len(durations) == 0: return durations
+            if len(durations) == 0: 
+                if self._highest_index_reached == (line, bar, beat):
+                    self._log.append(str(pitch) + " " + str((line, bar, beat)))
+                    self._log.append(check.__name__)
+                return durations
         return durations
 
     #retrieves the note currently beginning on or sustaining through the specified index on the specified line

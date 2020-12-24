@@ -126,7 +126,7 @@ class CounterpointGenerator (ABC):
         self._mode_resolver = ModeResolver(mode)
 
         #the following are the small number of default functions added to the checks
-        self._index_checks.append(ensure_lowest_and_highest_have_been_placed)
+        # self._index_checks.append(ensure_lowest_and_highest_have_been_placed)
 
         self._melodic_insertion_checks.append(valid_melodic_interval)
         self._melodic_insertion_checks.append(ascending_minor_sixths_are_followed_by_descending_half_step)
@@ -159,6 +159,10 @@ class CounterpointGenerator (ABC):
             print("suspension bars:")
             print(self._attempt_parameters[0]["suspension_bars"])
             print(self._attempt_parameters[1]["suspension_bars"])
+            # if self._most_advanced_progress == (1, self._length - 1, 0):
+            #     for i in range(min(200, len(self._log))): print(self._log[i])
+            #     self._map_solution_onto_stack(self._most_advanced_progress)
+            #     self.print_counterpoint()
         if self._height > 1:
             print("number of solutions:", len(self._solutions),"number of attempts:", self._number_of_attempts, "number of backtracks:", self._number_of_backtracks)
         return 
@@ -242,6 +246,8 @@ class CounterpointGenerator (ABC):
         self._number_of_solutions_found_this_attempt = 0
 
         self._highest_index_reached = (0, 0, 0)
+        self._has_printed = False
+        self._log = []
 
         #reset all of the stacks
         self._counterpoint_stacks = []
@@ -291,21 +297,17 @@ class CounterpointGenerator (ABC):
         self._highest_bar_reached = 0
 
     def _delineate_vocal_ranges(self) -> None:
+
+        self._assign_highest_and_lowest()
+
         for line in range(self._height):
             self._attempt_parameters[line]["lowest_has_been_placed"] = False
             self._attempt_parameters[line]["highest_has_been_placed"] = False
-            self._assign_highest_and_lowest()
             #now that the lowest and highest notes have been assigned, we can get all of the 
             #available pitches for each line.  Note that we're unconcerned with the order here
             self._attempt_parameters[line]["available_pitches"] = [self._attempt_parameters[line]["highest"]]
             for interval in range(1, self._attempt_parameters[line]["lowest"].get_tonal_interval(self._attempt_parameters[line]["highest"])):
                 self._attempt_parameters[line]["available_pitches"] += self._mode_resolver.get_pitches_from_interval(self._attempt_parameters[line]["lowest"], interval)
-
-            # print(self._attempt_parameters[line]["lowest_must_appear_by"])
-            # print(self._attempt_parameters[line]["highest_must_appear_by"])
-            # print(self._attempt_parameters[line]["lowest"])
-            # print(self._attempt_parameters[line]["highest"])
-            # for note in self._attempt_parameters[line]["available_pitches"]: print(note)
 
     #note that this will be overriden in every subclass
     #this default method simply returns the lowest and highest notes of the available VocalRange object
@@ -345,10 +347,18 @@ class CounterpointGenerator (ABC):
                 self._number_of_solutions_found_this_attempt += 1
             return 
 
+        self._check_for_failure = False 
+
         #otherwise, get the current index
         (bar, beat) = self._remaining_indices[line].pop()
         if (line, bar, beat) > self._highest_index_reached:
             self._highest_index_reached = (line, bar, beat)
+            self._most_advanced_progress = [self._counterpoint_stacks[line][:] for line in range(self._height)]
+            self._log = []
+
+        if (line, bar, beat) == (1, self._length - 1, 0) and not self._has_printed:
+            self._has_printed = True
+            self.print_counterpoint()
 
         #make sure that the index checks are all true before preceding further
         if not self._passes_index_checks(line, bar, beat):
@@ -479,7 +489,10 @@ class CounterpointGenerator (ABC):
     #runs a list of functions that examine the current stack to determine if it's valid
     def _passes_final_checks(self) -> bool:
         for check in self._final_checks:
-            if not check(self): return False 
+            if not check(self): 
+                print("failed on final check:")
+                print(check.__name__)
+                return False 
         return True 
 
     #resets class vairables whenever construction method is called

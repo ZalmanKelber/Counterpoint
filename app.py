@@ -15,17 +15,17 @@ from two_part_counterpoint import TwoPartCounterpointGenerator
 from midi_writer import MidiWriter
 
 def main():
-    for mode in Mode:
-        for i in range(2):
+    for mode in [Mode.IONIAN]:
+        for i in range(1):
             optimal = None
-            while optimal is None:
+            if optimal is None:
                 two_part_counterpoint_generator = TwoPartCounterpointGenerator(randint(12, 16), [VocalRange.ALTO, VocalRange.SOPRANO], mode)
                 two_part_counterpoint_generator.generate_counterpoint()
                 two_part_counterpoint_generator.score_solutions()
                 optimal = two_part_counterpoint_generator.get_one_solution()
             if optimal is not None:
                 mw = MidiWriter()
-                mw.write_midi_from_counterpoint(optimal, "counterpoint.mid", speed_up=1)
+                mw.write_midi_from_counterpoint(optimal, "counterpoint.mid", speed_up=1) 
                 fs = FluidSynth("/Users/alexkelber/Development/FluidR3_GM/FluidR3_GM.sf2")
                 fs.play_midi("counterpoint.mid")
 
