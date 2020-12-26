@@ -254,6 +254,7 @@ class CounterpointGenerator (ABC):
         self._store_attempt_parameters_stacks = []
 
         for line in range(self._height):
+            self._number_of_rests.append(0)
             self._counterpoint_stacks.append([])
             self._counterpoint_objects.append({})
             self._all_indices.append(set())
@@ -264,7 +265,8 @@ class CounterpointGenerator (ABC):
                 "lowest_must_appear_by": None,
                 "highest_must_appear_by": None,
                 "highest_has_been_placed": None,
-                "available_pitches": []
+                "available_pitches": [],
+                "number_of_rests": 0
                 })
             self._store_all_indices_stacks.append([])
             self._store_remaining_indices_stacks.append([])
@@ -323,22 +325,22 @@ class CounterpointGenerator (ABC):
         #first determine whether the loop should be exited
         if self._exit_backtrack_loop(): return 
 
-        #determine which line we're in.  Lines are written one at a time from bottom to top, but in some 
-        #subclasses, certain lines will be generated and added beforehand, so we can't be sure that the top line
-        #will always be the last to be written 
-        line = 0
-        while line < self._height and len(self._remaining_indices[line]) == 0:
-            line += 1
-
         #see if we've reached the end of the stack.
         #if so, see if the current stack passes the final checks, and if it does, add it to the solutions
-        if line == self._height:
+        if self._reached_possible_solution():
             if self._passes_final_checks():
                 if len(self._solutions) == 0 and self._height > 1:
                     print("found first solution at backtrack number", self._number_of_backtracks, "attempt number", self._number_of_attempts)
                 self._solutions.append([self._counterpoint_stacks[line][:] for line in range(self._height)])
                 self._number_of_solutions_found_this_attempt += 1
             return 
+
+        #determine which line we're in.  Lines are written one at a time from bottom to top, but in some 
+        #subclasses, certain lines will be generated and added beforehand, so we can't be sure that the top line
+        #will always be the last to be written 
+        line = 0
+        while line < self._height and len(self._remaining_indices[line]) == 0:
+            line += 1
 
         self._check_for_failure = False 
 
@@ -349,9 +351,9 @@ class CounterpointGenerator (ABC):
             self._most_advanced_progress = [self._counterpoint_stacks[line][:] for line in range(self._height)]
             self._log = []
 
-        if (line, bar, beat) == (1, self._length - 1, 0) and not self._has_printed:
-            self._has_printed = True
-            self.print_counterpoint()
+        # if (line, bar, beat) == (1, self._length - 1, 0) and not self._has_printed:
+        #     self._has_printed = True
+        #     self.print_counterpoint()
 
         #make sure that the index checks are all true before preceding further
         if not self._passes_index_checks(line, bar, beat):
@@ -385,6 +387,10 @@ class CounterpointGenerator (ABC):
         if self._number_of_backtracks > 10000 or len(self._solutions) > 0:
             return True 
         return False 
+
+    #this will be overrun in a couple of sub classes
+    def _reached_possible_solution(self) -> bool:
+        return all([len(self._remaining_indices[line]) == 0 for line in range(self._height)])
 
     def _passes_index_checks(self, line: int, bar: int, beat: float) -> bool:
         for check in self._index_checks:
@@ -483,8 +489,6 @@ class CounterpointGenerator (ABC):
     def _passes_final_checks(self) -> bool:
         for check in self._final_checks:
             if not check(self): 
-                print("failed on final check:")
-                print(check.__name__)
                 return False 
         return True 
 
@@ -505,6 +509,7 @@ class CounterpointGenerator (ABC):
         self._store_deleted_indices_stacks = []
         self._store_attempt_parameters_stacks = []
 
+        self._number_of_rests = []
 
         self._melodic_insertion_checks = []
 

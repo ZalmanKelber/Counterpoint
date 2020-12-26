@@ -15,11 +15,11 @@ from counterpoint_generator_solo_subclasses import ImitationThemeGenerator
 from midi_writer import MidiWriter
 
 def main():
-    for mode in [Mode.DORIAN]:
-        for i in range(1):
+    for mode in Mode:
+        for h in Hexachord:
             optimal = None
             while optimal is None:
-                theme_generator = ImitationThemeGenerator([VocalRange.ALTO], mode, Pitch(6, 4), Pitch(1, 6), Hexachord.DURUM)
+                theme_generator = ImitationThemeGenerator([VocalRange.ALTO], mode, Pitch(6, 4), Pitch(1, 6), h)
                 theme_generator.generate_counterpoint()
                 theme_generator.score_solutions()
                 optimal = theme_generator.get_one_solution()

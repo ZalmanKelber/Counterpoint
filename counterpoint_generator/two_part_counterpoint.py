@@ -3,12 +3,12 @@ sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/notation_system"
 
 from random import randint, random
 
-from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
+from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange, Hexachord
 from mode_resolver import ModeResolver
 
 from counterpoint_generator_subclasses import TwoPartCounterpoint
 from counterpoint_generator_species_subclasses import FifthSpeciesCounterpointGenerator
-from counterpoint_generator_solo_subclasses import CantusFirmusGenerator
+from counterpoint_generator_solo_subclasses import CantusFirmusGenerator, ImitationThemeGenerator
 
 from filter_functions.melodic_insertion_checks import begin_and_end_two_part_counterpoint
 from filter_functions.melodic_insertion_checks import penultimate_bar_two_part_counterpoint
@@ -147,3 +147,46 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
         if beat == 0:
             if bar == 0: return { 2, 4, 6, 8, 12, 16 }
             else: return { 2, 4, 6, 8 }
+
+class ImitationOpeningGenerator (TwoPartCounterpointGenerator):
+    def __init__(self, length: int, lines: list[VocalRange], mode: Mode, lowest_pitches: list[Pitch], highest_pitches: list[Pitch]):
+        super().__init__(length, lines, mode)
+        self._lowest_pitches = lowest_pitches
+        self._highest_pitches = highest_pitches
+
+    #override:
+    #in the Imitation Opening, we rely on the predetermined highest and lowest notes and do not require 
+    #either to appear within the theme
+    def _assign_highest_and_lowest(self) -> None:
+        for line in range(self._height):
+            self._attempt_parameters[line]["lowest"] = self._lowest_pitches[line]
+            self._attempt_parameters[line]["highest"] = self._highest_pitches[line]
+            self._attempt_parameters[line]["lowest_must_appear_by"] = self._length
+            self._attempt_parameters[line]["highest_must_appear_by"] = self._length
+
+    #override:
+    #after initialization, choose one line to have an imitative theme and calculate the interval difference 
+    def _initialize(self) -> None:
+        super()._initialize()
+        self._starting_line = 0 if random() < .5 else 1
+        self._starting_hexachord = Hexachord.DURUM if random() < .5 else Hexachord.MOLLE
+        if self._starting_line == 0 and self._starting_hexachord == Hexachord.DURUM:
+            self._translation_interval = 4
+        if self._starting_line == 0 and self._starting_hexachord == Hexachord.MOLLE:
+            self._translation_interval = 5
+        if self._starting_line == 1 and self._starting_hexachord == Hexachord.DURUM:
+            self._translation_interval = -5
+        if self._starting_line == 1 and self._starting_hexachord == Hexachord.MOLLE:
+            self._translation_interval = -4
+
+        #generate the Imitative Theme
+        lines = [self._lines[self._starting_line]]
+        lowest = self._attempt_parameters[self._starting_line]["lowest"]
+        highest = self._attempt_parameters[self._starting_line]["highest"]
+        hexachord = self._starting_hexachord
+        theme_generator = ImitationThemeGenerator(lines, lowest, highest, hexachord)
+        theme_generator.generate_counterpoint()
+        theme_generator.score_solutions()
+        optimal = theme_generator.get_one_solution()
+        self.assign_melody_to_line(optimal[0], self._starting_line)
+        assign_melody_to_line(self, melody: list[RhythmicValue], line: int)

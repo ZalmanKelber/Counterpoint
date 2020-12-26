@@ -28,3 +28,8 @@ def check_for_added_melodic_octave(self, entity: RhythmicValue, line: int, bar: 
 def check_for_added_downbeat_long_note(self, entity: RhythmicValue, line: int, bar: int, beat: float) -> None:
     if bar != self._length - 1 and beat == 0 and isinstance(entity, Pitch) and entity.get_duration() >= 8:
         self._attempt_parameters[line]["downbeat_long_notes_placed"] += 1
+
+#keep track of the number of Rests
+def add_rest(self, entity: RhythmicValue, line: int, bar: int, beat: float) -> None:
+    if isinstance(entity, Rest):
+        self._attempt_parameters[line]["number_of_rests"] += 1

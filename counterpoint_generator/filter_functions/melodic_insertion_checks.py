@@ -462,6 +462,7 @@ def goes_up_after_third_appearance_of_note(self: object, pitch: Pitch, line: int
 #for use in Imitative Themes
 def start_with_outline_pitch(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
     if (bar, beat) == (0, 0):
-        if pitch.get_scale_degree() != self._attempt_parameters[line]["first_outline_pitch"]:
+        if ( pitch.get_scale_degree() != self._attempt_parameters[line]["first_outline_pitch"]
+            or pitch.get_accidental() != Accidental.NATURAL ):
             return False 
     return True

@@ -24,6 +24,7 @@ def check_for_second_outline_pitch(self: object) -> bool:
     found = False 
     for index in self._all_indices[0]:
         if index[1] % 2 == 0:
-            if self._counterpoint_objects[0][index].get_scale_degree() == self._attempt_parameters[0]["second_outline_pitch"]:
+            if ( self._counterpoint_objects[0][index].get_scale_degree() == self._attempt_parameters[0]["second_outline_pitch"]
+                and self._counterpoint_objects[0][index].get_accidental() == Accidental.NATURAL ):
                 found = True 
     return found

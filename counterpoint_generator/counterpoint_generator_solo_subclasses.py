@@ -124,3 +124,10 @@ class ImitationThemeGenerator (FifthSpeciesCounterpointGenerator, SoloMelody):
         self._attempt_parameters[0]["first_outline_pitch"] = outline_pitches[0]
         self._attempt_parameters[0]["second_outline_pitch"] = outline_pitches[1]
 
+
+    #override:
+    #collect unlimited Themes within 3500 backtracks
+    def _exit_backtrack_loop(self) -> bool:
+        if self._number_of_backtracks > 3500 or (self._number_of_backtracks > 300 and len(self._solutions) == 0):
+            return True 
+        return False 
