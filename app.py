@@ -10,19 +10,19 @@ from time import time
 import math
 from random import random, randint, shuffle
 
-from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
-from two_part_counterpoint import TwoPartCounterpointGenerator
+from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange, Hexachord
+from counterpoint_generator_solo_subclasses import ImitationThemeGenerator
 from midi_writer import MidiWriter
 
 def main():
-    for mode in Mode:
+    for mode in [Mode.DORIAN]:
         for i in range(1):
             optimal = None
             while optimal is None:
-                two_part_counterpoint_generator = TwoPartCounterpointGenerator(randint(12, 16), [VocalRange.BASS, VocalRange.TENOR], mode)
-                two_part_counterpoint_generator.generate_counterpoint()
-                two_part_counterpoint_generator.score_solutions()
-                optimal = two_part_counterpoint_generator.get_one_solution()
+                theme_generator = ImitationThemeGenerator([VocalRange.ALTO], mode, Pitch(6, 4), Pitch(1, 6), Hexachord.DURUM)
+                theme_generator.generate_counterpoint()
+                theme_generator.score_solutions()
+                optimal = theme_generator.get_one_solution()
             if optimal is not None:
                 mw = MidiWriter()
                 mw.write_midi_from_counterpoint(optimal, "counterpoint.mid", speed_up=1) 

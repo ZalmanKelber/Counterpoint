@@ -18,3 +18,12 @@ def ascending_intervals_are_filled_in(self: object) -> bool:
                     if not filled_in: 
                         return False 
     return True 
+
+#for use in Imitation Theme
+def check_for_second_outline_pitch(self: object) -> bool:
+    found = False 
+    for index in self._all_indices[0]:
+        if index[1] % 2 == 0:
+            if self._counterpoint_objects[0][index].get_scale_degree() == self._attempt_parameters[0]["second_outline_pitch"]:
+                found = True 
+    return found

@@ -13,6 +13,7 @@ from filter_functions.melodic_insertion_checks import valid_melodic_interval
 from filter_functions.melodic_insertion_checks import prevent_highest_duplicates
 from filter_functions.melodic_insertion_checks import ascending_minor_sixths_are_followed_by_descending_half_step
 from filter_functions.melodic_insertion_checks import prevent_two_notes_from_immediately_repeating
+from filter_functions.melodic_insertion_checks import goes_up_after_third_appearance_of_note
 
 from filter_functions.change_parameter_checks import check_for_lowest_and_highest
 
@@ -132,6 +133,7 @@ class CounterpointGenerator (ABC):
         self._melodic_insertion_checks.append(ascending_minor_sixths_are_followed_by_descending_half_step)
         self._melodic_insertion_checks.append(prevent_highest_duplicates)
         self._melodic_insertion_checks.append(prevent_two_notes_from_immediately_repeating)
+        self._melodic_insertion_checks.append(goes_up_after_third_appearance_of_note)
 
         self._change_parameters_checks.append(check_for_lowest_and_highest)
 
@@ -154,7 +156,7 @@ class CounterpointGenerator (ABC):
             self._initialize()
             self._backtrack()
             print("highest index reached:", self._highest_index_reached)
-        if self._height > 1:
+        if self._height > 0:
             print("number of solutions:", len(self._solutions),"number of attempts:", self._number_of_attempts, "number of backtracks:", self._number_of_backtracks)
         return 
 
@@ -168,7 +170,7 @@ class CounterpointGenerator (ABC):
     def get_one_solution(self) -> list[list[RhythmicValue]]:
         if len(self._solutions) > 0:
             self._map_solution_onto_stack(self._solutions[0])
-            if self._height > 1:
+            if self._height > 0:
                 self.print_counterpoint()
             return self._solutions[0]
 

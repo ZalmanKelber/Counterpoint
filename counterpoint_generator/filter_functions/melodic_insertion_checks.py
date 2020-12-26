@@ -441,3 +441,27 @@ def penultimate_bar_two_part_counterpoint(self: object, pitch: Pitch, line: int,
         if self._counterpoint_stacks[line][-1].get_tonal_interval(pitch) > 0:
             return False 
     return True
+
+#prevents melody from sounding "stuck"
+def goes_up_after_third_appearance_of_note(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if len(self._counterpoint_stacks[line]) > 0 and isinstance(self._counterpoint_stacks[line][-1], Pitch):
+        pitch_to_check = self._counterpoint_stacks[line][-1]
+        if pitch_to_check.get_tonal_interval(pitch) < 0:
+            num_unisons = 0
+            for i in range(len(self._counterpoint_stacks[line]) - 2, -1, -1):
+                if not isinstance(self._counterpoint_stacks[line][i], Pitch):
+                    break
+                if pitch_to_check.get_tonal_interval(self._counterpoint_stacks[line][i]) > 0:
+                    break
+                if self._counterpoint_stacks[line][i].is_unison(pitch_to_check):
+                    num_unisons += 1
+                    if num_unisons == 2:
+                        return False 
+    return True
+
+#for use in Imitative Themes
+def start_with_outline_pitch(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    if (bar, beat) == (0, 0):
+        if pitch.get_scale_degree() != self._attempt_parameters[line]["first_outline_pitch"]:
+            return False 
+    return True

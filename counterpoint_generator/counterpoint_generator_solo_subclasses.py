@@ -1,11 +1,11 @@
 import sys
 sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/notation_system")
 
-from random import random
+from random import random, randint, shuffle
 
 from abc import ABC
 
-from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
+from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange, Hexachord
 from mode_resolver import ModeResolver
 
 from counterpoint_generator import CounterpointGenerator
@@ -15,10 +15,17 @@ from counterpoint_generator_species_subclasses import FifthSpeciesCounterpointGe
 from counterpoint_generator_subclasses import SoloMelody
 
 from filter_functions.melodic_insertion_checks import last_interval_is_descending_step
+from filter_functions.melodic_insertion_checks import begin_and_end_on_mode_final
+from filter_functions.melodic_insertion_checks import enforce_interval_order_strict
+from filter_functions.melodic_insertion_checks import handles_interval_order_loosest
+from filter_functions.melodic_insertion_checks import start_with_outline_pitch
 
 from filter_functions.rhythmic_insertion_filters import enforce_max_long_notes_on_downbeats
+from filter_functions.rhythmic_insertion_filters import end_on_breve
 
 from filter_functions.change_parameter_checks import check_for_added_downbeat_long_note
+
+from filter_functions.final_checks import check_for_second_outline_pitch
 
 class CantusFirmusGenerator (FirstSpeciesCounterpointGenerator, SoloMelody):
 
@@ -69,3 +76,51 @@ class FreeMelodyGenerator (FifthSpeciesCounterpointGenerator, SoloMelody):
         if self._number_of_backtracks > 3500 or (self._number_of_backtracks > 300 and len(self._solutions) == 0):
             return True 
         return False 
+
+class ImitationThemeGenerator (FifthSpeciesCounterpointGenerator, SoloMelody):
+    def __init__(self, lines: list[VocalRange], mode: Mode, lowest: Note, highest: Note, hexachord: Hexachord):
+        super().__init__(randint(3, 6), lines, mode)
+        self._lowest = lowest
+        self._highest = highest
+        self._hexachord = hexachord
+
+        self._melodic_insertion_checks.remove(begin_and_end_on_mode_final)
+        self._melodic_insertion_checks.remove(handles_interval_order_loosest)
+
+        self._melodic_insertion_checks.append(enforce_interval_order_strict)
+        self._melodic_insertion_checks.append(start_with_outline_pitch)
+
+        self._rhythmic_insertion_filters.remove(end_on_breve)
+
+        self._final_checks.append(check_for_second_outline_pitch)
+
+    #override:
+    #Dotted Whole Notes should be available for any downbeat in an opening Theme
+    def _get_available_durations(self, line: int, bar: int, beat: float) -> set[int]:
+        if (bar, beat) == (0, 0):
+            if self._length == 3:
+                return { 6 }
+            else:
+                return { 6, 8, 12, 16 }
+        elif beat == 0:
+            return { 2, 4, 6, 8, 12 }
+        elif beat == 2:
+            return { 2, 4, 6, 8 }
+        else:
+            return { 2 }
+
+    #override:
+    #in the Imitation Theme, we rely on the predetermined highest and lowest notes and do not require 
+    #either to appear within the theme
+    def _assign_highest_and_lowest(self) -> None:
+        self._attempt_parameters[0]["lowest"] = self._lowest
+        self._attempt_parameters[0]["highest"] = self._highest
+        self._attempt_parameters[0]["lowest_must_appear_by"] = self._length
+        self._attempt_parameters[0]["highest_must_appear_by"] = self._length
+
+        outline_pitches = self._mode_resolver.get_outline_pitches(self._hexachord)
+        shuffle(outline_pitches)
+
+        self._attempt_parameters[0]["first_outline_pitch"] = outline_pitches[0]
+        self._attempt_parameters[0]["second_outline_pitch"] = outline_pitches[1]
+

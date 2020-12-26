@@ -365,7 +365,10 @@ class FifthSpeciesCounterpointGenerator (CounterpointGenerator, ABC):
     #override:
     #override the initialize function so that we can assign the number of eighth notes and number of melodic octaves we deem permissible beforehand
     def _initialize(self, cantus_firmus: list[RhythmicValue] = None, line: int = None) -> None:
-        super()._initialize(cantus_firmus, line)
+        if cantus_firmus is None or line is None:
+            super()._initialize()
+        else:
+            super()._initialize(cantus_firmus, line)
         self._assign_max_pairs_of_eighths()
         self._assign_max_melodic_octaves()
 
