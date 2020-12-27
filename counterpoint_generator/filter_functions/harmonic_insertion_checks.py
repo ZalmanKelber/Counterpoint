@@ -5,7 +5,7 @@ from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accident
 
 #in First Species through Fourth Species, we only need to worry about parallels leading into downbeats
 def prevents_parallel_fifths_and_octaves_simple(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
-    if bar != 0:
+    if bar != 0 and isinstance(self._counterpoint_stacks[line][-1], Pitch):
         prev_note = self._counterpoint_stacks[line][-1]
         for other_line in range(self._height):
             if other_line != line and (bar - 1, 0) in self._counterpoint_objects[other_line] and (bar, 0) in self._counterpoint_objects[other_line]:
@@ -252,7 +252,7 @@ def prevents_diagonal_cross_relations(self: object, pitch: Pitch, line: int, bar
 #the top voice of an Open Fifth cannot be approached by ascending Half Step
 def prevents_landini(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
     other_line = (line + 1) % 2     
-    if (bar, beat) in self._counterpoint_objects[other_line] and (bar, beat) != (0, 0):
+    if (bar, beat) in self._counterpoint_objects[other_line] and (bar, beat) != (0, 0) and isinstance(self._counterpoint_stacks[line][-1], Pitch):
         c_note = self._counterpoint_objects[other_line][(bar, beat)]
         if c_note is not None and abs(c_note.get_chromatic_interval(pitch)) % 12 == 7:
             c_prev_note = self._get_counterpoint_pitch(other_line, bar if beat != 0 else bar - 1, beat - 0.5 if beat != 0 else 3)
@@ -341,12 +341,12 @@ def handle_downbeats_two_part_counterpoint(self: object, pitch: Pitch, line: int
     other_line = (line + 1) % 2 
     if beat == 0:
         c_note = self._get_counterpoint_pitch(other_line, bar, beat)
-        if c_note is not None and not self._is_consonant(c_note, pitch):
+        if c_note is not None and isinstance(c_note, Pitch) and not self._is_consonant(c_note, pitch):
             if (bar, 0) in self._counterpoint_objects[other_line] or (bar, 2) not in self._counterpoint_objects[other_line]:
                 return False 
             susp_resolve = self._counterpoint_objects[other_line][(bar, 2)]
             if ( pitch.get_tonal_interval(c_note) not in self._legal_intervals["resolvable_dissonance"] or 
-                c_note.get_tonal_interval(susp_resolve) != -2 ):
+                (isinstance(susp_resolve, Pitch) and c_note.get_tonal_interval(susp_resolve)) != -2 ):
                 return False 
             if ( (bar, 1) in self._counterpoint_objects[other_line] and 
                 c_note.get_tonal_interval(self._counterpoint_objects[other_line][(bar, 1)]) != -2 ):

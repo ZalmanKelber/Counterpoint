@@ -76,12 +76,16 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
                 if self._highest_index_reached == (line, bar, beat):
                     self._log.append(str(pitch) + " " + str((line, bar, beat)))
                     self._log.append(check.__name__)
+                    # print(pitch)
+                    # print("failed at check", check.__name__)
                 return False 
         for check in self._harmonic_insertion_checks:
             if not check(self, pitch, line, bar, beat): 
                 if self._highest_index_reached == (line, bar, beat):
                     self._log.append(str(pitch) + " " + str((line, bar, beat)))
                     self._log.append(check.__name__)
+                    # print(pitch)
+                    # print("failed at check", check.__name__)
                 return False
         return True 
 
@@ -90,14 +94,22 @@ class MultiPartCounterpoint (CounterpointGenerator, ABC):
     def _get_valid_durations(self, pitch: Pitch, line: int, bar: int, beat: float) -> set[int]:
         durations = self._get_available_durations(line, bar, beat)
         for check in self._rhythmic_insertion_filters:
+            prev_len = len(durations)
             durations = check(self, pitch, line, bar, beat, durations)
+            # if len(durations) != prev_len:
+            #     print(pitch)
+            #     print("failed at check", check.__name__)
             if len(durations) == 0: 
                 if self._highest_index_reached == (line, bar, beat):
                     self._log.append(str(pitch) + " " + str((line, bar, beat)))
                     self._log.append(check.__name__)
                 return durations
         for check in self._harmonic_rhythmic_filters:
+            prev_len = len(durations)
             durations = check(self, pitch, line, bar, beat, durations)
+            # if len(durations) != prev_len:
+            #     print(pitch)
+            #     print("failed at check", check.__name__)
             if len(durations) == 0: 
                 if self._highest_index_reached == (line, bar, beat):
                     self._log.append(str(pitch) + " " + str((line, bar, beat)))

@@ -11,15 +11,17 @@ import math
 from random import random, randint, shuffle
 
 from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange, Hexachord
-from counterpoint_generator_solo_subclasses import ImitationThemeGenerator
+from two_part_counterpoint import ImitationOpeningGenerator
 from midi_writer import MidiWriter
 
 def main():
     for mode in Mode:
-        for h in Hexachord:
+        for h in range(1):
             optimal = None
-            while optimal is None:
-                theme_generator = ImitationThemeGenerator([VocalRange.ALTO], mode, Pitch(6, 4), Pitch(1, 6), h)
+            if optimal is None:
+                lowest = [Pitch(6, 4), Pitch(3, 5)]
+                highest = [Pitch(1, 6), Pitch(5, 6)]
+                theme_generator = ImitationOpeningGenerator(randint(12, 16), [VocalRange.ALTO, VocalRange.SOPRANO], mode, lowest, highest)
                 theme_generator.generate_counterpoint()
                 theme_generator.score_solutions()
                 optimal = theme_generator.get_one_solution()

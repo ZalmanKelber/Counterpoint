@@ -78,8 +78,8 @@ class FreeMelodyGenerator (FifthSpeciesCounterpointGenerator, SoloMelody):
         return False 
 
 class ImitationThemeGenerator (FifthSpeciesCounterpointGenerator, SoloMelody):
-    def __init__(self, lines: list[VocalRange], mode: Mode, lowest: Note, highest: Note, hexachord: Hexachord):
-        super().__init__(randint(3, 6), lines, mode)
+    def __init__(self, length: int, lines: list[VocalRange], mode: Mode, lowest: Note, highest: Note, hexachord: Hexachord):
+        super().__init__(length, lines, mode)
         self._lowest = lowest
         self._highest = highest
         self._hexachord = hexachord
@@ -126,7 +126,7 @@ class ImitationThemeGenerator (FifthSpeciesCounterpointGenerator, SoloMelody):
 
 
     #override:
-    #collect unlimited Themes within 3500 backtracks
+    #collect unlimited Cantus Firmus examples within 3500 backtracks
     def _exit_backtrack_loop(self) -> bool:
         if self._number_of_backtracks > 3500 or (self._number_of_backtracks > 300 and len(self._solutions) == 0):
             return True 

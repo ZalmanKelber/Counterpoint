@@ -122,6 +122,25 @@ def handles_weak_half_note_dissonance_in_other_line(self: object, pitch: Pitch, 
                 if c_note.get_duration() == 2:
                     if not self._is_consonant(self._counterpoint_objects[other_line][next_index], pitch):
                         durations.discard(8)
+    if beat == 0 and (bar + 1, 2) in self._counterpoint_objects[other_line]:
+        c_note = self._counterpoint_objects[other_line][(bar + 1, 2)]
+        if c_note is not None:
+            if not self._is_consonant(c_note, pitch):
+                if c_note.get_duration() not in [2, 4]:
+                    durations.discard(16)
+                    return durations
+                prev_interval = self._get_counterpoint_pitch(other_line, bar + 1, 1).get_tonal_interval(c_note)
+                if abs(prev_interval) != 2 or (prev_interval == 2 and c_note.get_duration() == 2):
+                    durations.discard(16)
+                    return durations
+                next_index = (bar + 1, 3) if (bar + 1, 3) in self._counterpoint_objects[other_line] else (bar + 2, 0)
+                next_interval = c_note.get_tonal_interval(self._counterpoint_objects[other_line][next_index])
+                if next_interval != prev_interval:
+                    durations.discard(16)
+                    return durations
+                if c_note.get_duration() == 2:
+                    if not self._is_consonant(self._counterpoint_objects[other_line][next_index], pitch):
+                        durations.discard(8)
     return durations
 
 

@@ -155,7 +155,7 @@ def handles_rhythm_of_penultimate_measure(self: object, pitch: Pitch, line: int,
 
 #makes melody less monotonous
 def prevents_lack_of_syncopation(self: object, pitch: Pitch, line: int, bar: int, beat: float, durations: set[int]) -> set[int]:
-    if beat == 0 and all([(bar - i, 0) in self._counterpoint_objects[line] for i in range(1, 4)]):
+    if beat == 0 and all([(bar - i, 0) in self._counterpoint_objects[line] and isinstance(self._counterpoint_objects[line][(bar - i, 0)], Pitch) for i in range(1, 4)]):
         if all([self._counterpoint_objects[line][(bar - i, 0)].get_duration() >= 4 for i in range(1, 4)]):
             durations.discard(8)
             durations.discard(6)
@@ -189,6 +189,11 @@ def pentultimate_note_is_leading_tone(self: object, pitch: Pitch, line: int, bar
                 durations.discard(4)
     return durations
 
+#for use in Imitation Opening
+def follow_imitation_pattern_rhythm(self: object, pitch: Pitch, line: int, bar: int, beat: float, durations: set[int]) -> set[int]:
+    imitation_index = len(self._counterpoint_stacks[line]) - self._attempt_parameters[line]["number_of_rests"]
+    imitation_duration = self._counterpoint_stacks[self._starting_line][imitation_index].get_duration()
+    return { imitation_duration } if imitation_duration in durations else set()
 
 
 

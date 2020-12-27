@@ -100,7 +100,8 @@ def select_ideal_ties(self: object) -> int:
 def penalize_perfect_intervals_on_downbeats(self: object) -> int:   
     num_perfect_intervals = 0
     for bar in range(1, self._length - 1): #note that we don't include the first and last bars   
-        if (bar, 0) in self._counterpoint_objects[0] and (bar, 0) in self._counterpoint_objects[1]:
+        if ( (bar, 0) in self._counterpoint_objects[0] and (bar, 0) in self._counterpoint_objects[1] 
+            and isinstance(self._counterpoint_objects[0][(bar, 0)], Pitch) and isinstance(self._counterpoint_objects[1][(bar, 0)], Pitch) ):
             c_interval = self._counterpoint_objects[0][(bar, 0)].get_chromatic_interval(self._counterpoint_objects[1][(bar, 0)])
             if abs(c_interval) % 12 in [0, 7]:
                 num_perfect_intervals += 1
@@ -155,4 +156,14 @@ def find_as_many_suspensions_as_possible(self: object) -> int:
         counterpoint_note = self._get_counterpoint_pitch(counterpoint_line, bar, 0)
         if c_note.get_tonal_interval(counterpoint_note) not in self._legal_intervals["resolvable_dissonance"]:
             score_add_on += 1000
+    return score_add_on
+
+#the most important criteria in evaluating an imitative opening is to find the maximum overlap between the Theme in each voice
+def penalize_rests(self: object) -> int:
+    score_add_on = 0
+    for line in range(self._height):
+        i = 0
+        while isinstance(self._counterpoint_stacks[line][i], Rest):
+            i += 1
+            score_add_on += 10000
     return score_add_on

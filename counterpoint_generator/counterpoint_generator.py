@@ -16,6 +16,7 @@ from filter_functions.melodic_insertion_checks import prevent_two_notes_from_imm
 from filter_functions.melodic_insertion_checks import goes_up_after_third_appearance_of_note
 
 from filter_functions.change_parameter_checks import check_for_lowest_and_highest
+from filter_functions.change_parameter_checks import add_rest
 
 from filter_functions.final_checks import ascending_intervals_are_filled_in
 
@@ -136,6 +137,7 @@ class CounterpointGenerator (ABC):
         self._melodic_insertion_checks.append(goes_up_after_third_appearance_of_note)
 
         self._change_parameters_checks.append(check_for_lowest_and_highest)
+        self._change_parameters_checks.append(add_rest)
 
         self._score_functions.append(prioritize_stepwise_motion)
         self._score_functions.append(ascending_leaps_followed_by_descending_steps)
@@ -155,8 +157,9 @@ class CounterpointGenerator (ABC):
             self._number_of_attempts += 1
             self._initialize()
             self._backtrack()
-            print("highest index reached:", self._highest_index_reached)
-        if self._height > 0:
+            if self._height > 1:
+                print("highest index reached:", self._highest_index_reached)
+        if self._height > 1:
             print("number of solutions:", len(self._solutions),"number of attempts:", self._number_of_attempts, "number of backtracks:", self._number_of_backtracks)
         return 
 
@@ -170,7 +173,7 @@ class CounterpointGenerator (ABC):
     def get_one_solution(self) -> list[list[RhythmicValue]]:
         if len(self._solutions) > 0:
             self._map_solution_onto_stack(self._solutions[0])
-            if self._height > 0:
+            if self._height > 1:
                 self.print_counterpoint()
             return self._solutions[0]
 
@@ -188,10 +191,11 @@ class CounterpointGenerator (ABC):
                 show_bar = str(bar) + ":" if beat == 0 else " "
                 print_row += show_bar.ljust(5)
                 for line in range(self._height):
-                    entity = str(self._counterpoint_objects[line][(bar, beat)]) if (bar, beat) in self._counterpoint_objects[line] else " ".ljust(33)
+                    entity = str(self._counterpoint_objects[line][(bar, beat)]) if (bar, beat) in self._counterpoint_objects[line] else " "
+                    entity = entity.ljust(33)
                     if (bar, beat + .5) in self._counterpoint_objects[line]:
                         entity = entity[:9] + " / " + str(self._counterpoint_objects[line][(bar, beat + .5)])[:9]
-                        entity = entity.ljust(64)
+                        entity = entity.ljust(33)
                     print_row += entity
                 print(print_row)
                 
@@ -404,7 +408,7 @@ class CounterpointGenerator (ABC):
     def _passes_insertion_checks(self, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
         for check in self._melodic_insertion_checks:
             if not check(self, pitch, line, bar, beat): 
-                # print("failed at check", check.__name__)
+                #print("failed at check", check.__name__)
                 return False 
         return True 
 

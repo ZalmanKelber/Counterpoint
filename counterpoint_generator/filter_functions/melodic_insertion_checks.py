@@ -466,3 +466,17 @@ def start_with_outline_pitch(self: object, pitch: Pitch, line: int, bar: int, be
             or pitch.get_accidental() != Accidental.NATURAL ):
             return False 
     return True
+
+#for use in Imitation Opening
+def follow_imitation_pattern(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
+    imitation_index = len(self._counterpoint_stacks[line]) - self._attempt_parameters[line]["number_of_rests"]
+    imitation_pitch = self._counterpoint_stacks[self._starting_line][imitation_index]
+    if imitation_pitch.get_tonal_interval(pitch) != self._translation_interval:
+        return False 
+    if not self._mode_resolver.is_sharp(imitation_pitch) and self._mode_resolver.is_sharp(pitch):
+        return False
+    if self._mode_resolver.is_sharp(imitation_pitch) and not self._mode_resolver.is_sharp(pitch):
+        if ( pitch.get_scale_degree() in [1, 4, 5] or (pitch.get_scale_degree() == 2 and self._mode == Mode.AEOLIAN)
+            or pitch.get_scale_degree() == 7 and self._mode in [Mode.DORIAN, Mode.LYDIAN] ):
+            return False 
+    return True
