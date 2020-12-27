@@ -268,6 +268,7 @@ class CounterpointGenerator (ABC):
                 "highest": None,
                 "lowest_must_appear_by": None,
                 "highest_must_appear_by": None,
+                "lowest_has_been_placed": None,
                 "highest_has_been_placed": None,
                 "available_pitches": [],
                 "number_of_rests": 0

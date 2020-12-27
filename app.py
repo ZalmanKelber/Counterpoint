@@ -11,20 +11,18 @@ import math
 from random import random, randint, shuffle
 
 from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange, Hexachord
-from two_part_counterpoint import ImitationOpeningGenerator
+from two_part_counterpoint import TwoPartImitativeCounterpointGenerator
 from midi_writer import MidiWriter
 
 def main():
-    for mode in Mode:
+    for mode in [Mode.IONIAN]:
         for h in range(1):
             optimal = None
             if optimal is None:
-                lowest = [Pitch(6, 4), Pitch(3, 5)]
-                highest = [Pitch(1, 6), Pitch(5, 6)]
-                theme_generator = ImitationOpeningGenerator(randint(12, 16), [VocalRange.ALTO, VocalRange.SOPRANO], mode, lowest, highest)
-                theme_generator.generate_counterpoint()
-                theme_generator.score_solutions()
-                optimal = theme_generator.get_one_solution()
+                counterpoint_generator = TwoPartImitativeCounterpointGenerator(randint(14, 16), [VocalRange.ALTO, VocalRange.SOPRANO], mode)
+                counterpoint_generator.generate_counterpoint()
+                counterpoint_generator.score_solutions()
+                optimal = counterpoint_generator.get_one_solution()
             if optimal is not None:
                 mw = MidiWriter()
                 mw.write_midi_from_counterpoint(optimal, "counterpoint.mid", speed_up=1) 

@@ -2,6 +2,7 @@ import sys
 sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/notation_system")
 
 from random import randint, random
+import math
 
 from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange, Hexachord
 from mode_resolver import ModeResolver
@@ -121,6 +122,10 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
     #decide the number of Suspensions in advance
     def _initialize(self) -> None:
         super()._initialize()
+        self._assign_suspension_bars()
+
+    #determines which bars will have suspensions
+    def _assign_suspension_bars(self) -> None:
         min_num_suspensions = randint(1, 2) if self._length < 12 else randint(2, 3)
         suspension_bars = [self._length - 2]
         for i in range(min_num_suspensions - 1):
@@ -153,6 +158,8 @@ class TwoPartCounterpointGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
         if beat == 0:
             if bar == 0: return { 2, 4, 6, 8, 12, 16 }
             else: return { 2, 4, 6, 8 }
+
+##############################################################################################################
 
 class ImitationOpeningGenerator (TwoPartCounterpointGenerator):
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode, lowest_pitches: list[Pitch], highest_pitches: list[Pitch]):
@@ -188,6 +195,7 @@ class ImitationOpeningGenerator (TwoPartCounterpointGenerator):
     #after initialization, choose one line to have an imitative theme and calculate the interval difference 
     def _initialize(self) -> None:
         super()._initialize()
+        print("running attempt in imitation opening generator")
         self._starting_line = 0 if random() < .5 else 1
         self._starting_hexachord = Hexachord.DURUM if random() < .5 else Hexachord.MOLLE
         if self._starting_line == 0 and self._starting_hexachord == Hexachord.DURUM:
@@ -205,6 +213,7 @@ class ImitationOpeningGenerator (TwoPartCounterpointGenerator):
         highest = self._attempt_parameters[self._starting_line]["highest"]
         hexachord = self._starting_hexachord
         optimal = None
+        # print("highest", highest, "lowest", lowest, "hexachord", hexachord, "lines", lines)
         while optimal is None:
             theme_generator = ImitationThemeGenerator(self._imitation_bars, lines, self._mode, lowest, highest, hexachord)
             theme_generator.generate_counterpoint()
@@ -244,3 +253,85 @@ class ImitationOpeningGenerator (TwoPartCounterpointGenerator):
     #exit the attempt loop once a solution is found
     def _exit_attempt_loop(self) -> bool:
         return len(self._solutions) >= 100 or self._number_of_attempts >= 10
+
+##############################################################################################################
+
+class TwoPartImitativeCounterpointGenerator (TwoPartCounterpointGenerator):
+    def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
+        super().__init__(length, lines, mode)
+        #decide the vocal ranges in advance using the super() version of assign highest and lowest
+        self._attempt_parameters = [{}, {}]
+        super()._assign_highest_and_lowest()
+        self._lowest_pitches = [self._attempt_parameters[line]["lowest"] for line in range(self._height)]
+        self._highest_pitches = [self._attempt_parameters[line]["highest"] for line in range(self._height)]
+
+        #generate an imitation opening
+        optimal = None
+        count = 0
+        while optimal is None:
+            count += 1
+            print(count)
+            # print("lowest pitches")
+            # for p in self._lowest_pitches: print(p)
+            # print("highest pitches")
+            # for p in self._highest_pitches: print(p)
+            imitation_opening_generator = ImitationOpeningGenerator(length, lines, mode, self._lowest_pitches, self._highest_pitches)
+            imitation_opening_generator.generate_counterpoint()
+            imitation_opening_generator.score_solutions()
+            optimal = imitation_opening_generator.get_one_solution()
+        self._opening = optimal
+        self._opening_bars = self._get_number_of_bars(optimal)
+
+    #override:
+    #since our range is already decided during the initialization, we can use the values we generated
+    def _assign_highest_and_lowest(self) -> None:
+        for line in range(self._height):
+            self._attempt_parameters[line]["lowest"] = self._lowest_pitches[line]
+            self._attempt_parameters[line]["highest"] = self._highest_pitches[line]
+            if self._length - 1 >= self._opening_bars + 2:
+                self._attempt_parameters[line]["lowest_must_appear_by"] = randint(self._opening_bars + 2, self._length - 1) 
+                self._attempt_parameters[line]["highest_must_appear_by"] = randint(self._opening_bars + 2, self._length - 1)
+            else:
+                self._attempt_parameters[line]["lowest_must_appear_by"] = self._length - 1
+                self._attempt_parameters[line]["highest_must_appear_by"] = self._length - 1
+
+    #override:
+    #map the opening onto the stack and determine if the highest notes have been placed 
+    def _initialize(self) -> None:
+        super()._initialize()
+        for line in range(self._height):
+            for entity in self._opening[line]:
+                if isinstance(entity, Pitch):
+                    if entity.is_unison(self._attempt_parameters[line]["lowest"]):
+                        self._attempt_parameters[line]["lowest_has_been_placed"] = True 
+                    if entity.is_unison(self._attempt_parameters[line]["highest"]):
+                        self._attempt_parameters[line]["highest_has_been_placed"] = True 
+            self.assign_melody_to_line(self._opening[line], line)
+
+    #override:
+    #ensure that suspension bars don't overlap with opening
+    def _assign_suspension_bars(self) -> None:
+        min_num_suspensions = randint(1, 2) if self._length - self._opening_bars > 5 else 1
+        suspension_bars = [self._length - 2]
+        for i in range(min_num_suspensions - 1):
+            suspension_bar = randint(self._opening_bars + 1, self._length - 3)
+            while suspension_bar in suspension_bars:
+                suspension_bar = randint(self._opening_bars + 1, self._length - 3)
+            suspension_bars.append(suspension_bar)
+        for line in range(2):
+            self._attempt_parameters[line]["suspension_bars"] = []
+        for suspension_bar in suspension_bars:
+            if random() < .33:
+                self._attempt_parameters[0]["suspension_bars"].append(suspension_bar)
+            else:
+                self._attempt_parameters[1]["suspension_bars"].append(suspension_bar)
+
+
+    #determine the number of bars taken up by the opening
+    def _get_number_of_bars(self, opening: list[list[RhythmicValue]]) -> int:
+        for line in range(self._height):
+            if isinstance(opening[line][0], Rest):
+                total_duration = 0
+                for entity in opening[line]:
+                    total_duration += entity.get_duration()
+                return math.ceil(total_duration / 8)
