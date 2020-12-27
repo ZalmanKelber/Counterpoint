@@ -15,11 +15,12 @@ from two_part_counterpoint import TwoPartImitativeCounterpointGenerator
 from midi_writer import MidiWriter
 
 def main():
-    for mode in [Mode.IONIAN]:
-        for h in range(1):
+    for mode in Mode:
+        for h in range(2):
             optimal = None
-            if optimal is None:
-                counterpoint_generator = TwoPartImitativeCounterpointGenerator(randint(14, 16), [VocalRange.ALTO, VocalRange.SOPRANO], mode)
+            while optimal is None:
+                lines = [VocalRange.ALTO, VocalRange.SOPRANO] if h == 0 else [VocalRange.TENOR, VocalRange.ALTO]
+                counterpoint_generator = TwoPartImitativeCounterpointGenerator(randint(14, 16), lines, mode)
                 counterpoint_generator.generate_counterpoint()
                 counterpoint_generator.score_solutions()
                 optimal = counterpoint_generator.get_one_solution()

@@ -166,7 +166,7 @@ class ImitationOpeningGenerator (TwoPartCounterpointGenerator):
         super().__init__(length, lines, mode)
         self._lowest_pitches = lowest_pitches
         self._highest_pitches = highest_pitches
-        self._imitation_bars = randint(3, 6)
+        self._imitation_bars = randint(3, 6) if length > 14 else randint(3, 5)
 
         self._melodic_insertion_checks.remove(begin_and_end_two_part_counterpoint)
 
@@ -177,8 +177,6 @@ class ImitationOpeningGenerator (TwoPartCounterpointGenerator):
         self._rhythmic_insertion_filters.append(follow_imitation_pattern_rhythm)
 
         self._score_functions.append(penalize_rests)
-
-
 
     #override:
     #in the Imitation Opening, we rely on the predetermined highest and lowest notes and do not require 
@@ -195,7 +193,6 @@ class ImitationOpeningGenerator (TwoPartCounterpointGenerator):
     #after initialization, choose one line to have an imitative theme and calculate the interval difference 
     def _initialize(self) -> None:
         super()._initialize()
-        print("running attempt in imitation opening generator")
         self._starting_line = 0 if random() < .5 else 1
         self._starting_hexachord = Hexachord.DURUM if random() < .5 else Hexachord.MOLLE
         if self._starting_line == 0 and self._starting_hexachord == Hexachord.DURUM:
@@ -214,16 +211,28 @@ class ImitationOpeningGenerator (TwoPartCounterpointGenerator):
         hexachord = self._starting_hexachord
         optimal = None
         # print("highest", highest, "lowest", lowest, "hexachord", hexachord, "lines", lines)
-        while optimal is None:
+        count = 0
+        while optimal is None and count < 20:
+            count += 1
             theme_generator = ImitationThemeGenerator(self._imitation_bars, lines, self._mode, lowest, highest, hexachord)
             theme_generator.generate_counterpoint()
             theme_generator.score_solutions()
             optimal = theme_generator.get_one_solution()
+        # print("found theme")
+        if optimal is None:
+            return
         self.assign_melody_to_line(optimal[0], self._starting_line)
         self._remaining_indices[self._starting_line] = []
 
         for line in range(self._height):
             self._attempt_parameters[line]["suspension_bars"] = []
+
+    #override:
+    #if there is no imitative theme, exit the loop
+    def _backtrack(self) -> None:
+        if len(self._remaining_indices[self._starting_line]) > 0:
+            return
+        super()._backtrack()
 
     #override:
     #change the conditions of the reached possible solution function to return true if we've finished the imitation
@@ -252,13 +261,14 @@ class ImitationOpeningGenerator (TwoPartCounterpointGenerator):
     #override:
     #exit the attempt loop once a solution is found
     def _exit_attempt_loop(self) -> bool:
-        return len(self._solutions) >= 100 or self._number_of_attempts >= 10
+        return len(self._solutions) >= 100 or self._number_of_attempts >= 5
 
 ##############################################################################################################
 
 class TwoPartImitativeCounterpointGenerator (TwoPartCounterpointGenerator):
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
         super().__init__(length, lines, mode)
+
         #decide the vocal ranges in advance using the super() version of assign highest and lowest
         self._attempt_parameters = [{}, {}]
         super()._assign_highest_and_lowest()
@@ -268,19 +278,21 @@ class TwoPartImitativeCounterpointGenerator (TwoPartCounterpointGenerator):
         #generate an imitation opening
         optimal = None
         count = 0
-        while optimal is None:
+        while optimal is None and count < 1:
             count += 1
-            print(count)
-            # print("lowest pitches")
-            # for p in self._lowest_pitches: print(p)
-            # print("highest pitches")
-            # for p in self._highest_pitches: print(p)
             imitation_opening_generator = ImitationOpeningGenerator(length, lines, mode, self._lowest_pitches, self._highest_pitches)
             imitation_opening_generator.generate_counterpoint()
             imitation_opening_generator.score_solutions()
             optimal = imitation_opening_generator.get_one_solution()
         self._opening = optimal
-        self._opening_bars = self._get_number_of_bars(optimal)
+        self._opening_bars = self._get_number_of_bars(optimal) if optimal is not None else 0
+
+    #override:
+    #if we haven't generated an opening, don't run the loop
+    def generate_counterpoint(self) -> None:
+        if self._opening is None:
+            return 
+        super().generate_counterpoint()
 
     #override:
     #since our range is already decided during the initialization, we can use the values we generated
@@ -335,3 +347,8 @@ class TwoPartImitativeCounterpointGenerator (TwoPartCounterpointGenerator):
                 for entity in opening[line]:
                     total_duration += entity.get_duration()
                 return math.ceil(total_duration / 8)
+
+    #override:
+    #exit the attempt loop after ten attempts
+    def _exit_attempt_loop(self) -> bool:
+        return len(self._solutions) >= 100 or self._number_of_attempts >= 20 or (self._number_of_attempts >= 10 and len(self._solutions) > 0)

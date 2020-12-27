@@ -221,14 +221,15 @@ def prevents_large_leaps_in_same_direction(self: object, pitch: Pitch, line: int
     other_line = (line + 1) % 2    
     if len(self._counterpoint_stacks[line]) > 0 and isinstance(self._counterpoint_stacks[line][-1], Pitch) and (bar, beat) in self._counterpoint_objects[other_line]:
         c_note = self._counterpoint_objects[other_line][(bar, beat)]
-        if c_note is not None:
+        if c_note is not None and isinstance(c_note, Pitch):
             prev_beat = beat - 0.5 if beat > 0 else 3
             prev_bar = bar if beat > 0 else bar - 1
             prev_c_note = self._get_counterpoint_pitch(other_line, prev_bar, prev_beat)   
-            interval, c_interval = self._counterpoint_stacks[line][-1].get_tonal_interval(pitch), prev_c_note.get_tonal_interval(c_note)
-            if (interval > 2 and c_interval > 2) or (interval < 2 and c_interval < 2):
-                if abs(interval) > 4 or abs(c_interval) > 4:
-                    return False 
+            if isinstance(prev_c_note, Pitch):
+                interval, c_interval = self._counterpoint_stacks[line][-1].get_tonal_interval(pitch), prev_c_note.get_tonal_interval(c_note)
+                if (interval > 2 and c_interval > 2) or (interval < 2 and c_interval < 2):
+                    if abs(interval) > 4 or abs(c_interval) > 4:
+                        return False 
     return True   
 
 #used in all Two-part examples
@@ -252,14 +253,16 @@ def prevents_diagonal_cross_relations(self: object, pitch: Pitch, line: int, bar
 #the top voice of an Open Fifth cannot be approached by ascending Half Step
 def prevents_landini(self: object, pitch: Pitch, line: int, bar: int, beat: float) -> bool:
     other_line = (line + 1) % 2     
-    if (bar, beat) in self._counterpoint_objects[other_line] and (bar, beat) != (0, 0) and isinstance(self._counterpoint_stacks[line][-1], Pitch):
+    if (bar, beat) in self._counterpoint_objects[other_line] and (bar, beat) != (0, 0):
         c_note = self._counterpoint_objects[other_line][(bar, beat)]
-        if c_note is not None and abs(c_note.get_chromatic_interval(pitch)) % 12 == 7:
-            c_prev_note = self._get_counterpoint_pitch(other_line, bar if beat != 0 else bar - 1, beat - 0.5 if beat != 0 else 3)
-            c_c_interval = c_prev_note.get_chromatic_interval(c_note)
-            c_interval = self._counterpoint_stacks[line][-1].get_chromatic_interval(pitch)
-            if { c_c_interval, c_interval } == { -2, 1 }:
-                return False 
+        if isinstance(c_note, Pitch) and abs(c_note.get_chromatic_interval(pitch)) % 12 == 7:
+            if c_note.get_tonal_interval(pitch) < 0:
+                c_prev_note = self._get_counterpoint_pitch(other_line, bar if beat != 0 else bar - 1, beat - 0.5 if beat != 0 else 3)
+                if isinstance(c_prev_note, Pitch) and c_prev_note.get_chromatic_interval(c_note) == 1:
+                    return False 
+            else:
+                if isinstance(self._counterpoint_stacks[line][-1], Pitch) and self._counterpoint_stacks[line][-1].get_chromatic_interval(pitch) == 1:
+                    return False 
     return True 
 
 #used in all Two-part examples
