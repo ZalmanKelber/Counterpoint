@@ -176,7 +176,7 @@ def handles_weak_quarter_note_dissonance_in_other_line(self: object, pitch: Pitc
 
 def improperly_handled_dissonance(self: object, pitch: Pitch, index: tuple[int, int], line: int) -> bool:
     c_note = self._counterpoint_objects[line][index]
-    if c_note is None: 
+    if not isinstance(c_note, Pitch): 
         return False 
     if not self._is_consonant(c_note, pitch):
         (bar, beat) = index
@@ -190,10 +190,12 @@ def improperly_handled_dissonance(self: object, pitch: Pitch, index: tuple[int, 
             if camb_tail_index not in self._counterpoint_objects[line]:
                 return True 
             camb_tail = self._counterpoint_objects[line][camb_tail_index]
-            if camb_intermediary_index not in self._counterpoint_objects[line]:
-                return next_c_note.get_tonal_interval(camb_tail) != 2
-            camb_intermediary = self._counterpoint_objects[line][camb_intermediary_index]
-            return next_c_note.get_tonal_interval(camb_intermediary) != 2 or camb_intermediary.get_tonal_interval(camb_tail) != 2
+            if isinstance(camb_tail, Pitch):
+                if camb_intermediary_index not in self._counterpoint_objects[line]:
+                    return next_c_note.get_tonal_interval(camb_tail) != 2
+                camb_intermediary = self._counterpoint_objects[line][camb_intermediary_index]
+                if isinstance(camb_intermediary, Pitch):
+                    return next_c_note.get_tonal_interval(camb_intermediary) != 2 or camb_intermediary.get_tonal_interval(camb_tail) != 2
     return False 
 
 def is_dissonant(self: object, pitch: Pitch, index: tuple[int, int], line: int) -> bool:

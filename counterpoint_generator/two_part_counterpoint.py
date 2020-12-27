@@ -292,7 +292,14 @@ class TwoPartImitativeCounterpointGenerator (TwoPartCounterpointGenerator):
     def generate_counterpoint(self) -> None:
         if self._opening is None:
             return 
-        super().generate_counterpoint()
+        self._number_of_attempts = 0
+        while not self._exit_attempt_loop():
+            self._number_of_attempts += 1
+            self._initialize()
+            self._backtrack()
+            print("highest index reached:", self._highest_index_reached)
+        print("number of solutions:", len(self._solutions),"number of attempts:", self._number_of_attempts, "number of backtracks:", self._number_of_backtracks)
+        return 
 
     #override:
     #since our range is already decided during the initialization, we can use the values we generated

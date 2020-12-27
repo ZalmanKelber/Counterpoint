@@ -157,10 +157,6 @@ class CounterpointGenerator (ABC):
             self._number_of_attempts += 1
             self._initialize()
             self._backtrack()
-            if self._height > 1:
-                print("highest index reached:", self._highest_index_reached)
-        if self._height > 1:
-            print("number of solutions:", len(self._solutions),"number of attempts:", self._number_of_attempts, "number of backtracks:", self._number_of_backtracks)
         return 
 
     #sorts the solutions by the scording system (note that lower scores are better)
@@ -173,8 +169,6 @@ class CounterpointGenerator (ABC):
     def get_one_solution(self) -> list[list[RhythmicValue]]:
         if len(self._solutions) > 0:
             self._map_solution_onto_stack(self._solutions[0])
-            if self._height > 1:
-                self.print_counterpoint()
             return self._solutions[0]
 
 

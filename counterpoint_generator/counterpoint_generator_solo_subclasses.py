@@ -22,6 +22,7 @@ from filter_functions.melodic_insertion_checks import start_with_outline_pitch
 
 from filter_functions.rhythmic_insertion_filters import enforce_max_long_notes_on_downbeats
 from filter_functions.rhythmic_insertion_filters import end_on_breve
+from filter_functions.rhythmic_insertion_filters import handles_rhythm_of_penultimate_measure
 
 from filter_functions.change_parameter_checks import check_for_added_downbeat_long_note
 
@@ -91,8 +92,10 @@ class ImitationThemeGenerator (FifthSpeciesCounterpointGenerator, SoloMelody):
         self._melodic_insertion_checks.append(start_with_outline_pitch)
 
         self._rhythmic_insertion_filters.remove(end_on_breve)
+        self._rhythmic_insertion_filters.remove(handles_rhythm_of_penultimate_measure)
 
         self._final_checks.append(check_for_second_outline_pitch)
+
 
     #override:
     #Dotted Whole Notes should be available for any downbeat in an opening Theme
