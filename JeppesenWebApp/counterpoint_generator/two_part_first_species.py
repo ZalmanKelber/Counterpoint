@@ -1,14 +1,17 @@
-import sys
-sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/notation_system")
-
 from random import randint, random
 
-from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
-from mode_resolver import ModeResolver
+import os,sys,inspect
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+sys.path.insert(0, current_dir)
 
-from counterpoint_generator_subclasses import TwoPartCounterpoint
-from counterpoint_generator_species_subclasses import FirstSpeciesCounterpointGenerator
-from counterpoint_generator_solo_subclasses import CantusFirmusGenerator
+from notation_system.notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
+from notation_system.mode_resolver import ModeResolver
+
+from two_lines import TwoLines
+from first_species import FirstSpeciesCounterpointGenerator
+from cantus_firmus import CantusFirmusGenerator
 
 from filter_functions.melodic_insertion_checks import end_stepwise
 
@@ -17,7 +20,7 @@ from filter_functions.harmonic_insertion_checks import unison_not_allowed_on_dow
 from filter_functions.harmonic_insertion_checks import no_more_than_four_consecutive_repeated_vertical_intervals
 from filter_functions.harmonic_insertion_checks import adjacent_voices_stay_within_tenth
 
-class TwoPartFirstSpeciesGenerator (FirstSpeciesCounterpointGenerator, TwoPartCounterpoint):
+class TwoPartFirstSpeciesGenerator (FirstSpeciesCounterpointGenerator, TwoLines):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode, cantus_firmus_index: int = 0):
         super().__init__(length, lines, mode)

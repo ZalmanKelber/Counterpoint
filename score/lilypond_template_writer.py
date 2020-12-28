@@ -6,7 +6,7 @@ from notational_entities import RhythmicValue, Pitch, Rest, Note, VocalRange, Ac
 class TemplateWriter:
     def write_template_from_counterpoint(self, counterpoint: list[list[RhythmicValue]], lines: list[VocalRange], filename: str) -> None:
         with open(filename, "w") as output_file:
-            output_file.write("<< ")
+            output_file.write("\\new StaffGroup << ")
             for line in range(len(lines) - 1, -1, -1):
                 clef = get_clef(lines[line])
                 output_file.write('\n \\new Staff { \\clef "' + clef + '" ')
@@ -15,7 +15,7 @@ class TemplateWriter:
                     output_file.write(get_string_representation_of_entity(entity, beat))
                     beat += entity.get_duration() / 2
                     beat %= 4
-                output_file.write(' } ')
+                output_file.write(' \\bar "|." } ')
             output_file.write("\n >>")
 
     

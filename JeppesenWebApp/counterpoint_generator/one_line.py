@@ -1,11 +1,18 @@
-import sys
-sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/notation_system")
-
 from abc import ABC
 
+from random import randint, random, shuffle
+import math
+
+import os,sys,inspect
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+sys.path.insert(0, current_dir)
+
+from notation_system.notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
+from notation_system.mode_resolver import ModeResolver
+
 from counterpoint_generator import CounterpointGenerator
-from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
-from mode_resolver import ModeResolver
 
 from filter_functions.melodic_insertion_checks import begin_and_end_on_mode_final
 
@@ -23,7 +30,7 @@ from filter_functions.harmonic_insertion_checks import prevents_landini
 
 from filter_functions.score_functions import penalize_perfect_intervals_on_downbeats
 
-class SoloMelody (CounterpointGenerator, ABC):
+class OneLine (CounterpointGenerator, ABC):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode):
         if len(lines) != 1:

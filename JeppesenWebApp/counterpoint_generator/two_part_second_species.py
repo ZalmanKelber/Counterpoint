@@ -1,44 +1,43 @@
-import sys
-sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/notation_system")
-
 from random import randint, random
 
-from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
-from mode_resolver import ModeResolver
+import os,sys,inspect
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+sys.path.insert(0, current_dir)
 
-from counterpoint_generator_subclasses import TwoPartCounterpoint
-from counterpoint_generator_species_subclasses import FourthSpeciesCounterpointGenerator
-from counterpoint_generator_solo_subclasses import CantusFirmusGenerator
+from notation_system.notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
+from notation_system.mode_resolver import ModeResolver
+
+from two_lines import TwoLines
+from second_species import SecondSpeciesCounterpointGenerator
+from cantus_firmus import CantusFirmusGenerator
 
 
 from filter_functions.harmonic_insertion_checks import unison_not_allowed_on_downbeat_outside_first_and_last_measure
-from filter_functions.harmonic_insertion_checks import adjacent_voices_stay_within_twelth
+from filter_functions.harmonic_insertion_checks import adjacent_voices_stay_within_tenth
 from filter_functions.harmonic_insertion_checks import forms_passing_tone_second_species
 from filter_functions.harmonic_insertion_checks import resolves_passing_tone_second_species
 from filter_functions.harmonic_insertion_checks import prevents_parallel_fifths_and_octaves_simple
-from filter_functions.harmonic_insertion_checks import resolve_suspension
 
-from filter_functions.harmonic_rhythmic_filters import form_suspension_fourth_species
+from filter_functions.score_functions import find_longest_sequence_of_steps
 
-from filter_functions.score_functions import find_as_many_suspensions_as_possible
-
-class TwoPartFourthSpeciesGenerator (FourthSpeciesCounterpointGenerator, TwoPartCounterpoint):
+class TwoPartSecondSpeciesGenerator (SecondSpeciesCounterpointGenerator, TwoLines):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode, cantus_firmus_index: int = 0):
         super().__init__(length, lines, mode)
         if cantus_firmus_index not in [0, 1]:
             raise Exception("invalid cantus firmus index")
 
+        self._legal_intervals["resolvable_dissonance"] = { -9. -2, 4, 7, 11 }
+
         self._harmonic_insertion_checks.append(unison_not_allowed_on_downbeat_outside_first_and_last_measure)
-        self._harmonic_insertion_checks.append(adjacent_voices_stay_within_twelth)
+        self._harmonic_insertion_checks.append(adjacent_voices_stay_within_tenth)
         self._harmonic_insertion_checks.append(forms_passing_tone_second_species)
         self._harmonic_insertion_checks.append(resolves_passing_tone_second_species)
         self._harmonic_insertion_checks.append(prevents_parallel_fifths_and_octaves_simple)
-        self._harmonic_insertion_checks.append(resolve_suspension)
 
-        self._harmonic_rhythmic_filters.append(form_suspension_fourth_species)
-
-        self._score_functions.append(find_as_many_suspensions_as_possible)
+        self._score_functions.append(find_longest_sequence_of_steps)
 
         #create the cantus firmus we'll use
         self._cantus_firmus_index = cantus_firmus_index
@@ -53,7 +52,7 @@ class TwoPartFourthSpeciesGenerator (FourthSpeciesCounterpointGenerator, TwoPart
     #override:
     #we should try ten attempts before we generate another Cantus Firmus
     def _exit_attempt_loop(self) -> bool:
-        return len(self._solutions) >= 500 or self._number_of_attempts >= 5
+        return len(self._solutions) >= 10 or self._number_of_attempts >= 50
 
     
     #override:
@@ -121,6 +120,6 @@ class TwoPartFourthSpeciesGenerator (FourthSpeciesCounterpointGenerator, TwoPart
     #override:
     #collect unlimited Cantus Firmus examples within 3500 backtracks
     def _exit_backtrack_loop(self) -> bool:
-        if self._number_of_backtracks > 20000 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 150):
+        if self._number_of_backtracks > 3500 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 150):
             return True 
         return False 

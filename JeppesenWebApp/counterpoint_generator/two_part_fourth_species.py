@@ -1,69 +1,52 @@
-import sys
-sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/notation_system")
-
 from random import randint, random
 
-from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
-from mode_resolver import ModeResolver
+import os,sys,inspect
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+sys.path.insert(0, current_dir)
 
-from counterpoint_generator_subclasses import TwoPartCounterpoint
-from counterpoint_generator_species_subclasses import FifthSpeciesCounterpointGenerator
-from counterpoint_generator_solo_subclasses import CantusFirmusGenerator
+from notation_system.notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
+from notation_system.mode_resolver import ModeResolver
 
-from filter_functions.melodic_insertion_checks import end_stepwise
+from two_lines import TwoLines
+from fourth_species import FourthSpeciesCounterpointGenerator
+from cantus_firmus import CantusFirmusGenerator
+
 
 from filter_functions.harmonic_insertion_checks import unison_not_allowed_on_downbeat_outside_first_and_last_measure
 from filter_functions.harmonic_insertion_checks import adjacent_voices_stay_within_twelth
 from filter_functions.harmonic_insertion_checks import forms_passing_tone_second_species
 from filter_functions.harmonic_insertion_checks import resolves_passing_tone_second_species
 from filter_functions.harmonic_insertion_checks import prevents_parallel_fifths_and_octaves_simple
-from filter_functions.harmonic_insertion_checks import forms_weak_quarter_beat_dissonance
-from filter_functions.harmonic_insertion_checks import resolves_weak_quarter_beat_dissonance_fifth_species
-from filter_functions.harmonic_insertion_checks import resolves_cambiata_tail
-from filter_functions.harmonic_insertion_checks import no_dissonant_onsets_on_downbeats
 from filter_functions.harmonic_insertion_checks import resolve_suspension
-from filter_functions.harmonic_insertion_checks import handles_weak_half_note_dissonance_fifth_species
-from filter_functions.harmonic_insertion_checks import resolves_weak_half_note_dissonance_fifth_species
 
-from filter_functions.harmonic_rhythmic_filters import prepares_suspensions_fifth_species
-from filter_functions.harmonic_rhythmic_filters import handle_antipenultimate_bar_of_fifth_species_against_cantus_firmus
-from filter_functions.harmonic_rhythmic_filters import only_quarter_or_half_on_weak_half_note_dissonance
+from filter_functions.harmonic_rhythmic_filters import form_suspension_fourth_species
 
 from filter_functions.score_functions import find_as_many_suspensions_as_possible
 
-
-class TwoPartFifthSpeciesGenerator (FifthSpeciesCounterpointGenerator, TwoPartCounterpoint):
+class TwoPartFourthSpeciesGenerator (FourthSpeciesCounterpointGenerator, TwoLines):
 
     def __init__(self, length: int, lines: list[VocalRange], mode: Mode, cantus_firmus_index: int = 0):
         super().__init__(length, lines, mode)
         if cantus_firmus_index not in [0, 1]:
             raise Exception("invalid cantus firmus index")
 
-        self._melodic_insertion_checks.append(end_stepwise)
-
-        # self._harmonic_insertion_checks.append(unison_not_allowed_on_downbeat_outside_first_and_last_measure)
+        self._harmonic_insertion_checks.append(unison_not_allowed_on_downbeat_outside_first_and_last_measure)
         self._harmonic_insertion_checks.append(adjacent_voices_stay_within_twelth)
+        self._harmonic_insertion_checks.append(forms_passing_tone_second_species)
+        self._harmonic_insertion_checks.append(resolves_passing_tone_second_species)
         self._harmonic_insertion_checks.append(prevents_parallel_fifths_and_octaves_simple)
-        self._harmonic_insertion_checks.append(forms_weak_quarter_beat_dissonance)
-        self._harmonic_insertion_checks.append(resolves_weak_quarter_beat_dissonance_fifth_species)
-        self._harmonic_insertion_checks.append(resolves_cambiata_tail)
-        self._harmonic_insertion_checks.append(no_dissonant_onsets_on_downbeats)
         self._harmonic_insertion_checks.append(resolve_suspension)
-        self._harmonic_insertion_checks.append(handles_weak_half_note_dissonance_fifth_species)
-        self._harmonic_insertion_checks.append(resolves_weak_half_note_dissonance_fifth_species)
-        
-        self._harmonic_rhythmic_filters.append(prepares_suspensions_fifth_species)
-        self._harmonic_rhythmic_filters.append(handle_antipenultimate_bar_of_fifth_species_against_cantus_firmus)
-        self._harmonic_rhythmic_filters.append(only_quarter_or_half_on_weak_half_note_dissonance)
+
+        self._harmonic_rhythmic_filters.append(form_suspension_fourth_species)
 
         self._score_functions.append(find_as_many_suspensions_as_possible)
 
         #create the cantus firmus we'll use
         self._cantus_firmus_index = cantus_firmus_index
         self._cantus_firmus = None
-        last_leap = 5 if mode == Mode.PHRYGIAN else 4
-        #in the Fifth Species, it will be necessary to find a Cantus Firmus that ends in a way that allows us to cadence
-        while self._cantus_firmus is None or self._cantus_firmus[-2].get_tonal_interval(self._cantus_firmus[-1]) not in [-2, last_leap]:
+        while self._cantus_firmus is None:
             cantus_firmus_generator = CantusFirmusGenerator(self._length, [self._lines[self._cantus_firmus_index]], self._mode)
             cantus_firmus_generator.generate_counterpoint(must_end_by_descending_step=True if self._cantus_firmus_index == 1 else False)
             cantus_firmus_generator.score_solutions()
@@ -73,7 +56,7 @@ class TwoPartFifthSpeciesGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
     #override:
     #we should try ten attempts before we generate another Cantus Firmus
     def _exit_attempt_loop(self) -> bool:
-        return len(self._solutions) >= 40 or self._number_of_attempts >= 50 or (self._number_of_attempts >= 40 and len(self._solutions) == 0)
+        return len(self._solutions) >= 500 or self._number_of_attempts >= 5
 
     
     #override:
@@ -141,6 +124,6 @@ class TwoPartFifthSpeciesGenerator (FifthSpeciesCounterpointGenerator, TwoPartCo
     #override:
     #collect unlimited Cantus Firmus examples within 3500 backtracks
     def _exit_backtrack_loop(self) -> bool:
-        if self._number_of_backtracks > 3500 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 1000):
+        if self._number_of_backtracks > 20000 or (self._number_of_solutions_found_this_attempt == 0 and self._number_of_backtracks > 150):
             return True 
         return False 

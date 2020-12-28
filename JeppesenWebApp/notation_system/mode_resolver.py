@@ -1,4 +1,9 @@
+import os,sys,inspect
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+sys.path.insert(0, current_dir)
+
 from notational_entities import Mode, VocalRange, Accidental, Pitch, Note, Rest, Hexachord
+
 
 #provides methods that return information about which pitches should be used in various
 #scenarios based on the mode
