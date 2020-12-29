@@ -1,9 +1,6 @@
-import sys
-sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/notation_system")
-sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/midi")
-sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/score")
-sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/counterpoint_generator")
-sys.path.insert(0, "/Users/alexkelber/Development/midi2audio")
+import os,sys,inspect
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+sys.path.insert(0, current_dir)
 
 from midi2audio import FluidSynth
 
@@ -11,10 +8,10 @@ from time import time
 import math
 from random import random, randint, shuffle
 
-from notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange, Hexachord
-from two_part_counterpoint import TwoPartImitativeCounterpointGenerator
-from midi_writer import MidiWriter
-from lilypond_template_writer import TemplateWriter
+from notation_system.notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange, Hexachord
+from counterpoint_generator.two_part_imitative_counterpoint import TwoPartImitativeCounterpointGenerator
+from midi.midi_writer import MidiWriter
+from score.lilypond_template_writer import TemplateWriter
 
 def main():
     for mode in [Mode.DORIAN]:

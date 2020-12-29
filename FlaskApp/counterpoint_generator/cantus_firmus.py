@@ -12,7 +12,7 @@ sys.path.insert(0, current_dir)
 from notation_system.notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
 from notation_system.mode_resolver import ModeResolver
 
-from counterpoint_generator import CounterpointGenerator
+from base_class import CounterpointGenerator
 
 from first_species import FirstSpeciesCounterpointGenerator
 from one_line import OneLine

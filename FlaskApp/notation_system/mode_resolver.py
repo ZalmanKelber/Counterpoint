@@ -1,8 +1,9 @@
 import os,sys,inspect
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-sys.path.insert(0, current_dir)
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
 
-from notational_entities import Mode, VocalRange, Accidental, Pitch, Note, Rest, Hexachord
+from notation_system.notational_entities import Mode, VocalRange, Accidental, Pitch, Note, Rest, Hexachord
 
 
 #provides methods that return information about which pitches should be used in various

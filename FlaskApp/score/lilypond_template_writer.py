@@ -1,7 +1,9 @@
-import sys
-sys.path.insert(0, "/Users/alexkelber/Documents/Python/Jeppesen/notation_system")
+import os,sys,inspect
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
 
-from notational_entities import RhythmicValue, Pitch, Rest, Note, VocalRange, Accidental
+from notation_system.notational_entities import RhythmicValue, Pitch, Rest, Accidental, VocalRange, Note
 
 class TemplateWriter:
     def write_template_from_counterpoint(self, counterpoint: list[list[RhythmicValue]], lines: list[VocalRange], filename: str) -> None:

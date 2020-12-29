@@ -12,7 +12,7 @@ sys.path.insert(0, current_dir)
 from notation_system.notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
 from notation_system.mode_resolver import ModeResolver
 
-from counterpoint_generator import CounterpointGenerator
+from base_class import CounterpointGenerator
 
 from filter_functions.melodic_insertion_checks import prevent_cross_relations_on_notes_separated_by_one_other_note
 from filter_functions.melodic_insertion_checks import enforce_interval_order_strict

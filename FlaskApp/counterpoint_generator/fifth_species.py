@@ -12,7 +12,7 @@ sys.path.insert(0, current_dir)
 from notation_system.notational_entities import Pitch, RhythmicValue, Rest, Note, Mode, Accidental, VocalRange
 from notation_system.mode_resolver import ModeResolver
 
-from counterpoint_generator import CounterpointGenerator
+from base_class import CounterpointGenerator
 
 
 from filter_functions.melodic_insertion_checks import handles_interval_order_loosest
@@ -30,6 +30,7 @@ from filter_functions.melodic_insertion_checks import eighths_leading_to_downbea
 from filter_functions.melodic_insertion_checks import eighths_in_same_direction_must_be_followed_by_motion_in_opposite_direction
 from filter_functions.melodic_insertion_checks import prevent_note_from_repeating_three_times_in_five_notes
 from filter_functions.melodic_insertion_checks import prevents_fifteenth_century_sharp_resolution
+from filter_functions.melodic_insertion_checks import prevent_dissonances_from_being_outlined
 
 from filter_functions.rhythmic_insertion_filters import enforce_max_pairs_of_eighths
 from filter_functions.rhythmic_insertion_filters import upper_neighbor_cannot_occur_between_two_longer_notes
